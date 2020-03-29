@@ -415,6 +415,9 @@
   .small { font: italic 6px Source Code Pro; }
   @import url('https://fonts.googleapis.com/css?family=Source+Code+Pro&display=swap');
 
+  :global(html) {
+      overflow-y: scroll;
+  }
 
   h2 {
     margin: auto;
