@@ -9,8 +9,8 @@
   import queryString from "query-string";
   import Checkbox from './Checkbox.svelte';
   import Arrow from './Arrow.svelte';
-  import { format } from 'd3-format'
-  import { event } from 'd3-selection'
+  import { format } from 'd3-format';
+  import { event } from 'd3-selection';
 
   import katex from 'katex';
 
@@ -57,6 +57,8 @@
     return r;
   }
 
+  $: allow_x_axis_resizing    = false
+
 
   $: Time_to_death     = 32
   $: logN              = Math.log(7e6)
@@ -70,12 +72,12 @@
   $: D_hospital_lag    = 5
   $: D_death           = Time_to_death - D_infectious 
   $: CFR               = 0.02  
-  $: InterventionTime  = 100  
+  $: InterventionTime  = 99  
   $: OMInterventionAmt = 2/3
   $: InterventionAmt   = 1 - OMInterventionAmt
   $: Time              = 220
   $: Xmax              = 110000
-  $: dt                = 2
+  $: dt                = 1
   $: P_SEVERE          = 0.2
   $: duration          = 7*12*1e10
 
@@ -95,10 +97,11 @@
 
 // dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration
 
-  function get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration) {
+  function get_solution(N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration) {
 
+    var dt = 1
     var interpolation_steps = 40
-    var steps = 110*interpolation_steps
+    var steps = 250*interpolation_steps
     var dt = dt/interpolation_steps
     var sample_step = interpolation_steps
 
@@ -164,19 +167,23 @@
       v =integrate(method,f,v,t,dt); 
       t+=dt
     }
-    return {"P": P, 
-            "deaths": N*v[6], 
-            "total": 1-v[0],
-            "total_infected": TI,
-            "Iters":Iters,
-            "dIters": f}
+    var sol = {
+      "P": P, 
+      "deaths": N*v[9], 
+      "total": 1-v[0],
+      "total_infected": TI,
+      "Iters":Iters,
+      "dIters": f
+    }
+    console.log(sol)
+    return sol
   }
 
   function max(P, checked) {
     return P.reduce((max, b) => Math.max(max, sum(b, checked) ), sum(P[0], checked) )
   }
 
-  $: Sol            = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration)
+  $: Sol            = get_solution(N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration)
   $: P              = Sol["P"].slice(0,100)
   $: timestep       = dt
   $: tmax           = dt*100
@@ -279,10 +286,15 @@
 
   $: parsed = "";
   onMount(async () => {
+
     var drag_callback_y = drag_y()
     drag_callback_y(selectAll("#yAxisDrag"))
-    var drag_callback_x = drag_x()
-    drag_callback_x(selectAll("#xAxisDrag"))
+
+    if (allow_x_axis_resizing) {
+      var drag_callback_x = drag_x()
+      drag_callback_x(selectAll("#xAxisDrag"))
+    }
+    
     var drag_callback_intervention = drag_intervention()
     // drag_callback_intervention(selectAll("#interventionDrag"))
     drag_callback_intervention(selectAll("#dottedline"))
@@ -409,9 +421,21 @@
     width: 950px;
     font-size: 40px;
     padding-top: 20px;
+    padding-bottom: 0px;
+    font-weight: 300;
+    font-family: nyt-franklin,helvetica,arial,sans-serif;
+  }
+
+  h5 {
+    margin: auto;
+    margin-top: 0;
+    width: 950px;
+    font-size: 16px;
+    padding-left: 40px;
     padding-bottom: 20px;
     font-weight: 300;
     font-family: nyt-franklin,helvetica,arial,sans-serif;
+    font-style: italic;
     padding-bottom: 30px
   }
 
@@ -595,7 +619,8 @@
 
 </style>
 
-<h2>Epidemic Calculator</h2>
+<h2>Corona Interventor</h2>
+<h5>A prototype by Futurice built on top of Gabriel Goh's Epidemic Calculator</h5>
 
 <div class="chart" style="display: flex; max-width: 1120px">
 
@@ -749,31 +774,32 @@
              ymax={lock ? Plock: Pmax}
              InterventionTime={InterventionTime}
              colors={colors}
-             log={!log}/>
+             log={!log}
+             />
       </div>
 
       <div id="xAxisDrag"
-           style="pointer-events: all;
+           style="{allow_x_axis_resizing ? "cursor:col-resize;" : ""}
+                  pointer-events: all;
                   position: absolute;
                   top:{height+80}px;
                   left:{0}px;
                   width:{780}px;
                   background-color:#222;
                   opacity: 0;
-                  height:25px;
-                  cursor:col-resize">
+                  height:25px;">
       </div>
 
       <div id="yAxisDrag"
-           style="pointer-events: all;
+           style="cursor:row-resize;
+                  pointer-events: all;
                   position: absolute;
                   top:{55}px;
                   left:{0}px;
                   width:{20}px;
                   background-color:#222;
                   opacity: 0;
-                  height:425px;
-                  cursor:row-resize">
+                  height:425px;">
       </div>
 
       <!-- Intervention Line -->
@@ -914,11 +940,14 @@
             {/each}
       </div>
     
+    <!-- Log scale does not work even in the original Epidemic Calculator, so hide this button that toggles it. -->
+    <!--
     <div style="opacity:{xScaleTime(InterventionTime) >= 192? 1.0 : 0.2}">
       <div class="tick" style="color: #AAA; position:absolute; pointer-events:all; left:10px; top: 10px">
         <Checkbox color="#CCC" bind:checked={log}/><div style="position: relative; top: 4px; left:20px">linear scale</div>
       </div>
     </div>
+    -->
 
    </div>
 
@@ -998,6 +1027,15 @@
 </div>
 
 <div style="position: relative; height: 12px"></div>
+
+
+<!--
+<p class = "center">
+This is a fork of Gabriel Goh's fantastic Epidemic Calculator. The text below is by Gabriel Goh.
+</p>
+
+<hr/>
+<p></p>
 
 <p class = "center">
 At the time of writing, the coronavirus disease of 2019 remains a global health crisis of grave and uncertain magnitude. To the non-expert (such as myself), contextualizing the numbers, forecasts and epidemiological parameters described in the media and literature can be challenging. I created this calculator as an attempt to address this gap in understanding.
@@ -1119,10 +1157,6 @@ See [<a href="https://academic.oup.com/jtm/advance-article/doi/10.1093/jtm/taaa0
 Please DM me feedback <a href="https://twitter.com/gabeeegoooh">here</a> or email me <a href="mailto:izmegabe@gmail.com">here</a>. My <a href="http://gabgoh.github.io/">website</a>.
 </p>
 
-<!-- 
-<p class="center">
-<a href="https://twitter.com/gabeeegoooh?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-show-count="false"><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
-</p> -->
 
 
 <p class = "center">
@@ -1136,9 +1170,10 @@ The clinical dynamics in this model are an elaboration on SEIR that simulates th
 </a> and <a href="https://twitter.com/ludwigschubert">Ludwig Schubert
 </a> wonderful feedback. <a href="https://twitter.com/NikitaJer">Nikita Jerschov</a> for improving clarity of text. Charie Huang for context and discussion.
 </p>
+-->
 
 <!-- Input data -->
-<div style="margin-bottom: 30px">
+<!-- <div style="margin-bottom: 30px">
 
   <div class="center" style="padding: 10px; margin-top: 3px; width: 925px">
     <div class="legendtext">Export parameters:</div>
@@ -1147,3 +1182,4 @@ The clinical dynamics in this model are an elaboration on SEIR that simulates th
     </form>
   </div>
 </div>
+-->
