@@ -776,7 +776,8 @@
              />
       </div>
 
-      <div id="xAxisDrag"
+      {#if allow_x_axis_resizing}
+        <div id="xAxisDrag"
            style="{allow_x_axis_resizing ? "cursor:col-resize;" : ""}
                   pointer-events: all;
                   position: absolute;
@@ -786,7 +787,8 @@
                   background-color:#222;
                   opacity: 0;
                   height:25px;">
-      </div>
+        </div>
+      {/if}
 
       <div id="yAxisDrag"
            style="cursor:row-resize;
