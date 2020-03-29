@@ -101,9 +101,11 @@
 
   function get_solution(N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration) {
 
+    console.log(finnishCoronaData)
+
     var dt = 1
     var interpolation_steps = 40
-    var steps = 250*interpolation_steps
+    var steps = 101*interpolation_steps
     var dt = dt/interpolation_steps
     var sample_step = interpolation_steps
 
@@ -170,10 +172,7 @@
       t+=dt
     }
     var sol = {
-      "P": P, 
-      "deaths": N*v[9], 
-      "total": 1-v[0],
-      "total_infected": TI,
+      "P": P,
       "Iters":Iters,
       "dIters": f
     }
@@ -189,9 +188,6 @@
   $: P              = Sol["P"].slice(0,100)
   $: timestep       = dt
   $: tmax           = dt*100
-  $: deaths         = Sol["deaths"]
-  $: total          = Sol["total"]
-  $: total_infected = Sol["total_infected"].slice(0,100)
   $: Iters          = Sol["Iters"]
   $: dIters         = Sol["dIters"]
   $: Pmax           = max(P, checked)
@@ -769,10 +765,7 @@
       <Chart bind:checked={checked}
              bind:active={active}
              y = {P} 
-             xmax = {Xmax} 
-             total_infected = {total_infected} 
-             deaths = {deaths} 
-             total = {total} 
+             xmax = {Xmax}
              timestep={timestep}
              tmax={tmax}
              N={N}

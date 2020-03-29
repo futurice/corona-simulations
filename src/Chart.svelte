@@ -29,12 +29,9 @@
 
   export let y;
   export let tmax;
-  export let xmax; 
-  export let deaths;
-  export let total;
+  export let xmax;
   export let vline;
   export let timestep;
-  export let total_infected;
   export let N;
   export let ymax;
   export let InterventionTime;
