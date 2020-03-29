@@ -14,6 +14,8 @@
 
   import katex from 'katex';
 
+  import finnishCoronaData from './../data/finnishCoronaData.json';
+
   const legendheight = 67 
 
   function range(n){
