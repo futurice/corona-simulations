@@ -72,7 +72,7 @@
   $: InterventionAmt   = 1 - OMInterventionAmt
   $: Time              = 220
   $: Xmax              = 110000
-  $: dt                = 4
+  $: dt                = 2
   $: P_SEVERE          = 0.2
   $: duration          = 7*12*1e10
 
@@ -209,13 +209,12 @@
 
   /********************************** Generate state (choose which model to run, run it with user specified parameters, etc.) *********************************/
 
-  $: P_all          = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration)
-  $: P_bars         = get_every_nth(P_all, dt)
-  $: timestep       = dt
-  $: tmax           = dt*101
-  $: Pmax           = max(P_bars, checked)
-  $: lock           = false
-
+  $: P_all           = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration)
+  $: P_bars          = get_every_nth(P_all, dt)
+  $: timestep        = dt
+  $: tmax            = dt*101
+  $: Pmax            = max(P_bars, checked)
+  $: lock            = false
 
 
 
@@ -311,7 +310,7 @@
     return formatPercent(P_bars[bar][i] / N)
   }
 
-  function renderSigmaDelta(i, bar) {
+  function renderSigmaDelta(i, bar, thisParameterIsUnusedButItMustExistToForceSvelteToTriggerARender) {
     return `<div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span>
               <i>
                 ${format_count_sigma(i, bar)} 
@@ -530,7 +529,6 @@
 
     var i = argmax(P, 1)
     milestones.push([i*dt, "Peak: " + format(",")(Math.round(P[i][1])) + " hospitalizations"])
-    console.log(milestones)
     return milestones
   }
 
@@ -768,7 +766,7 @@
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Susceptible</div>
           <div style="padding-top: 5px; padding-bottom: 1px">
-            {@html renderSigmaDelta(SUSCEPTIBLE_I, active_)}
+            {@html renderSigmaDelta(SUSCEPTIBLE_I, active_, P_all)}
           </div>
         </div>
         <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4px; position:relative;">
@@ -783,7 +781,7 @@
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Exposed</div>
           <div style="padding-top: 5px; padding-bottom: 1px">
-            {@html renderSigmaDelta(EXPOSED_I, active_)}
+            {@html renderSigmaDelta(EXPOSED_I, active_, P_all)}
           </div>
         </div>
         <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4px; position:relative;">
@@ -796,9 +794,9 @@
         <Checkbox color="{colors[3]}" bind:checked={checked[3]}/>
         <Arrow height="41"/>   
         <div class="legend" style="position:absolute;">
-          <div class="legendtitle">Infectious</div>
+          <div class="legendtitle">Infectious</div>   
           <div style="padding-top: 5px; padding-bottom: 1px">
-            {@html renderSigmaDelta(INFECTIOUS_I, active_)}
+            {@html renderSigmaDelta(INFECTIOUS_I, active_, P_all)}
           </div>
         </div>
         <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4px; position:relative;">
@@ -813,7 +811,7 @@
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Removed</div>
           <div style="padding-top: 10px; padding-bottom: 1px">
-            {@html renderSigmaDelta(REMOVED_I, active_)}
+            {@html renderSigmaDelta(REMOVED_I, active_, P_all)}
           </div>
         </div>
         <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4x; position:relative;">
@@ -828,7 +826,7 @@
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Recovered</div>
           <div style="padding-top: 3px; padding-bottom: 1px">
-            {@html renderSigmaDelta(RECOVERED_I, active_)}
+            {@html renderSigmaDelta(RECOVERED_I, active_, P_all)}
           </div>
         </div>
         <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 8px; position:relative;">
@@ -843,7 +841,7 @@
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Hospitalized</div>
           <div style="padding-top: 3px; padding-bottom: 1px">
-            {@html renderSigmaDelta(HOSPITAL_I, active_)}
+            {@html renderSigmaDelta(HOSPITAL_I, active_, P_all)}
           </div>
         </div>
         <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 10px; position:relative;">
@@ -860,7 +858,7 @@
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Fatalities</div>
           <div style="padding-top: 3px; padding-bottom: 1px">          
-            {@html renderSigmaDelta(DEAD_I, active_)}
+            {@html renderSigmaDelta(DEAD_I, active_, P_all)}
           </div>
         </div>
         <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 10px; position:relative;">
