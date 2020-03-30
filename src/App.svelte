@@ -22,10 +22,6 @@
     return Array(n).fill().map((_, i) => i);
   }
 
-  function formatNumber(num) {
-    return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
-  }
-
   var sum = function(arr, bools){
     var x = 0
     for (var i = 0; i < arr.length; i++) {
@@ -33,6 +29,80 @@
     }
     return x
   }
+
+  // This is needed because when we zoom out, Chart needs every nth datapoint from P.
+  function get_every_nth(P, n) {
+    var arr = []
+    for (var i=0; i<P.length; i+=n) {
+      arr.push(P[i])
+    }
+    return arr
+  }
+
+  function max(P, checked) {
+    return P.reduce((max, b) => Math.max(max, sum(b, checked) ), sum(P[0], checked) )
+  }
+
+  $: allow_x_axis_resizing = false // x axis resizing is broken and needs a complete redesign
+
+
+
+
+
+
+
+
+
+  /*************************** Default parameters are set here. ***************************/
+
+  $: Time_to_death     = 32
+  $: logN              = Math.log(7e6)
+  $: N                 = Math.exp(logN)
+  $: I0                = 1
+  $: R0                = 2.2
+  $: D_incbation       = 5.2       
+  $: D_infectious      = 2.9 
+  $: D_recovery_mild   = (14 - 2.9)  
+  $: D_recovery_severe = (31.5 - 2.9)
+  $: D_hospital_lag    = 5
+  $: D_death           = Time_to_death - D_infectious 
+  $: CFR               = 0.02  
+  $: InterventionTime  = 99  
+  $: OMInterventionAmt = 2/3
+  $: InterventionAmt   = 1 - OMInterventionAmt
+  $: Time              = 220
+  $: Xmax              = 110000
+  $: dt                = 4
+  $: P_SEVERE          = 0.2
+  $: duration          = 7*12*1e10
+
+  // Default parameters are "activated" on page load with the same mechanism that export uses ("share your model").
+  $: state = location.protocol + '//' + location.host + location.pathname + "?" + queryString.stringify({"Time_to_death":Time_to_death,
+               "logN":logN,
+               "I0":I0,
+               "R0":R0,
+               "D_incbation":D_incbation,
+               "D_infectious":D_infectious,
+               "D_recovery_mild":D_recovery_mild,
+               "D_recovery_severe":D_recovery_severe,
+               "CFR":CFR,
+               "InterventionTime":InterventionTime,
+               "InterventionAmt":InterventionAmt,
+               "D_hospital_lag":D_hospital_lag,
+               "P_SEVERE": P_SEVERE})
+
+
+
+
+
+
+
+
+
+
+
+
+  /******************************** Gabriel Goh's model from the original Epidemic Calculator. ********************************/
 
   var Integrators = {
     Euler    : [[1]],
@@ -59,54 +129,12 @@
     return r;
   }
 
-  $: allow_x_axis_resizing    = false
+  // real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration
+  function get_solution(real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration) {
 
-
-  $: Time_to_death     = 32
-  $: logN              = Math.log(7e6)
-  $: N                 = Math.exp(logN)
-  $: I0                = 1
-  $: R0                = 2.2
-  $: D_incbation       = 5.2       
-  $: D_infectious      = 2.9 
-  $: D_recovery_mild   = (14 - 2.9)  
-  $: D_recovery_severe = (31.5 - 2.9)
-  $: D_hospital_lag    = 5
-  $: D_death           = Time_to_death - D_infectious 
-  $: CFR               = 0.02  
-  $: InterventionTime  = 99  
-  $: OMInterventionAmt = 2/3
-  $: InterventionAmt   = 1 - OMInterventionAmt
-  $: Time              = 220
-  $: Xmax              = 110000
-  $: dt                = 1
-  $: P_SEVERE          = 0.2
-  $: duration          = 7*12*1e10
-
-  $: state = location.protocol + '//' + location.host + location.pathname + "?" + queryString.stringify({"Time_to_death":Time_to_death,
-               "logN":logN,
-               "I0":I0,
-               "R0":R0,
-               "D_incbation":D_incbation,
-               "D_infectious":D_infectious,
-               "D_recovery_mild":D_recovery_mild,
-               "D_recovery_severe":D_recovery_severe,
-               "CFR":CFR,
-               "InterventionTime":InterventionTime,
-               "InterventionAmt":InterventionAmt,
-               "D_hospital_lag":D_hospital_lag,
-               "P_SEVERE": P_SEVERE})
-
-// dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration
-
-  function get_solution(N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration) {
-
-    console.log(finnishCoronaData)
-
-    var dt = 1
     var interpolation_steps = 40
-    var steps = 101*interpolation_steps
-    var dt = dt/interpolation_steps
+    var steps = 101*interpolation_steps*real_dt
+    var dt = 1/interpolation_steps
     var sample_step = interpolation_steps
 
     var method = Integrators["RK4"]
@@ -156,42 +184,150 @@
     var v = [1 - I0/N, 0, I0/N, 0, 0, 0, 0, 0, 0, 0]
     var t = 0
 
-    var P  = []
+    var P_all = []
     var TI = []
-    var Iters = []
+    //var Iters = []
     while (steps--) { 
       if ((steps+1) % (sample_step) == 0) {
             //    Dead   Hospital          Recovered        Infectious   Exposed
-        P.push([ N*v[9], N*(v[5]+v[6]),  N*(v[7] + v[8]), N*v[2],    N*v[1] ])
-        Iters.push(v)
+        P_all.push([ N*v[9], N*(v[5]+v[6]),  N*(v[7] + v[8]), N*v[2],    N*v[1] ])
+        //Iters.push(v)
         TI.push(N*(1-v[0]))
-        // console.log((v[0] + v[1] + v[2] + v[3] + v[4] + v[5] + v[6] + v[7] + v[8] + v[9]))
-        // console.log(v[0] , v[1] , v[2] , v[3] , v[4] , v[5] , v[6] , v[7] , v[8] , v[9])
       }
       v =integrate(method,f,v,t,dt); 
       t+=dt
     }
-    var sol = {
-      "P": P,
-      "Iters":Iters,
-      "dIters": f
-    }
-    console.log(sol)
-    return sol
+    return P_all
   }
 
-  function max(P, checked) {
-    return P.reduce((max, b) => Math.max(max, sum(b, checked) ), sum(P[0], checked) )
-  }
 
-  $: Sol            = get_solution(N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration)
-  $: P              = Sol["P"].slice(0,100)
+
+
+
+
+
+
+  /********************************** Generate state (choose which model to run, run it with user specified parameters, etc.) *********************************/
+
+  $: P_all          = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration)
+  $: P_bars         = get_every_nth(P_all, dt)
   $: timestep       = dt
-  $: tmax           = dt*100
-  $: Iters          = Sol["Iters"]
-  $: dIters         = Sol["dIters"]
-  $: Pmax           = max(P, checked)
+  $: tmax           = dt*101
+  $: Pmax           = max(P_bars, checked)
   $: lock           = false
+
+
+
+
+
+
+
+
+  /********************************** Info tooltip helper functions *********************************/
+
+  function formatNumber(num) {
+    return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
+  }
+
+  function formatCount(count) {
+    // Counts are floats in Goh's model, so they need to be rounded.
+    // Also formatting to string with space separators etc.
+    return formatNumber(Math.round(count))
+  }
+
+  function formatDelta(delta) {
+    return (delta >= 0 ? '+' : '') + formatCount(delta)
+  }
+
+  function formatPercent(proportion) {
+    return (100 * proportion).toFixed(2)
+  }
+
+  function sumOfRoundedArrayValues(arr) {
+    var s = 0
+    var len = arr.length
+    for (var i=0; i<len; i++) {
+      s += Math.round(arr[i])
+    }
+    return s
+  }
+
+  // TODO refactor into an object
+  const DEAD_I = 0
+  const HOSPITAL_I = 1
+  const RECOVERED_I = 2
+  const INFECTIOUS_I = 3
+  const EXPOSED_I = 4
+  const SUSCEPTIBLE_I = -1 // Special case // TODO susceptible should exist as an exist value, not just as "N minus every other value".
+  const REMOVED_I = -2 // Special case (composite)
+  
+  function get_count_delta(bar, i) {
+    const currCount = P_all[bar*dt][i]
+    const prevCount = (bar > 0 ? P_all[bar*dt-1][i] : currCount)
+    // We need to round intermediate values in order for delta to be consistent with rounded sigma values.
+    // For example, if day1 sigma value is 100.6 and day day2 sigma value is 100.3, the delta needs to be 1,
+    // because the user sees rounded values "101" and "100" and their delta should be 1, not 0.
+    const delta = Math.round(currCount) - Math.round(prevCount)
+    return delta
+  }
+
+  function getDay(bar) {
+    return Math.round(indexToTime(bar))
+  }
+
+  function format_count_sigma(i, bar) {
+    if (i === SUSCEPTIBLE_I) { return formatCount(N - sumOfRoundedArrayValues(P_bars[bar])) }
+    if (i === REMOVED_I) { return formatCount(P_bars[bar][RECOVERED_I] + P_bars[bar][HOSPITAL_I] + P_bars[bar][DEAD_I]) }
+    return formatCount(P_bars[bar][i])
+  }
+
+  function format_count_delta(i, bar) {
+    if (i == SUSCEPTIBLE_I) {
+      const currCount = N - sumOfRoundedArrayValues(P_all[bar*dt])
+      const prevCount = (
+        bar > 0 ?
+        N - sumOfRoundedArrayValues(P_all[bar*dt-1]) :
+        currCount
+      )
+      const delta = Math.round(currCount) - Math.round(prevCount)
+      return formatDelta(delta)
+    }
+    if (i == REMOVED_I) {
+      const deltaSum = get_count_delta(bar, RECOVERED_I) + get_count_delta(bar, HOSPITAL_I) + get_count_delta(bar, DEAD_I)
+      return formatDelta(deltaSum)
+    }
+    return formatDelta(get_count_delta(bar, i))
+  }
+
+  function format_percent_sigma(i, bar) {
+    if (i == SUSCEPTIBLE_I) {
+      const count = N - sumOfRoundedArrayValues(P_bars[bar])
+      return formatPercent(count / N)
+    }
+    if (i == REMOVED_I) {
+      const countRemoved = P_bars[bar][RECOVERED_I] + P_bars[bar][HOSPITAL_I] + P_bars[bar][DEAD_I]
+      return formatPercent(countRemoved / N)
+    }
+    return formatPercent(P_bars[bar][i] / N)
+  }
+
+  function renderSigmaDelta(i, bar) {
+    return `<div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span>
+              <i>
+                ${format_count_sigma(i, bar)} 
+                (${format_percent_sigma(i, bar)}%)
+              </i>
+            </div>
+            <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span>
+              <i>
+                ${format_count_delta(i, bar)} on day ${getDay(bar)}
+              </i>
+            </div>`
+  }
+
+
+
+
 
   var colors = [ "#386cb0", "#8da0cb", "#4daf4a", "#f0027f", "#fdc086"]
 
@@ -341,14 +477,14 @@
     .range([0, tmax]);
 
   $: indexToTime = scaleLinear()
-    .domain([0, P.length])
+    .domain([0, P_bars.length])
     .range([0, tmax])
 
   window.addEventListener('mouseup', unlock_yaxis);
 
   $: checked = [true, true, false, true, true]
   $: active  = 0
-  $: active_ = active >= 0 ? active : Iters.length - 1
+  $: active_ = active >= 0 ? active : P_bars.length - 1
 
   var Tinc_s = "\\color{#CCC}{T^{-1}_{\\text{inc}}} "
   var Tinf_s = "\\color{#CCC}{T^{-1}_{\\text{inf}}}"
@@ -377,10 +513,6 @@
   
   $: p_num_ind = 40
 
-  $: get_d = function(i){
-    return dIters(indexToTime(i), Iters[i])
-  }
-
   function get_milestones(P){
 
     function argmax(x, index) {
@@ -398,11 +530,11 @@
 
     var i = argmax(P, 1)
     milestones.push([i*dt, "Peak: " + format(",")(Math.round(P[i][1])) + " hospitalizations"])
-
+    console.log(milestones)
     return milestones
   }
 
-  $: milestones = get_milestones(P)
+  $: milestones = get_milestones(P_bars)
   $: log = true
 
 </script>
@@ -620,127 +752,107 @@
 
 </style>
 
-<h2>Corona Interventor</h2>
+<h2>Corosim Finland</h2> <!-- Historical Estimates & Future Modelling -->
 <h5>A prototype by Futurice built on top of Gabriel Goh's Epidemic Calculator</h5>
 
 <div class="chart" style="display: flex; max-width: 1120px">
 
   <div style="flex: 0 0 270px; width:270px;">
     <div style="position:relative; top:48px; right:-115px">
-      <div class="legendtext" style="position:absolute; left:-16px; top:-34px; width:50px; height: 100px; font-size: 13px; line-height:16px; font-weight: normal; text-align: center"><b>Day</b><br> {Math.round(indexToTime(active_))}</div>
+      <div class="legendtext" style="position:absolute; left:-16px; top:-34px; width:50px; height: 100px; font-size: 13px; line-height:16px; font-weight: normal; text-align: center"><b>Day</b><br> {getDay(active_)}</div>
 
       <!-- Susceptible -->
       <div style="position:absolute; left:0px; top:0px; width: 180px; height: 100px">
-
         <span style="pointer-events: none"><Checkbox color="#CCC"/></span>
         <Arrow height="41"/>
-
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Susceptible</div>
           <div style="padding-top: 5px; padding-bottom: 1px">
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(N*Iters[active_][0]))} 
-                                  ({ (100*Iters[active_][0]).toFixed(2) }%)</i></div>
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round(N*get_d(active_)[0]))} / day</i>
-                                 </div>
+            {@html renderSigmaDelta(SUSCEPTIBLE_I, active_)}
           </div>
         </div>
-          <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4px; position:relative;">Population not immune to disease.</div>
-
+        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4px; position:relative;">
+          Population not immune to disease.
+        </div>
       </div>
 
       <!-- Exposed -->
       <div style="position:absolute; left:0px; top:{legendheight*1}px; width: 180px; height: 100px">
-
         <Checkbox color="{colors[4]}" bind:checked={checked[4]}/>      
         <Arrow height="41"/>
-
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Exposed</div>
-
           <div style="padding-top: 5px; padding-bottom: 1px">
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(N*Iters[active_][1]))} 
-                                  ({ (100*Iters[active_][1]).toFixed(2) }%)</div>
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round(N*get_d(active_)[1])) } / day</i>
-                                 </div>
+            {@html renderSigmaDelta(EXPOSED_I, active_)}
           </div>
         </div>
-        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4px; position:relative;">Population currently in incubation.</div>
-
+        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4px; position:relative;">
+          Population currently in incubation.
+        </div>
       </div>
 
       <!-- Infectious -->
       <div style="position:absolute; left:0px; top:{legendheight*2}px; width: 180px; height: 100px">
-
         <Checkbox color="{colors[3]}" bind:checked={checked[3]}/>
         <Arrow height="41"/>   
-
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Infectious</div>
           <div style="padding-top: 5px; padding-bottom: 1px">
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(N*Iters[active_][2]))} 
-                                  ({ (100*Iters[active_][2]).toFixed(2) }%)</div>
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round(N*get_d(active_)[2])) } / day</i>
-                                 </div>
+            {@html renderSigmaDelta(INFECTIOUS_I, active_)}
           </div>
         </div>
-        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4px; position:relative;">Number of infections <i>actively</i> circulating.</div>
-
-
+        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4px; position:relative;">
+          Number of infections <i>actively</i> circulating.
+        </div>
       </div>
 
       <!-- Removed -->
       <div style="position:absolute; left:0px; top:{legendheight*3}px; width: 180px; height: 100px">
-
         <Checkbox color="grey" callback={(s) => {checked[1] = s; checked[0] = s; checked[2] = s} }/>
         <Arrow height="56" arrowhead="" dasharray="3 2"/>
-
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Removed</div>
           <div style="padding-top: 10px; padding-bottom: 1px">
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(N* (1-Iters[active_][0]-Iters[active_][1]-Iters[active_][2]) ))} 
-                                  ({ ((100*(1-Iters[active_][0]-Iters[active_][1]-Iters[active_][2]))).toFixed(2) }%)</div>
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round(N*(get_d(active_)[3]+get_d(active_)[4]+get_d(active_)[5]+get_d(active_)[6]+get_d(active_)[7]) )) } / day</i>
-                                 </div>
+            {@html renderSigmaDelta(REMOVED_I, active_)}
           </div>
         </div>
-        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4x; position:relative;">Population no longer infectious due to isolation or immunity.</div>
-
+        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4x; position:relative;">
+          Population no longer infectious due to isolation or immunity.
+        </div>
       </div>
 
       <!-- Recovered -->
       <div style="position:absolute; left:0px; top:{legendheight*4+14-3}px; width: 180px; height: 100px">
         <Checkbox color="{colors[2]}" bind:checked={checked[2]}/>
-        <Arrow height="23" arrowhead="" dasharray="3 2"/>
+        <Arrow height="43" arrowhead="" dasharray="3 2"/>
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Recovered</div>
-
           <div style="padding-top: 3px; padding-bottom: 1px">
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(N*(Iters[active_][7]+Iters[active_][8]) ))} 
-                                  ({ (100*(Iters[active_][7]+Iters[active_][8])).toFixed(2) }%)</div>
+            {@html renderSigmaDelta(RECOVERED_I, active_)}
           </div>
         </div>
-        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 8px; position:relative;">Full recoveries.</div>
-
+        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 8px; position:relative;">
+          Full recoveries.
+        </div>
       </div>
 
       <!-- Hospitalized -->
-      <div style="position:absolute; left:0px; top:{legendheight*4+57}px; width: 180px; height: 100px">
+      <div style="position:absolute; left:0px; top:{legendheight*5+14-3}px; width: 180px; height: 100px">
         <Arrow height="43" arrowhead="" dasharray="3 2"/>
         <Checkbox color="{colors[1]}" bind:checked={checked[1]}/>
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Hospitalized</div>
           <div style="padding-top: 3px; padding-bottom: 1px">
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(N*(Iters[active_][5]+Iters[active_][6]) ))} 
-                                  ({ (100*(Iters[active_][5]+Iters[active_][6])).toFixed(2) }%)</div>
+            {@html renderSigmaDelta(HOSPITAL_I, active_)}
           </div>
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round(N*(get_d(active_)[5]+get_d(active_)[6]))) } / day</i>
-                                 </div>
         </div>
-        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 10px; position:relative;">Active hospitalizations.</div>
-
+        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 10px; position:relative;">
+          Active hospitalizations.
+        </div>
       </div>
 
-      <div style="position:absolute; left:0px; top:{legendheight*4 + 120+2}px; width: 180px; height: 100px">
+      <!-- Fatalities -->
+      <div style="position:absolute; left:0px; top:{legendheight*6+14-3}px; width: 180px; height: 100px">
         <Arrow height="40" arrowhead="" dasharray="3 2"/>
 
         <Checkbox color="{colors[0]}" bind:checked={checked[0]}/>
@@ -748,13 +860,12 @@
         <div class="legend" style="position:absolute;">
           <div class="legendtitle">Fatalities</div>
           <div style="padding-top: 3px; padding-bottom: 1px">          
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span> <i>{formatNumber(Math.round(N*Iters[active_][9]))} 
-                                  ({ (100*Iters[active_][9]).toFixed(2) }%)</div>
-          <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span> <i>{formatNumber(Math.round(N*get_d(active_)[9])) } / day</i>
-                                 </div>
+            {@html renderSigmaDelta(DEAD_I, active_)}
           </div>
         </div>
-        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 10px; position:relative;">Deaths.</div>
+        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 10px; position:relative;">
+          Deaths.
+        </div>
       </div>
     </div>
   </div>
@@ -764,7 +875,7 @@
     <div style="position:relative; top:60px; left: 10px">
       <Chart bind:checked={checked}
              bind:active={active}
-             y = {P} 
+             y = {P_bars} 
              xmax = {Xmax}
              timestep={timestep}
              tmax={tmax}
