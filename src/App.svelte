@@ -1117,15 +1117,16 @@
         </div>
 
         {#if xScaleTime(InterventionTime) >= 100}
-          <div style="position:absolute; opacity: 0.5; top:-2px; left:-97px; width: 120px">
+          <div style="position:absolute; opacity: 0.5; top:-5px; left:-97px; width: 120px">
           <span style="font-size: 13px">⟵ {@html math_inline("\\mathcal{R}_0=" + (R0).toFixed(2) )}</span>
           </div>      
         {/if}
 
         <div id="interventionDrag" class="legendtext" style="flex: 0 0 160px; width:120px; position:relative;  top:-70px; height: 60px; padding-right: 15px; left: -125px; pointer-events: all;cursor:col-resize;" >
-          <div class="paneltitle" style="top:9px; position: relative; text-align: right">Intervention on day {format("d")(InterventionTime)}</div>
+          <div class="paneltitle" style="top:9px; position: relative; text-align: right">Action on day {format("d")(InterventionTime)}</div>
           <span></span><div style="top:9px; position: relative; text-align: right">
-          (drag me)</div>
+          <!-- (drag me) --> </div>
+          <!--
           <div style="top:43px; left:40px; position: absolute; text-align: right; width: 20px; height:20px; opacity: 0.3">
             <svg width="20" height="20">
               <g transform="rotate(90)">
@@ -1135,6 +1136,7 @@
               </g>
             </svg>
           </div>
+          -->
         </div>
 
 
@@ -1160,8 +1162,8 @@
             height:{height}px">
             <div style="flex: 0 0 160px; width:200px; position:relative; top:-125px; left: 1px" >
               <div class="caption" style="pointer-events: none; position: absolute; left:0; top:40px; width:150px; border-left: 2px solid #777; padding: 5px 7px 7px 7px; ">      
-              <div class="paneltext"  style="height:20px; text-align: right">
-              <div class="paneldesc">to decrease transmission by<br></div>
+              <div class="paneltext" style="height:20px; text-align: right">
+              <div class="paneldesc">to alter transmission by<br></div>
               </div>
               <div style="pointer-events: all">
               <div class="slidertext" on:mousedown={lock_yaxis}>{(100*(1-InterventionAmt)).toFixed(2)}%</div>
