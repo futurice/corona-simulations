@@ -1166,7 +1166,7 @@
               <div class="paneldesc">to alter transmission by<br></div>
               </div>
               <div style="pointer-events: all">
-              <div class="slidertext" on:mousedown={lock_yaxis}>{(100*(1-InterventionAmt)).toFixed(2)}%</div>
+              <div class="slidertext" on:mousedown={lock_yaxis}>{formatDelta(-100*(1-InterventionAmt))}%</div>
               <input class="range" type=range bind:value={OMInterventionAmt} min=-1 max=1 step=0.01 on:mousedown={lock_yaxis}>
               </div>
               </div>
