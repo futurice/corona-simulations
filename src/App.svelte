@@ -572,7 +572,7 @@
     var dragged = function (d) {
       // InterventionTime = Math.max( (*(1 + (event.x - dragstarty)/500)), 10)
       // console.log(event.x)
-      InterventionTime = Math.min(tmax-1, Math.max(lastHistoricTime, InterventionTimeStart + xScaleTimeInv(event.x - dragstarty)))
+      InterventionTime = Math.min(tmax-1, Math.max(P_all_fin.length, InterventionTimeStart + xScaleTimeInv(event.x - dragstarty)))
     }
 
     var dragend = function (d) {
@@ -597,7 +597,7 @@
     var dragged = function (d) {
       // InterventionTime = Math.max( (*(1 + (event.x - dragstarty)/500)), 10)
       // console.log(event.x)
-      duration = Math.min(tmax-1, Math.max(0, durationStart + xScaleTimeInv(event.x - dragstarty)))
+      duration = Math.min(tmax-1, Math.max(P_all_fin.length, durationStart + xScaleTimeInv(event.x - dragstarty)))
     }
 
     var dragend = function (d) {
