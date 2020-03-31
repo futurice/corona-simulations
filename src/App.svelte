@@ -194,8 +194,6 @@
       // If prior is available, we take the last state from prior as our start condition.
       // Pop last item so that it doesn't appear twice after we concatenate the arrays.
 
-      // TODO: figure out how to do popping without repeatedly popping out more and more ...
-      //const s = P_prior.pop()
       const s = P_prior[P_prior.length-1]
 
       // TODO properly
@@ -364,8 +362,7 @@
 
   /********************************** Generate state (choose which model to run, run it with user specified parameters, etc.) *********************************/
 
-  function dirty_hack_to_make_sure_correct_amount_of_values(P, dt) {
-    // TODO: re-evaluate life choices that led to this point.
+  function fix_number_of_values(P, dt) {
     var augmented = []
     for (var i=0; i<P.length; i++) {
       augmented.push(P[i])
@@ -383,10 +380,16 @@
     return augmented
   }
 
+  function combine_historical_and_predictions(P_all_fin, P_all_goh) {
+    // We need to remove first element from P_all_goh because the end historical state
+    // is used as the start state for the predictions.
+    return P_all_fin.concat(P_all_goh.slice(1))
+  }
+
   $: P_all_fin       = createHistoricalEstimatesFromFinnishData(finnishCoronaData)
   $: P_all_goh       = get_solution(P_all_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration)
-  $: P_all_concat    = P_all_fin.concat(P_all_goh)
-  $: P_all           = dirty_hack_to_make_sure_correct_amount_of_values(P_all_concat, dt)
+  $: P_all_both      = combine_historical_and_predictions(P_all_fin, P_all_goh)
+  $: P_all           = fix_number_of_values(P_all_both, dt)
   $: P_bars          = get_every_nth(P_all, dt)
   $: timestep        = dt
   $: tmax            = dt*101
