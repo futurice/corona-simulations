@@ -74,7 +74,7 @@
   $: D_hospital_lag    = 5
   $: D_death           = Time_to_death - D_infectious 
   $: CFR               = 0.02  
-  $: InterventionTime  = 99  
+  $: InterventionTime  = 60
   $: OMInterventionAmt = 2/3
   $: InterventionAmt   = 1 - OMInterventionAmt
   $: Time              = 220
@@ -136,8 +136,8 @@
     return r;
   }
 
-  // real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration
-  function get_solution(real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration) {
+  // P_prior, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration
+  function get_solution(P_prior, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration) {
 
     var interpolation_steps = 40
     var steps = 101*interpolation_steps*real_dt
@@ -189,6 +189,34 @@
     }
 
     var v = [1 - I0/N, 0, I0/N, 0, 0, 0, 0, 0, 0, 0]
+
+    if (P_prior) {
+      // If prior is available, we take the last state from prior as our start condition.
+      // Pop last item so that it doesn't appear twice after we concatenate the arrays.
+
+      // TODO: figure out how to do popping without repeatedly popping out more and more ...
+      //const s = P_prior.pop()
+      const s = P_prior[P_prior.length-1]
+
+      // TODO properly
+      const sRECOVERING = 11124
+
+      const susc = 1 - (s[DEAD_I] + s[HOSPITAL_I] + s[RECOVERED_I] + sRECOVERING + s[INFECTIOUS_I] + s[EXPOSED_I]) / N
+      const expo = s[EXPOSED_I] / N
+      const infe = s[INFECTIOUS_I] / N
+
+      // TODO properly
+      const hidden_mild = 0.84 * sRECOVERING / N
+      const hidden_sev = 0.1 * sRECOVERING / N
+      const hidden_sev_h = 0.05 * sRECOVERING / N
+      const hidden_sev_f = 0.01 * sRECOVERING / N
+      const rec_mild = 0.6 * s[RECOVERED_I] / N
+      const rec_severe = 0.35 * s[RECOVERED_I] / N
+      const rec_fatal = s[DEAD_I] / N
+      
+      v = [susc, expo, infe, hidden_mild, hidden_sev, hidden_sev_h, hidden_sev_f, rec_mild, rec_severe, rec_fatal]
+    }
+
     var t = 0
 
     var P_all = []
@@ -230,6 +258,7 @@
     const lastMidnight = new Date().setUTCHours(0,0,0,0);
 
     // Iterate over cases to find first day, last day.
+    /*
     var firstDateInData = new Date().setFullYear(2200);
     var lastDateInData = new Date().setFullYear(1971);
     function updateFirstAndLastDay(dateTime) {
@@ -256,15 +285,17 @@
       if (dateTime < lastMidnight) {
         updateFirstAndLastDay(dateTime)
       }
-    }
+    }*/
 
+    const epidemyStartDate = new Date(Date.parse(confirmedCases[1]["date"])).setUTCHours(0,0,0,0)
     function daysFromZero(dateTime) {
-      return Math.round((new Date(dateTime).getTime() - new Date(firstDateInData).getTime()) / 86400000);
+      return Math.round((new Date(dateTime).getTime() - new Date(epidemyStartDate).getTime()) / 86400000);
     }
 
     // Count confirmed cases per day, and index them according to "days from day 0"
     const ccCounts = []
-    for (var i=0; i<confirmedCases.length; i++) {
+    // Note: we are skipping the first confirmed case because there were no cases for 1 month after that.
+    for (var i=1; i<confirmedCases.length; i++) {
       const c = confirmedCases[i]
       const dateTime = new Date(Date.parse(c["date"])).setUTCHours(0,0,0,0);
       if (dateTime < lastMidnight) {
@@ -307,9 +338,10 @@
     // TODO x[2] hosp
 
     // As a temporary solution we have manually evaluated hard-coded values
-    const inf_vals = [1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,20,41,41,65,95,133,204,442,743,1234,1660,2040,2840,3488,3892,5092,6004,6676,7508,7968,8564,9500,9512,9608,9540,9447,9347,9144,8697,8371]
-    const exp_vals = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,20,45,50,75,110,135,190,455,805,1340,1855,2295,2965,3490,3720,4820,6000,6520,7160,7880,7840,8040,8300,8560,8500,8311,7813,7467,7014,6874,6737,6603,6472,6343,6217]
-    const hosp_vals = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,2,2,3,4,5,6,7,9,10,12,12,14,15,17,43,50,73,82,96,108,112,134,143,156]
+    const inf_vals = [0,0,0,0,0,20,41,41,65,79,97,164,398,691,1150,1532,1724,2260,2516,2688,3772,4388,4788,5396,5280,5236,5644,5752,5992,5796,5415,5155,4808,4713]
+    const exp_vals = [20,45,50,75,110,135,190,455,805,1340,1855,2295,2965,3490,3720,4820,6000,6520,7160,7880,7840,8040,8300,8560,8500,8311,7813,7467,7014,6874,6737,6603,6472,6343]
+    const hosp_vals = [0,0,0,0,0,0,0,0,0,1,1,2,2,3,4,5,6,7,9,10,12,12,14,15,17,43,50,73,82,96,108,112,134,143]
+    const rec_vals = [1,1,1,1,1,1,3,5,6,16,29,35,53,94,149,237,401,602,923,1237,1524,2066,2595,3060,3877,4696,5439,6233,7008,7829,8729,9558,10407,11124]
     function temporary_bandaid(vals, i) {
       for (var day=0; day<days; day++) {
         if (vals[day]) {
@@ -320,16 +352,7 @@
     temporary_bandaid(inf_vals, INFECTIOUS_I)
     temporary_bandaid(exp_vals, EXPOSED_I)
     temporary_bandaid(hosp_vals, HOSPITAL_I)
-
-    // Fill recovered: total sum of "new_infected" - dead - those currently in hospital
-    const new_inf_vals = [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,20,25,5,25,35,45,80,270,375,570,560,520,940,900,800,1660,1700,1460,1540,1520,1620,1900,1720,1800,1460,1431,1402,1374,1347,1320]
-    var cumulative_sum_of_all_newly_infected = 0
-    for (var day=0; day<days; day++) {
-      if (new_inf_vals[day]) {
-        cumulative_sum_of_all_newly_infected += new_inf_vals[day]
-        P_all[day][RECOVERED_I] = cumulative_sum_of_all_newly_infected - P_all[day][DEAD_I] - P_all[day][HOSPITAL_I]
-      }
-    }
+    temporary_bandaid(rec_vals, RECOVERED_I)
 
     console.log(P_all)
     return P_all
@@ -361,8 +384,9 @@
   }
 
   $: P_all_fin       = createHistoricalEstimatesFromFinnishData(finnishCoronaData)
-  $: P_all_goh       = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration)
-  $: P_all           = dirty_hack_to_make_sure_correct_amount_of_values(P_all_fin, dt)
+  $: P_all_goh       = get_solution(P_all_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration)
+  $: P_all_concat    = P_all_fin.concat(P_all_goh)
+  $: P_all           = dirty_hack_to_make_sure_correct_amount_of_values(P_all_concat, dt)
   $: P_bars          = get_every_nth(P_all, dt)
   $: timestep        = dt
   $: tmax            = dt*101
