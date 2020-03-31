@@ -201,6 +201,7 @@
       const p_mild = 1 - P_SEVERE - CFR
 
       // TODO properly
+      /*
       const sRECOVERING = 11124
 
       const expo = s[EXPOSED_I] / N
@@ -216,6 +217,17 @@
       const rec_mild = (1 - P_SEVERE) * s[RECOVERED_I] / N
       const rec_severe = P_SEVERE * s[RECOVERED_I] / N
       const rec_fatal = s[DEAD_I] / N
+      */
+
+      const expo = 2986/N
+      const infe = 1623/N
+      const hidden_mild = 1250/N
+      const before_hosp = 280/N
+      const hosp = 114/N
+      const hosp_f = 29/N
+      const rec_mild = 3171/N
+      const rec_severe = 4/N
+      const rec_fatal = 17/N
 
       // Susceptible is the remaining proportion
       const susc = 1 - expo - infe - hidden_mild - before_hosp - hosp - hosp_f - rec_mild - rec_severe - rec_fatal
@@ -344,10 +356,10 @@
     // TODO x[2] hosp
 
     // As a temporary solution we have manually evaluated hard-coded values
-    const inf_vals = [0,0,0,0,0,20,41,41,65,79,97,164,398,691,1150,1532,1724,2260,2516,2688,3772,4388,4788,5396,5280,5236,5644,5752,5992,5796,5415,5155,4808,4713]
-    const exp_vals = [20,45,50,75,110,135,190,455,805,1340,1855,2295,2965,3490,3720,4820,6000,6520,7160,7880,7840,8040,8300,8560,8500,8311,7813,7467,7014,6874,6737,6603,6472,6343]
-    const hosp_vals = [0,0,0,0,0,0,0,0,0,1,1,2,2,3,4,5,6,7,9,10,12,12,14,15,17,43,50,73,82,96,108,112,134,143]
-    const rec_vals = [1,1,1,1,1,1,3,5,6,16,29,35,53,94,149,237,401,602,923,1237,1524,2066,2595,3060,3877,4696,5439,6233,7008,7829,8729,9558,10407,11124]
+    const inf_vals = [0,1,2,5,10,15,23,33,35,22,26,42,64,158,290,543,575,555,505,590,660,840,1040,1205,1175,1130,1170,1260,1320,1415,1450,1530,1560,1591,1623]
+    const exp_vals = [23,33,35,45,59,54,76,182,322,593,715,813,940,1015,930,1205,1500,1630,1790,1970,1960,2010,2085,2200,2330,2445,2500,2601,2653,2706,2760,2815,2871,2928,2986]
+    const hosp_vals = [0,0,0,0,0,0,0,0,0,0,1,1,2,2,3,4,5,6,7,11,15,20,22,25,30,33,43,50,73,82,96,108,112,134,143]
+    const rec_vals = [0,0,0,0,0,0,0,0,0,0,1,1,2,2,3,4,5,6,7,11,15,20,22,25,30,33,43,50,73,82,96,108,112,134,143]
     function temporary_bandaid(vals, i) {
       for (var day=0; day<days; day++) {
         if (vals[day]) {
