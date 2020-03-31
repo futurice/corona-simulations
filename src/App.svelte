@@ -364,7 +364,10 @@
     return P_all
   }
 
-
+  function getLastHistoricTime(P_demo_mode, P_all_fin, dt) {
+    if (P_demo_mode === 1) return 0
+    return get_every_nth(P_all_fin, dt).length
+  }
 
 
 
@@ -383,7 +386,7 @@
     augmented = augmented.slice(0, 101*dt)
     // Log to console when this function is needed
     if (augmented.length !== P.length) {
-      console.log("Augm", P.length, "length to", augmented.length)
+      //console.log("Augm", P.length, "length to", augmented.length)
     }
     return augmented
   }
@@ -1067,6 +1070,7 @@
              N={N}
              ymax={lock ? Plock: Pmax}
              InterventionTime={InterventionTime}
+             lastHistoricTime={getLastHistoricTime(P_demo_mode, P_all_fin, dt)}
              colors={colors}
              log={!log}
              />

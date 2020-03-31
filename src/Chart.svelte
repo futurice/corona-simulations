@@ -37,6 +37,11 @@
   export let InterventionTime;
   export let colors; 
   export let log = false;
+  export let lastHistoricTime;
+  
+  function lastHistoricTimeHelper() {
+    return Math.min(Math.max(lastHistoricTime-1, 0), y.length-1)
+  }
 
   const padding = { top: 20, right: 0, bottom: 20, left: 25 };
 
@@ -295,6 +300,56 @@
           </svg>
       </div>
     {/if}
+
+
+
+    
+    <div id="historicalMarker" style="pointer-events: none;
+              position: absolute;
+              top: 20px;
+              left:{xScale(lastHistoricTimeHelper()) + 3}px;
+              visibility: 'visible';
+              width:2px;
+              background-color:#FFF;
+              border-right: 1px dashed plum;
+              height: {Math.max(yScale(sum(y[lastHistoricTimeHelper()], checked)),0) - 30}px;">
+    </div>
+    <!-- WIP
+    <div style="position:absolute;
+                opacity: 0.5;
+                top: 20px;
+                left:{xScale(lastHistoricTimeHelper()) + 10}px;
+                width: 120px;
+                height: {Math.max(yScale(sum(y[lastHistoricTimeHelper()], checked)),0) - 30}px;">
+      <span style="font-size: 14px">Future ⟶</span>  
+    </div>
+    {#if lastHistoricTimeHelper() > 0}
+    <div style="position:absolute;
+                opacity: 0.5;
+                top: 20px;
+                left:{xScale(lastHistoricTimeHelper()) - 65}px;
+                height: {Math.max(yScale(sum(y[lastHistoricTimeHelper()], checked)),0) - 30}px;">
+      <span style="font-size: 14px">⟵ History</span>  
+    </div>
+    {/if}-->
+
+    <div style="position:absolute; 
+                  pointer-events: none;
+                  width:100px;
+                  left:{xScale(lastHistoricTimeHelper())}px;
+                  top:{Math.max(yScale(sum(y[lastHistoricTimeHelper()], checked)),0) }px" class="tip"> 
+          <!-- {#if lock} <div style="position:absolute; top:-35px; left:-3.5px; font-family: Source Code Pro">🔒</div> {/if} -->
+          <svg style="position:absolute; top:-12px; left:0px" height="10" width="10">
+          <path 
+            d="M 0 0 L 10 0 L 5 10 z"
+            fill="plum" 
+            stroke-width="3" />
+          </svg>
+    </div>
+
+
+
+
 
   </div>
 
