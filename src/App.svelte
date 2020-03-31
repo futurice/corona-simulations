@@ -219,6 +219,7 @@
       const rec_fatal = s[DEAD_I] / N
       */
 
+      /*
       const expo = 2986/N
       const infe = 1623/N
       const hidden_mild = 1250/N
@@ -226,6 +227,17 @@
       const hosp = 114/N
       const hosp_f = 29/N
       const rec_mild = 3171/N
+      const rec_severe = 4/N
+      const rec_fatal = 17/N
+      */
+
+      const expo = 2008/N
+      const infe = 1200/N
+      const hidden_mild = 1135/N
+      const before_hosp = 280/N
+      const hosp = 114/N
+      const hosp_f = 29/N
+      const rec_mild = 2406/N
       const rec_severe = 4/N
       const rec_fatal = 17/N
 
@@ -353,10 +365,17 @@
     // TODO x[2] hosp
 
     // As a temporary solution we have manually evaluated hard-coded values
-    const inf_vals = [0,1,2,5,10,15,23,33,35,22,26,42,64,158,290,543,575,555,505,590,660,840,1040,1205,1175,1130,1170,1260,1320,1415,1450,1530,1560,1591,1623]
-    const exp_vals = [23,33,35,45,59,54,76,182,322,593,715,813,940,1015,930,1205,1500,1630,1790,1970,1960,2010,2085,2200,2330,2445,2500,2601,2653,2706,2760,2815,2871,2928,2986]
-    const hosp_vals = [0,0,0,0,0,0,0,0,0,0,1,1,2,2,3,4,5,6,7,11,15,20,22,25,30,33,43,50,73,82,96,108,112,134,143]
-    const rec_vals = [0,0,0,0,0,0,0,0,0,0,1,1,2,2,3,4,5,6,7,11,15,20,22,25,30,33,43,50,73,82,96,108,112,134,143]
+    
+    //const inf_vals = [0,1,2,5,10,15,23,33,35,22,26,42,64,158,290,543,575,555,505,590,660,840,1040,1205,1175,1130,1170,1260,1320,1415,1450,1530,1560,1591,1623]
+    //const exp_vals = [23,33,35,45,59,54,76,182,322,593,715,813,940,1015,930,1205,1500,1630,1790,1970,1960,2010,2085,2200,2330,2445,2500,2601,2653,2706,2760,2815,2871,2928,2986]
+    //const hosp_vals = [0,0,0,0,0,0,0,0,0,0,1,1,2,2,3,4,5,6,7,11,15,20,22,25,30,33,43,50,73,82,96,108,112,134,143]
+    //const rec_vals = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,17,27,33,39,50,68,116,207,379,559,730,883,1062,1261,1516,1832,2193,2534,2852,3175]
+    
+    const inf_vals = [0,1,2,5,10,15,0,0,23,33,35,22,26,42,64,158,290,543,575,555,505,590,660,840,1040,1205,1175,1130,1170,1260,1320,1415,1340,1300,1200]
+    const exp_vals = [23,33,35,45,59,54,76,182,322,593,715,813,940,1015,930,1205,1500,1630,1790,1970,1960,2010,2085,2200,1820,1415,1340,1300,1200,1600,2000,2000,2000,2000,2008]
+    const hosp_vals = [0,0,0,0,0,0,0,0,0,0,1,1,2,2,3,4,5,6,7,11,15,20,22,25,30,33,43,50,73,82,96,108,112,134,143,137]
+    const rec_vals = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,16,25,29,34,44,59,103,188,355,532,698,846,1018,1207,1446,1742,2085,2410]
+
     function temporary_bandaid(vals, i) {
       for (var day=0; day<days; day++) {
         if (vals[day]) {
@@ -1274,7 +1293,7 @@
   <div class = "row">
 
     <div class="column">
-      <div class="paneltitle">Demo configs <!-- Population Inputs --> </div>
+      <div class="paneltitle">Proto Zoom <!-- Population Inputs --> </div>
 
 
 
@@ -1286,10 +1305,8 @@
 
 
 
-      <div class="paneldesc" style="height:30px; border-top: 0px solid #EEE;">Zoom x-axis <!-- Number of initial infections. --> <br></div> 
-      <!-- <div class="slidertext">{I0}</div> -->
+      <div class="paneldesc" style="height:30px; border-top: 0px solid #EEE;">Zoom<br></div> 
       <div class="slidertext">1/{dt}</div>
-      <!-- <input class="range" type=range bind:value={I0} min={1} max=10000 step=1> -->
       <input class="range" type=range bind:value={dt} min=1 max=4 step=1>
 
 
