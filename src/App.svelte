@@ -414,7 +414,7 @@
   $: tmax            = dt*101
   $: Pmax            = max(P_bars, checked)
   $: lock            = false
-
+  $: lastHistoricTime = getLastHistoricTime(P_demo_mode, P_all_fin, dt)
 
 
 
@@ -568,10 +568,11 @@
       lock = true
     }
 
+
     var dragged = function (d) {
       // InterventionTime = Math.max( (*(1 + (event.x - dragstarty)/500)), 10)
       // console.log(event.x)
-      InterventionTime = Math.min(tmax-1, Math.max(0, InterventionTimeStart + xScaleTimeInv(event.x - dragstarty)))
+      InterventionTime = Math.min(tmax-1, Math.max(lastHistoricTime, InterventionTimeStart + xScaleTimeInv(event.x - dragstarty)))
     }
 
     var dragend = function (d) {
@@ -1070,7 +1071,7 @@
              N={N}
              ymax={lock ? Plock: Pmax}
              InterventionTime={InterventionTime}
-             lastHistoricTime={getLastHistoricTime(P_demo_mode, P_all_fin, dt)}
+             lastHistoricTime={lastHistoricTime}
              colors={colors}
              log={!log}
              />
@@ -1269,15 +1270,15 @@
 
 
 
-      <div class="paneldesc" style="height:30px">Mode <!-- Size of population. --><br></div>
+      <!--<div class="paneldesc" style="height:30px">Mode / Size of population. <br></div> -->
       <!-- <div class="slidertext">{format(",")(Math.round(N))}</div> -->
-      <div class="slidertext">{P_demo_mode === 1 ? 'Future' : (P_demo_mode === 2 ? 'History' : 'History+Future')}</div> 
+      <!-- <div class="slidertext">{P_demo_mode === 1 ? 'Future' : (P_demo_mode === 2 ? 'History' : 'History+Future')}</div> -->
       <!-- <input class="range" style="margin-bottom: 8px"type=range bind:value={logN} min={5} max=25 step=0.01> -->
-      <input class="range" style="margin-bottom: 8px"type=range bind:value={P_demo_mode} min=1 max=3 step=1>
+      <!-- <input class="range" style="margin-bottom: 8px"type=range bind:value={P_demo_mode} min=1 max=3 step=1> -->
 
 
 
-      <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Zoom x-axis <!-- Number of initial infections. --> <br></div> 
+      <div class="paneldesc" style="height:30px; border-top: 0px solid #EEE;">Zoom x-axis <!-- Number of initial infections. --> <br></div> 
       <!-- <div class="slidertext">{I0}</div> -->
       <div class="slidertext">1/{dt}</div>
       <!-- <input class="range" type=range bind:value={I0} min={1} max=10000 step=1> -->
