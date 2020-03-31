@@ -62,7 +62,7 @@
 
   /*************************** Default parameters are set here. ***************************/
 
-  $: Time_to_death     = 32
+  $: Time_to_death     = 18 // From Mikko Viikari. Days from end of incubation to death.
   $: N                 = 5538328
   $: logN              = Math.log(N)
   $: I0                = 1
@@ -70,17 +70,17 @@
   $: D_incbation       = 5.2       
   $: D_infectious      = 2.9 
   $: D_recovery_mild   = (14 - 2.9)  
-  $: D_recovery_severe = 8 // From THL's estimate (published ~end of march)
-  $: D_hospital_lag    = 10 // From THL's estimate
+  $: D_recovery_severe = 13 // From Mikko Viikari. For comparison, THL's estimate was 8 days (published ~end of march)
+  $: D_hospital_lag    = 11 // From Mikko Viikari. For comparison, THL's estimate was 10 days.
   $: D_death           = Time_to_death - D_infectious 
-  $: CFR               = 0.003 // From Mikko Viikari. Some recent research evaluates this at 0.006: https://www.thelancet.com/journals/laninf/article/PIIS1473-3099%2820%2930243-7/fulltext
+  $: CFR               = 0.006 // From https://www.thelancet.com/journals/laninf/article/PIIS1473-3099%2820%2930243-7/fulltext
   $: InterventionTime  = 60
   $: OMInterventionAmt = 2/3
   $: InterventionAmt   = 1 - OMInterventionAmt
   $: Time              = 220
   $: Xmax              = 110000
   $: dt                = 1
-  $: P_SEVERE          = 0.0085 // Hospitalization rate. From Mikko Viikari.
+  $: P_SEVERE          = 0.028 // Hospitalization rate. From Mikko Viikari.
   $: duration          = 7*12*1e10
 
   // Default parameters are "activated" on page load with the same mechanism that export uses ("share your model").
@@ -332,12 +332,9 @@
         dCounts[day] = dCounts[day]+1 || 1
       }
     }
-
-    console.log(ccCounts)
-    console.log(dCounts)
     
     // Initialize P_all with the number of days that we need, initialize each day with [0,0,0,0,0]
-    const days = ccCounts.length
+    const days = 35 // TODO properly; ccCounts.length
     const P_all = []
     for (var day=0; day<days; day++) {
       P_all[day] = [0,0,0,0,0]
@@ -372,7 +369,6 @@
     temporary_bandaid(hosp_vals, HOSPITAL_I)
     temporary_bandaid(rec_vals, RECOVERED_I)
 
-    console.log(P_all)
     return P_all
   }
 
