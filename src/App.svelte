@@ -205,7 +205,7 @@
 
       // TODO the split between severe home and severe hospital; do it somehow properly!
       const hidden_mild = p_mild * sRECOVERING / N // TODO check that this is correct
-      const hosp = s[HOSPITAL_I] / N
+      const hosp = 0.9 * s[HOSPITAL_I] / N
       const before_hosp = 1.2 * hosp
       const hosp_f = 0.1 * hosp // ?
 
@@ -216,8 +216,6 @@
 
       // Susceptible is the remaining proportion
       const susc = 1 - expo - infe - hidden_mild - before_hosp - hosp - hosp_f - rec_mild - rec_severe - rec_fatal
-
-      console.log('hospitalized at current state', Math.round(N*(hosp+hosp_f)))
       
       v = [susc, expo, infe, hidden_mild, before_hosp, hosp, hosp_f, rec_mild, rec_severe, rec_fatal]
     }
@@ -379,7 +377,7 @@
       augmented.push([0,0,0,0,0])
     }
     // If we have too many values, take desired slice from the beginning.
-    augmented = augmented.slice(0, 101*dt+1)
+    augmented = augmented.slice(0, 101*dt)
     // Log to console when this function is needed
     if (augmented.length !== P.length) {
       console.log("Augm", P.length, "length to", augmented.length)
