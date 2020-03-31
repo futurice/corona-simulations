@@ -45,7 +45,14 @@
 
   $: allow_x_axis_resizing = false // x axis resizing is broken and needs a complete redesign
 
-
+  // TODO refactor into an object
+  const DEAD_I = 0
+  const HOSPITAL_I = 1
+  const RECOVERED_I = 2
+  const INFECTIOUS_I = 3
+  const EXPOSED_I = 4
+  const SUSCEPTIBLE_I = -1 // Special case // TODO susceptible should exist as an exist value, not just as "N minus every other value".
+  const REMOVED_I = -2 // Special case (composite)
 
 
 
@@ -72,7 +79,7 @@
   $: InterventionAmt   = 1 - OMInterventionAmt
   $: Time              = 220
   $: Xmax              = 110000
-  $: dt                = 2
+  $: dt                = 1
   $: P_SEVERE          = 0.2
   $: duration          = 7*12*1e10
 
@@ -201,7 +208,132 @@
   }
 
 
+  
 
+
+
+  /******************************** Historical Estimates From Finnish Data ********************************/
+
+  function createHistoricalEstimatesFromFinnishData(fin) {
+
+    /*
+      We want to be able to estimate the following counts for each day based on confirmed case counts and deaths:
+        Dead
+        Hospital
+        Recovered
+        Infectious
+        Exposed
+    */
+
+    const confirmedCases = fin['confirmed']
+    const deaths = fin['deaths']
+    const lastMidnight = new Date().setUTCHours(0,0,0,0);
+
+    // Iterate over cases to find first day, last day.
+    var firstDateInData = new Date().setFullYear(2200);
+    var lastDateInData = new Date().setFullYear(1971);
+    function updateFirstAndLastDay(dateTime) {
+      dateTime = dateTime.setUTCHours(0,0,0,0);
+      if (dateTime < firstDateInData) {
+        firstDateInData = dateTime
+      }
+      if (dateTime > lastDateInData) {
+        lastDateInData = dateTime
+      }
+    }
+    for (var i=0; i<confirmedCases.length; i++) {
+      const c = confirmedCases[i]
+      const dateTime = new Date(Date.parse(c["date"]))
+      if (dateTime < lastMidnight) {
+        // We might have "partial data" for today, which would be an ugly corner case to present nicely on the graph.
+        // For now, let's simply throw away any data from today (any data which is timestamped after the following threshold).
+        updateFirstAndLastDay(dateTime)
+      }
+    }
+    for (var i=0; i<deaths.length; i++) {
+      const c = deaths[i]
+      const dateTime = new Date(Date.parse(c["date"]))
+      if (dateTime < lastMidnight) {
+        updateFirstAndLastDay(dateTime)
+      }
+    }
+
+    function daysFromZero(dateTime) {
+      return Math.round((new Date(dateTime).getTime() - new Date(firstDateInData).getTime()) / 86400000);
+    }
+
+    // Count confirmed cases per day, and index them according to "days from day 0"
+    const ccCounts = []
+    for (var i=0; i<confirmedCases.length; i++) {
+      const c = confirmedCases[i]
+      const dateTime = new Date(Date.parse(c["date"])).setUTCHours(0,0,0,0);
+      if (dateTime < lastMidnight) {
+        const day = daysFromZero(dateTime)
+        ccCounts[day] = ccCounts[day]+1 || 1
+      }
+    }
+
+    // Count deaths per day, and index them according to "days from day 0"
+    const dCounts = []
+    for (var i=0; i<deaths.length; i++) {
+      const c = deaths[i]
+      const dateTime = new Date(Date.parse(c["date"])).setUTCHours(0,0,0,0);
+      if (dateTime < lastMidnight) {
+        const day = daysFromZero(dateTime)
+        dCounts[day] = dCounts[day]+1 || 1
+      }
+    }
+
+    console.log(ccCounts)
+    console.log(dCounts)
+    
+    // Initialize P_all with the number of days that we need, initialize each day with [0,0,0,0,0]
+    const days = ccCounts.length
+    const P_all = []
+    for (var day=0; day<days; day++) {
+      P_all[day] = [0,0,0,0,0]
+    }
+    
+    // Fill deaths cumulatively
+    for (var day=0; day<days; day++) {
+      const newDeaths = dCounts[day] || 0
+      const oldDeaths = (day > 0 ? P_all[day-1][DEAD_I] : 0)
+      P_all[day][DEAD_I] = oldDeaths + newDeaths
+    }
+
+    // TODO: Develop a method to infer these from HS confirmed case counts!.
+    // TODO x[3] inf
+    // TODO x[4] exp
+    // TODO x[2] hosp
+
+    // As a temporary solution we have manually evaluated hard-coded values
+    const inf_vals = [1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,20,41,41,65,95,133,204,442,743,1234,1660,2040,2840,3488,3892,5092,6004,6676,7508,7968,8564,9500,9512,9608,9540,9447,9347,9144,8697,8371]
+    const exp_vals = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,20,45,50,75,110,135,190,455,805,1340,1855,2295,2965,3490,3720,4820,6000,6520,7160,7880,7840,8040,8300,8560,8500,8311,7813,7467,7014,6874,6737,6603,6472,6343,6217]
+    const hosp_vals = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,2,2,3,4,5,6,7,9,10,12,12,14,15,17,43,50,73,82,96,108,112,134,143,156]
+    function temporary_bandaid(vals, i) {
+      for (var day=0; day<days; day++) {
+        if (vals[day]) {
+          P_all[day][i] = vals[day]
+        }
+      }
+    }
+    temporary_bandaid(inf_vals, INFECTIOUS_I)
+    temporary_bandaid(exp_vals, EXPOSED_I)
+    temporary_bandaid(hosp_vals, HOSPITAL_I)
+
+    // Fill recovered: total sum of "new_infected" - dead - those currently in hospital
+    const new_inf_vals = [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,20,25,5,25,35,45,80,270,375,570,560,520,940,900,800,1660,1700,1460,1540,1520,1620,1900,1720,1800,1460,1431,1402,1374,1347,1320]
+    var cumulative_sum_of_all_newly_infected = 0
+    for (var day=0; day<days; day++) {
+      if (new_inf_vals[day]) {
+        cumulative_sum_of_all_newly_infected += new_inf_vals[day]
+        P_all[day][RECOVERED_I] = cumulative_sum_of_all_newly_infected - P_all[day][DEAD_I] - P_all[day][HOSPITAL_I]
+      }
+    }
+
+    console.log(P_all)
+    return P_all
+  }
 
 
 
@@ -209,7 +341,28 @@
 
   /********************************** Generate state (choose which model to run, run it with user specified parameters, etc.) *********************************/
 
-  $: P_all           = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration)
+  function dirty_hack_to_make_sure_correct_amount_of_values(P, dt) {
+    // TODO: re-evaluate life choices that led to this point.
+    var augmented = []
+    for (var i=0; i<P.length; i++) {
+      augmented.push(P[i])
+    }
+    // If we have too few values, augment with empty so that the Chart renders properly.
+    while (augmented.length < 101*dt) {
+      augmented.push([0,0,0,0,0])
+    }
+    // If we have too many values, take desired slice from the beginning.
+    augmented = augmented.slice(0, 101*dt+1)
+    // Log to console when this function is needed
+    if (augmented.length !== P.length) {
+      console.log("Augm", P.length, "length to", augmented.length)
+    }
+    return augmented
+  }
+
+  $: P_all_fin       = createHistoricalEstimatesFromFinnishData(finnishCoronaData)
+  $: P_all_goh       = get_solution(dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration)
+  $: P_all           = dirty_hack_to_make_sure_correct_amount_of_values(P_all_fin, dt)
   $: P_bars          = get_every_nth(P_all, dt)
   $: timestep        = dt
   $: tmax            = dt*101
@@ -250,15 +403,6 @@
     }
     return s
   }
-
-  // TODO refactor into an object
-  const DEAD_I = 0
-  const HOSPITAL_I = 1
-  const RECOVERED_I = 2
-  const INFECTIOUS_I = 3
-  const EXPOSED_I = 4
-  const SUSCEPTIBLE_I = -1 // Special case // TODO susceptible should exist as an exist value, not just as "N minus every other value".
-  const REMOVED_I = -2 // Special case (composite)
   
   function get_count_delta(bar, i) {
     const currCount = P_all[bar*dt][i]
