@@ -63,7 +63,7 @@
   /*************************** Default parameters are set here. ***************************/
 
   $: Time_to_death     = 32
-  $: N                 = 5336070
+  $: N                 = 5538328
   $: logN              = Math.log(N)
   $: I0                = 1
   $: R0                = 1.6 // THL estimate of current R0 with restrictions on individual freedoms
@@ -1254,9 +1254,12 @@
       <div class="paneldesc" style="height:30px">Size of population.<br></div>
       <div class="slidertext">{format(",")(Math.round(N))}</div>
       <input class="range" style="margin-bottom: 8px"type=range bind:value={logN} min={5} max=25 step=0.01>
-      <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Number of initial infections.<br></div>
-      <div class="slidertext">{I0}</div>
-      <input class="range" type=range bind:value={I0} min={1} max=10000 step=1>
+      <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Zoom x-axis <!-- Number of initial infections. --> <br></div> 
+      <!-- <div class="slidertext">{I0}</div> -->
+      <div class="slidertext">1/{dt}</div>
+      <!-- <input class="range" type=range bind:value={I0} min={1} max=10000 step=1> -->
+      <input class="range" type=range bind:value={dt} min=1 max=4 step=1>
+      {P_all.length}
     </div>
 
     <div class="column">
