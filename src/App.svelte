@@ -137,7 +137,7 @@
   }
 
   // P_prior, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration
-  function get_solution(P_prior, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration) {
+  function get_solution(P_demo_mode, P_prior, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration) {
 
     var interpolation_steps = 40
     var steps = 101*interpolation_steps*real_dt
@@ -148,9 +148,12 @@
     function f(t, x){
 
       // SEIR ODE
-      if (t > InterventionTime && t < InterventionTime + duration){
+
+      const adjustedInterventionTime = (P_demo_mode !==3 ? InterventionTime : InterventionTime-P_prior.length)
+      
+      if (t > adjustedInterventionTime && t < adjustedInterventionTime + duration){
         var beta = (InterventionAmt)*R0/(D_infectious)
-      } else if (t > InterventionTime + duration) {
+      } else if (t > adjustedInterventionTime + duration) {
         var beta = 0.5*R0/(D_infectious)        
       } else {
         var beta = R0/(D_infectious)
@@ -400,7 +403,7 @@
 
   $: P_demo_mode     = 3
   $: P_all_fin       = createHistoricalEstimatesFromFinnishData(finnishCoronaData)
-  $: P_all_goh       = get_solution(P_all_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration)
+  $: P_all_goh       = get_solution(P_demo_mode, P_all_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration)
   $: P_all_both      = combine_historical_and_predictions(P_all_fin, P_all_goh)
   $: P_all           = choose_P(P_demo_mode, dt, P_all_fin, P_all_goh, P_all_both)
   $: P_bars          = get_every_nth(P_all, dt)
@@ -1256,11 +1259,11 @@
   <div class = "row">
 
     <div class="column">
-      <div class="paneltitle">Population Inputs</div>
+      <div class="paneltitle">Demo configs <!-- Population Inputs --> </div>
 
 
 
-      <div class="paneldesc" style="height:30px">Demo mode <!-- Size of population. --><br></div>
+      <div class="paneldesc" style="height:30px">Mode <!-- Size of population. --><br></div>
       <!-- <div class="slidertext">{format(",")(Math.round(N))}</div> -->
       <div class="slidertext">{P_demo_mode === 1 ? 'Future' : (P_demo_mode === 2 ? 'History' : 'History+Future')}</div> 
       <!-- <input class="range" style="margin-bottom: 8px"type=range bind:value={logN} min={5} max=25 step=0.01> -->
