@@ -63,24 +63,24 @@
   /*************************** Default parameters are set here. ***************************/
 
   $: Time_to_death     = 32
-  $: logN              = Math.log(7e6)
-  $: N                 = Math.exp(logN)
+  $: N                 = 5336070
+  $: logN              = Math.log(N)
   $: I0                = 1
-  $: R0                = 2.2
+  $: R0                = 1.6 // THL estimate of current R0 with restrictions on individual freedoms
   $: D_incbation       = 5.2       
   $: D_infectious      = 2.9 
   $: D_recovery_mild   = (14 - 2.9)  
-  $: D_recovery_severe = (31.5 - 2.9)
-  $: D_hospital_lag    = 5
+  $: D_recovery_severe = 8 // From THL's estimate (published ~end of march)
+  $: D_hospital_lag    = 10 // From THL's estimate
   $: D_death           = Time_to_death - D_infectious 
-  $: CFR               = 0.02  
+  $: CFR               = 0.003 // From Mikko Viikari. Some recent research evaluates this at 0.006: https://www.thelancet.com/journals/laninf/article/PIIS1473-3099%2820%2930243-7/fulltext
   $: InterventionTime  = 60
   $: OMInterventionAmt = 2/3
   $: InterventionAmt   = 1 - OMInterventionAmt
   $: Time              = 220
   $: Xmax              = 110000
   $: dt                = 1
-  $: P_SEVERE          = 0.2
+  $: P_SEVERE          = 0.0085 // Hospitalization rate. From Mikko Viikari.
   $: duration          = 7*12*1e10
 
   // Default parameters are "activated" on page load with the same mechanism that export uses ("share your model").
@@ -192,27 +192,34 @@
 
     if (P_prior) {
       // If prior is available, we take the last state from prior as our start condition.
-      // Pop last item so that it doesn't appear twice after we concatenate the arrays.
 
       const s = P_prior[P_prior.length-1]
+
+      const p_mild = 1 - P_SEVERE - CFR
 
       // TODO properly
       const sRECOVERING = 11124
 
-      const susc = 1 - (s[DEAD_I] + s[HOSPITAL_I] + s[RECOVERED_I] + sRECOVERING + s[INFECTIOUS_I] + s[EXPOSED_I]) / N
       const expo = s[EXPOSED_I] / N
       const infe = s[INFECTIOUS_I] / N
 
-      // TODO properly
-      const hidden_mild = 0.84 * sRECOVERING / N
-      const hidden_sev = 0.1 * sRECOVERING / N
-      const hidden_sev_h = 0.05 * sRECOVERING / N
-      const hidden_sev_f = 0.01 * sRECOVERING / N
-      const rec_mild = 0.6 * s[RECOVERED_I] / N
-      const rec_severe = 0.35 * s[RECOVERED_I] / N
+      // TODO the split between severe home and severe hospital; do it somehow properly!
+      const hidden_mild = p_mild * sRECOVERING / N // TODO check that this is correct
+      const hosp = s[HOSPITAL_I] / N
+      const before_hosp = 1.2 * hosp
+      const hosp_f = 0.1 * hosp // ?
+
+      // These must some to one, so cannot use p_mild here.
+      const rec_mild = (1 - P_SEVERE) * s[RECOVERED_I] / N
+      const rec_severe = P_SEVERE * s[RECOVERED_I] / N
       const rec_fatal = s[DEAD_I] / N
+
+      // Susceptible is the remaining proportion
+      const susc = 1 - expo - infe - hidden_mild - before_hosp - hosp - hosp_f - rec_mild - rec_severe - rec_fatal
+
+      console.log('hospitalized at current state', Math.round(N*(hosp+hosp_f)))
       
-      v = [susc, expo, infe, hidden_mild, hidden_sev, hidden_sev_h, hidden_sev_f, rec_mild, rec_severe, rec_fatal]
+      v = [susc, expo, infe, hidden_mild, before_hosp, hosp, hosp_f, rec_mild, rec_severe, rec_fatal]
     }
 
     var t = 0
