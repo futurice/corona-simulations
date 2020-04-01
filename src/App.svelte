@@ -66,7 +66,7 @@
   $: N                 = 5538328
   $: logN              = Math.log(N)
   $: I0                = 1
-  $: R0                = 1.6 // THL estimate of current R0 with restrictions on individual freedoms
+  $: R0                = 1.05
   $: D_incbation       = 5.2       
   $: D_infectious      = 2.9 
   $: D_recovery_mild   = (14 - 2.9)  
@@ -75,7 +75,7 @@
   $: D_death           = Time_to_death - D_infectious 
   $: CFR               = 0.006 // From https://www.thelancet.com/journals/laninf/article/PIIS1473-3099%2820%2930243-7/fulltext
   $: InterventionTime  = 60
-  $: OMInterventionAmt = 2/3
+  $: OMInterventionAmt = -1/2
   $: InterventionAmt   = 1 - OMInterventionAmt
   $: Time              = 220
   $: Xmax              = 110000
