@@ -1,6 +1,8 @@
 # Corona Simulations
 
-TODO link to webpage here and short explanation.
+https://futu-corosim-proto.netlify.com/
+
+Note that this is WIP that was quickly hacked together to respond to the crisis.
 
 ## Initial setup
 
@@ -26,5 +28,4 @@ npm run build
 
 ## Production deployment
 
-TODO. Netlify?
-
+Commits to `master` branch are automatically deployed to Netlify.
