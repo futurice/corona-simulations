@@ -11,12 +11,13 @@
   import Arrow from './Arrow.svelte';
   import { format } from 'd3-format';
   import { event } from 'd3-selection';
+  import defaultParameters from '../default_parameters.js'
 
   import katex from 'katex';
 
   import finnishCoronaData from './../data/finnishCoronaData.json';
 
-  const legendheight = 67 
+  const legendheight = 67
 
   function range(n){
     return Array(n).fill().map((_, i) => i);
@@ -59,28 +60,25 @@
 
 
 
-
-  /*************************** Default parameters are set here. ***************************/
-
-  $: Time_to_death     = 18 // From Mikko Viikari. Days from end of incubation to death.
-  $: N                 = 5538328
+  $: Time_to_death     = defaultParameters["days_from_incubation_to_death"]
+  $: N                 = defaultParameters["initial_population_count"]
   $: logN              = Math.log(N)
   $: I0                = 1
-  $: R0                = 1.05
-  $: D_incbation       = 5.2       
-  $: D_infectious      = 2.9 
-  $: D_recovery_mild   = (14 - 2.9)  
-  $: D_recovery_severe = 13 // From Mikko Viikari. For comparison, THL's estimate was 8 days (published ~end of march)
-  $: D_hospital_lag    = 11 // From Mikko Viikari. For comparison, THL's estimate was 10 days.
+  $: R0                = defaultParameters["R0"]
+  $: D_incbation       = defaultParameters["days_from_incubation_to_infectious"]  
+  $: D_infectious      = defaultParameters["days_from_infectious_to_not_infectious"]
+  $: D_recovery_mild   = defaultParameters["days_in_mild_recovering_state"]
+  $: D_recovery_severe = defaultParameters["days_in_hospital"]
+  $: D_hospital_lag    = defaultParameters["days_in_severe_recovering_state_before_hospital"]
   $: D_death           = Time_to_death - D_infectious 
-  $: CFR               = 0.006 // From https://www.thelancet.com/journals/laninf/article/PIIS1473-3099%2820%2930243-7/fulltext
-  $: InterventionTime  = 60
-  $: OMInterventionAmt = -1/2
+  $: CFR               = defaultParameters["fatality_rate"]
+  $: InterventionTime  = defaultParameters["InterventionTime"]
+  $: OMInterventionAmt = defaultParameters["OMInterventionAmt"]
   $: InterventionAmt   = 1 - OMInterventionAmt
   $: Time              = 220
   $: Xmax              = 110000
   $: dt                = 1
-  $: P_SEVERE          = 0.028 // Hospitalization rate. From Mikko Viikari.
+  $: P_SEVERE          = defaultParameters["hospitalization_rate"]
   $: duration          = 7*12*1e10
 
   // Default parameters are "activated" on page load with the same mechanism that export uses ("share your model").
