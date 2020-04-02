@@ -135,7 +135,7 @@
   }
 
   // P_prior, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration
-  function get_solution(P_demo_mode, P_prior, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration) {
+  function get_solution(P_prior, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration) {
 
     var interpolation_steps = 40
     var steps = 101*interpolation_steps*real_dt
@@ -147,7 +147,7 @@
 
       // SEIR ODE
 
-      const adjustedInterventionTime = (P_demo_mode !==3 ? InterventionTime : InterventionTime-P_prior.length)
+      const adjustedInterventionTime = InterventionTime - P_prior.length
       
       if (t > adjustedInterventionTime && t < adjustedInterventionTime + duration){
         var beta = (InterventionAmt)*R0/(D_infectious)
@@ -247,20 +247,21 @@
 
     var t = 0
 
-    var P_all = []
-    var TI = []
-    //var Iters = []
+    var goh_states = []
     while (steps--) { 
       if ((steps+1) % (sample_step) == 0) {
-            //    Dead   Hospital          Recovered        Infectious   Exposed
-        P_all.push([ N*v[9], N*(v[5]+v[6]),  N*(v[7] + v[8]), N*v[2],    N*v[1] ])
-        //Iters.push(v)
-        TI.push(N*(1-v[0]))
+        goh_states.push(v.slice())
       }
       v =integrate(method,f,v,t,dt); 
       t+=dt
     }
-    return P_all
+
+    return map_goh_states_into_chart_states(goh_states, N)
+  }
+
+  function map_goh_states_into_chart_states(goh_states, N) {
+                              // Dead    Hospital        Recovered        Infectious Exposed
+    return goh_states.map(v => [ N*v[9], N*(v[5]+v[6]),  N*(v[7] + v[8]), N*v[2],    N*v[1] ])
   }
 
 
@@ -389,14 +390,17 @@
     return P_all
   }
 
-  function getLastHistoricTime(P_demo_mode, P_all_fin, dt) {
-    if (P_demo_mode === 1) return 0
+  function getLastHistoricTime(P_all_fin, dt) {
+    if (!P_all_fin) return 0
     return get_every_nth(P_all_fin, dt).length
   }
 
 
 
-  /********************************** Generate state (choose which model to run, run it with user specified parameters, etc.) *********************************/
+
+
+
+
 
   function fix_number_of_values(P, dt) {
     var augmented = []
@@ -422,24 +426,24 @@
     return P_all_fin.concat(P_all_goh.slice(1))
   }
 
-  function choose_P(P_demo_mode, dt, P_all_fin, P_all_goh, P_all_both) {
-    var P = P_all_both
-    if (P_demo_mode == 1) P = P_all_goh
-    if (P_demo_mode == 2) P = P_all_fin
-    return fix_number_of_values(P, dt)
-  }
 
-  $: P_demo_mode     = 3
+
+
+
+  
+
+  /********************************** Generate state (choose which model to run, run it with user specified parameters, etc.) *********************************/
+
   $: P_all_fin       = createHistoricalEstimatesFromFinnishData(finnishCoronaData)
-  $: P_all_goh       = get_solution(P_demo_mode, P_all_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration)
+  $: P_all_goh       = get_solution(P_all_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration)
   $: P_all_both      = combine_historical_and_predictions(P_all_fin, P_all_goh)
-  $: P_all           = choose_P(P_demo_mode, dt, P_all_fin, P_all_goh, P_all_both)
+  $: P_all           = fix_number_of_values(P_all_both, dt)
   $: P_bars          = get_every_nth(P_all, dt)
   $: timestep        = dt
   $: tmax            = dt*101
   $: Pmax            = max(P_bars, checked)
   $: lock            = false
-  $: lastHistoricTime = getLastHistoricTime(P_demo_mode, P_all_fin, dt)
+  $: lastHistoricTime = getLastHistoricTime(P_all_fin, dt)
 
 
 
@@ -973,7 +977,7 @@
 
   <div style="flex: 0 0 270px; width:270px;">
     <div style="position:relative; top:48px; right:-115px">
-      <div class="legendtext" style="position:absolute; left:-16px; top:-34px; width:50px; height: 100px; font-size: 13px; line-height:16px; font-weight: normal; text-align: center"><b>Day</b><br> {getDay(active_)}</div>
+      <div class="legendtext" style="position:absolute; left:-70px; top:-34px; width:150px; height: 100px; font-size: 13px; line-height:16px; font-weight: normal; text-align: center"><b>Highlighted day:</b><br>Day {getDay(active_)}</div>
 
       <!-- Susceptible -->
       <div style="position:absolute; left:0px; top:0px; width: 180px; height: 100px">
