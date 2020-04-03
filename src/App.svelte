@@ -16,6 +16,7 @@
   import katex from 'katex';
 
   import finnishCoronaData from './../data/finnishCoronaData.json';
+  import berkeley_states from './../data/berkeley1.json';
   import finnishHistoricalEstimates from './../data/finnishHistoricalEstimates.csv';
 
 
@@ -68,7 +69,7 @@
     {
       'key': K_INF,
       'tooltip_title': 'Infected',
-      'tooltip_desc': 'Active infections (incl. incubating and hospitalized)',
+      'tooltip_desc': 'Active infections (incl. incubating, undiagnosed and hospitalized)',
       'checkable': true,
       'checked': true,
       'color': '#f0027f',
@@ -312,7 +313,7 @@
   }
 
   /** Map Berkeley model's internal states into states represented by our chart. */
-  function map_berkeley_states_into_chartV2_states(berkeley_states) {
+  function map_berkeley_states_into_chartV2_states(berkeley_states, N) {
     const susceptible = 'S'
     const incubating = 'E'
     const asymptomatic = 'A'
@@ -332,6 +333,17 @@
     const hospitalized_non_critical_will_die = 'HM3'
     const recovered = 'R'
     const dead = 'M'
+
+    // TODO figure out what are "RP" and "mc"
+
+    // TODO this / 4486 * N thing should be done in R
+
+    // group 1
+    function h(v) {
+      return Math.round(v / 4486 * N)
+    }
+
+    // TODO verify that states sum up to one for every day
 
     return berkeley_states.map(b => {
 
@@ -366,23 +378,22 @@
             b[hospitalized_severe_will_survive]
           + b[hospitalized_severe_will_die]
 
-      const recovered =
+      const recov =
             b[recovered]
 
-      const dead=
+      const fatalities =
             b[dead]
 
       return new State(
-        suscep,
-        infected,
-        infected_hospitalized,
-        infected_hospitalized_icu,
-        recovered,
-        fatalities
+        h(suscep),
+        h(infected),
+        h(infected_hospitalized),
+        h(infected_hospitalized_icu),
+        h(recov),
+        h(fatalities)
       )
     })
   }
-  
 
 
 
@@ -391,6 +402,8 @@
   function isValidDate(d) {
     return d instanceof Date && !isNaN(d);
   }
+
+  let first_date = new Date()
 
   function loadFinnishHistoricalEstimates(fin, N) {
     var prevRowValid = false
@@ -408,7 +421,11 @@
         }
         break
       }
-      prevRowValid = true
+      if (isValidDate(date) && !prevRowValid) {
+        first_date = date
+        prevRowValid = true
+      }
+      
 
       function h(col) {
         return parseInt(row[col])
@@ -509,6 +526,7 @@
   $: goh_states_fin  = loadFinnishHistoricalEstimates(finnishHistoricalEstimates, N)
   $: P_all_fin       = map_goh_states_into_chartV2_states(goh_states_fin, N, P_ICU)
   $: P_all_goh       = get_solution(goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration)
+  $: P_all_berkeley  = map_berkeley_states_into_chartV2_states(berkeley_states, N)
   $: P_all_both      = combine_historical_and_predictions(P_all_fin, P_all_goh)
   $: P_all           = fix_number_of_values(P_all_both, dt)
   $: P_bars          = get_every_nth(P_all, dt)
@@ -564,6 +582,24 @@
 
   function getDay(bar) {
     return Math.round(indexToTime(bar))
+  }
+
+  function addDays(date, days) {
+    var result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  }
+
+  function formatDate(date) {
+    const year = new Intl.DateTimeFormat('en', { year: 'numeric' }).format(date)
+    const month = new Intl.DateTimeFormat('en', { month: 'numeric' }).format(date)
+    const day = new Intl.DateTimeFormat('en', { day: '2-digit' }).format(date)
+    return `${day}.${month}.${year}`
+  }
+
+  function getDate(bar) {
+    const days = getDay(bar)
+    return formatDate(addDays(first_date, days))
   }
 
   function renderSigmaDelta(state, bar, P_all) {
@@ -1016,14 +1052,18 @@
 
 </style>
 
-<h2>Corosim</h2> <!-- Historical Estimates & Future Modelling -->
-<h5>A prototype by Futurice built on top of Gabriel Goh's Epidemic Calculator</h5>
+<h2>Corosim</h2>
+<h5>Historical Estimates & Future Modelling of Coronavirus in Finland</h5>
 
 <div class="chart" style="display: flex; max-width: 1120px">
 
   <div style="flex: 0 0 270px; width:270px;">
     <div style="position:relative; top:48px; right:-115px">
-      <div class="legendtext" style="position:absolute; left:-70px; top:-34px; width:150px; height: 100px; font-size: 13px; line-height:16px; font-weight: normal; text-align: center"><b>Highlighted day:</b><br>Day {getDay(active_)}</div>
+      <div class="legendtext" style="position:absolute; left:-70px; top:-50px; width:150px; height: 100px; font-size: 13px; line-height:16px; font-weight: normal; text-align: center">
+        <b>Highlighted day:</b>
+        <br>Day {getDay(active_)}
+        <br>{getDate(active_)}
+      </div>
 
       <!-- Tooltip states -->
       {#each stateMeta as state,i}
