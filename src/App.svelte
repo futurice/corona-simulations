@@ -11,24 +11,19 @@
   import Arrow from './Arrow.svelte';
   import { format } from 'd3-format';
   import { event } from 'd3-selection';
-  import defaultParameters from '../default_parameters.js'
+  import defaultParameters from '../default_parameters.js';
 
   import katex from 'katex';
 
   import finnishCoronaData from './../data/finnishCoronaData.json';
+  import finnishHistoricalEstimates from './../data/finnishHistoricalEstimates.csv';
+
+
 
   const legendheight = 67
 
   function range(n){
     return Array(n).fill().map((_, i) => i);
-  }
-
-  var sum = function(arr, bools){
-    var x = 0
-    for (var i = 0; i < arr.length; i++) {
-      x = x + arr[i]*(bools[i] ? 1 : 0)
-    }
-    return x
   }
 
   // This is needed because when we zoom out, Chart needs every nth datapoint from P.
@@ -40,24 +35,77 @@
     return arr
   }
 
-  function max(P, checked) {
-    return P.reduce((max, b) => Math.max(max, sum(b, checked) ), sum(P[0], checked) )
-  }
-
   $: allow_x_axis_resizing = false // x axis resizing is broken and needs a complete redesign
 
-  // TODO refactor into an object
-  const DEAD_I = 0
-  const HOSPITAL_I = 1
-  const RECOVERED_I = 2
-  const INFECTIOUS_I = 3
-  const EXPOSED_I = 4
-  const SUSCEPTIBLE_I = -1 // Special case // TODO susceptible should exist as an exist value, not just as "N minus every other value".
-  const REMOVED_I = -2 // Special case (composite)
+  // Chart V2 state object keys
+  const K_SUSCEPTIBLE = 'susceptible'
+  const K_INF = 'inf'
+  const K_INF_HOSP = 'inf_hosp'
+  const K_INF_HOSP_ICU = 'inf_hosp_icu'
+  const K_RECOVERED = 'recovered'
+  const K_FATALITIES = 'fatalities'
 
+  class State {
+    constructor(susceptible, inf, inf_hosp, inf_hosp_icu, recovered, fatalities) {
+      this[K_SUSCEPTIBLE] = susceptible
+      this[K_INF] = inf
+      this[K_INF_HOSP] = inf_hosp
+      this[K_INF_HOSP_ICU] = inf_hosp_icu
+      this[K_RECOVERED] = recovered
+      this[K_FATALITIES] = fatalities
+    }
+  }
 
-
-
+  $: stateMeta = [
+    {
+      'key': K_SUSCEPTIBLE,
+      'tooltip_title': 'Susceptible',
+      'tooltip_desc': 'Population not immune to the disease',
+      'checkable': false,
+      'checked': false,
+      'color': '#c8ffba',
+    },
+    {
+      'key': K_INF,
+      'tooltip_title': 'Infected',
+      'tooltip_desc': 'Active infections (incl. incubating and hospitalized)',
+      'checkable': true,
+      'checked': true,
+      'color': '#f0027f',
+    },
+    {
+      'key': K_INF_HOSP,
+      'tooltip_title': 'Hospitalized',
+      'tooltip_desc': 'Active hospitalizations (includes ICU)',
+      'checkable': true,
+      'checked': true,
+      'color': '#8da0cb'
+    },
+    {
+      'key': K_INF_HOSP_ICU,
+      'tooltip_title': 'ICU',
+      'tooltip_desc': 'Patients in intensive care',
+      'checkable': true,
+      'checked': true,
+      'color': '#386cb0',
+    },
+    {
+      'key': K_RECOVERED,
+      'tooltip_title': 'Recovered',
+      'tooltip_desc': 'Number of full recoveries, cumulative',
+      'checkable': true,
+      'checked': false,
+      'color': '#4daf4a',
+    },
+    {
+      'key': K_FATALITIES,
+      'tooltip_title': 'Fatalities',
+      'tooltip_desc': 'Number of deaths, cumulative',
+      'checkable': true,
+      'checked': true,
+      'color': "#000000",
+    },
+  ]
 
 
   $: Time_to_death     = defaultParameters["days_from_incubation_to_death"]
@@ -79,6 +127,7 @@
   $: Xmax              = 110000
   $: dt                = 1
   $: P_SEVERE          = defaultParameters["hospitalization_rate"]
+  $: P_ICU             = defaultParameters["icu_rate_from_hospitalized"]
   $: duration          = 7*12*1e10
 
   // Default parameters are "activated" on page load with the same mechanism that export uses ("share your model").
@@ -135,7 +184,7 @@
   }
 
   // P_prior, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration
-  function get_solution(P_prior, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration) {
+  function get_solution(historical_goh_states, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration) {
 
     var interpolation_steps = 40
     var steps = 101*interpolation_steps*real_dt
@@ -147,7 +196,7 @@
 
       // SEIR ODE
 
-      const adjustedInterventionTime = InterventionTime - P_prior.length
+      const adjustedInterventionTime = InterventionTime - historical_goh_states.length
       
       if (t > adjustedInterventionTime && t < adjustedInterventionTime + duration){
         var beta = (InterventionAmt)*R0/(D_infectious)
@@ -159,7 +208,7 @@
       var a     = 1/D_incbation
       var gamma = 1/D_infectious
       
-      var S        = x[0] // Susectable
+      var S        = x[0] // Susceptible
       var E        = x[1] // Exposed
       var I        = x[2] // Infectious 
       var Mild     = x[3] // Recovering (Mild)     
@@ -189,64 +238,13 @@
       return [dS, dE, dI, dMild, dSevere, dSevere_H, dFatal, dR_Mild, dR_Severe, dR_Fatal]
     }
 
-    var v = [1 - I0/N, 0, I0/N, 0, 0, 0, 0, 0, 0, 0]
-
-    if (P_prior) {
-      // If prior is available, we take the last state from prior as our start condition.
-
-      const s = P_prior[P_prior.length-1]
-
-      const p_mild = 1 - P_SEVERE - CFR
-
-      // TODO properly
-      /*
-      const sRECOVERING = 11124
-
-      const expo = s[EXPOSED_I] / N
-      const infe = s[INFECTIOUS_I] / N
-
-      // TODO the split between severe home and severe hospital; do it somehow properly!
-      const hidden_mild = p_mild * sRECOVERING / N // TODO check that this is correct
-      const hosp = 0.9 * s[HOSPITAL_I] / N
-      const before_hosp = 1.2 * hosp
-      const hosp_f = 0.1 * hosp // ?
-
-      // These must some to one, so cannot use p_mild here.
-      const rec_mild = (1 - P_SEVERE) * s[RECOVERED_I] / N
-      const rec_severe = P_SEVERE * s[RECOVERED_I] / N
-      const rec_fatal = s[DEAD_I] / N
-      */
-
-      /*
-      const expo = 2986/N
-      const infe = 1623/N
-      const hidden_mild = 1250/N
-      const before_hosp = 280/N
-      const hosp = 114/N
-      const hosp_f = 29/N
-      const rec_mild = 3171/N
-      const rec_severe = 4/N
-      const rec_fatal = 17/N
-      */
-
-      const expo = 2008/N
-      const infe = 1200/N
-      const hidden_mild = 1135/N
-      const before_hosp = 280/N
-      const hosp = 114/N
-      const hosp_f = 29/N
-      const rec_mild = 2406/N
-      const rec_severe = 4/N
-      const rec_fatal = 17/N
-
-      // Susceptible is the remaining proportion
-      const susc = 1 - expo - infe - hidden_mild - before_hosp - hosp - hosp_f - rec_mild - rec_severe - rec_fatal
-      
-      v = [susc, expo, infe, hidden_mild, before_hosp, hosp, hosp_f, rec_mild, rec_severe, rec_fatal]
-    }
+    // If historical data is available, we take the last historical state as our start state.
+    var v =
+      historical_goh_states ?
+      v = historical_goh_states[historical_goh_states.length - 1] :
+      [1 - I0/N, 0, I0/N, 0, 0, 0, 0, 0, 0, 0]
 
     var t = 0
-
     var goh_states = []
     while (steps--) { 
       if ((steps+1) % (sample_step) == 0) {
@@ -256,138 +254,195 @@
       t+=dt
     }
 
-    return map_goh_states_into_chart_states(goh_states, N)
+    return map_goh_states_into_chartV2_states(goh_states, N, P_ICU)
   }
 
-  function map_goh_states_into_chart_states(goh_states, N) {
-                              // Dead    Hospital        Recovered        Infectious Exposed
-    return goh_states.map(v => [ N*v[9], N*(v[5]+v[6]),  N*(v[7] + v[8]), N*v[2],    N*v[1] ])
+  /** This was the original mapping from Goh model's internal states into the chartable states.
+   *  Note that these states do not represent the entire population:
+   *  - "Recovering" states are not included in any of the 5 output states
+   *  - "Susceptible" states, likewise, are not included
+   *  When those numbers were needed, Goh's original code had separate functions that
+   *  would calculate numbers on need-to-know basis. For example, the tooltip for "removed" would sum up
+   *  several chartable states (recovered, hospital, dead) and some states which are not included
+   *  in the chart (recovering_mild, recovering_severe_home, recovering_severe_hospital).
+  */
+  function map_goh_states_into_chartV1_states(goh_states, N) {
+    return goh_states.map(v => {
+      const dead = N*v[9]
+      const hospitalized = N*(v[5]+v[6])
+      const recovered = N*(v[7] + v[8])
+      const infectious = N*v[2]
+      const exposed = N*v[1]
+      return [dead, hospitalized, recovered, infectious, exposed]
+    })
   }
 
+  /** Map Goh model's internal states into states represented by our chart. */
+  function map_goh_states_into_chartV2_states(goh_states, N, P_ICU) {
+    return goh_states.map(v => {
+      // First, just for readability, we name the states in the array
+      const susceptible = v[0]
+      const exposed = v[1]
+      const infectious = v[2]
+      const recovering_mild = v[3]
+      const recovering_severe_home = v[4]
+      const hospitalized_will_recover = v[5]
+      const hospitalized_will_die = v[6]
+      const recovered_mild = v[7]
+      const recovered_severe = v[8]
+      const dead = v[9]
 
+      // Then, compute ChartV2 states.
+      const suscep = Math.round(susceptible * N)
+      const infected = Math.round((exposed + infectious + recovering_mild + recovering_severe_home + hospitalized_will_recover + hospitalized_will_die) * N)
+      const infected_hospitalized = Math.round((hospitalized_will_recover + hospitalized_will_die) * N)
+      const infected_hospitalized_icu = Math.round(P_ICU * infected_hospitalized)
+      const recovered = Math.round((recovered_mild + recovered_severe) * N)
+      const fatalities = Math.round(dead * N)
+
+      return new State(
+        suscep,
+        infected,
+        infected_hospitalized,
+        infected_hospitalized_icu,
+        recovered,
+        fatalities
+      )
+    })
+  }
+
+  /** Map Berkeley model's internal states into states represented by our chart. */
+  function map_berkeley_states_into_chartV2_states(berkeley_states) {
+    const susceptible = 'S'
+    const incubating = 'E'
+    const asymptomatic = 'A'
+    const asymptomatic_non_severe = 'X1'
+    const symptomatic_non_hospitalized_non_severe = 'X2'
+    const asymptomatic_severe_will_survive = 'C1'
+    const symptomatic_non_hospitalized_severe_will_survive = 'C2'
+    const hospitalized_severe_will_survive = 'C3'
+    const asymptomatic_severe_will_die = 'D1'
+    const symptomatic_severe_will_die = 'D2'
+    const hospitalized_severe_will_die = 'D3'
+    const asymptomatic_non_critical_will_survive = 'HR1'
+    const symptomatic_non_critical_will_survive = 'HR2'
+    const hospitalized_non_critical_will_survive = 'HR3'
+    const asymptomatic_non_critical_will_die = 'HM1'
+    const symptomatic_non_critical_will_die = 'HM2'
+    const hospitalized_non_critical_will_die = 'HM3'
+    const recovered = 'R'
+    const dead = 'M'
+
+    return berkeley_states.map(b => {
+
+      const suscep =
+            b[susceptible]
+
+      const infected =
+            b[incubating]
+          + b[asymptomatic]
+          + b[asymptomatic_non_severe]
+          + b[symptomatic_non_hospitalized_non_severe]
+          + b[asymptomatic_severe_will_survive]
+          + b[symptomatic_non_hospitalized_severe_will_survive]
+          + b[hospitalized_severe_will_survive]
+          + b[asymptomatic_severe_will_die]
+          + b[symptomatic_severe_will_die]
+          + b[hospitalized_severe_will_die]
+          + b[asymptomatic_non_critical_will_survive]
+          + b[symptomatic_non_critical_will_survive]
+          + b[hospitalized_non_critical_will_survive]
+          + b[asymptomatic_non_critical_will_die]
+          + b[symptomatic_non_critical_will_die]
+          + b[hospitalized_non_critical_will_die]
+
+      const infected_hospitalized =
+            b[hospitalized_severe_will_survive]
+          + b[hospitalized_severe_will_die]
+          + b[hospitalized_non_critical_will_survive]
+          + b[hospitalized_non_critical_will_die]
+
+      const infected_hospitalized_icu =
+            b[hospitalized_severe_will_survive]
+          + b[hospitalized_severe_will_die]
+
+      const recovered =
+            b[recovered]
+
+      const dead=
+            b[dead]
+
+      return new State(
+        suscep,
+        infected,
+        infected_hospitalized,
+        infected_hospitalized_icu,
+        recovered,
+        fatalities
+      )
+    })
+  }
   
 
 
 
   /******************************** Historical Estimates From Finnish Data ********************************/
 
-  function createHistoricalEstimatesFromFinnishData(fin) {
+  function isValidDate(d) {
+    return d instanceof Date && !isNaN(d);
+  }
 
-    /*
-      We want to be able to estimate the following counts for each day based on confirmed case counts and deaths:
-        Dead
-        Hospital
-        Recovered
-        Infectious
-        Exposed
-    */
+  function loadFinnishHistoricalEstimates(fin, N) {
+    var prevRowValid = false
+    var day = 0
+    var goh_states = []
+    for (var i=0; i<fin.length; i++) {
+      const row = fin[i]
+      const date = new Date(row['Date'])
 
-    const confirmedCases = fin['confirmed']
-    const deaths = fin['deaths']
-    const lastMidnight = new Date().setUTCHours(0,0,0,0);
-
-    // Iterate over cases to find first day, last day.
-    /*
-    var firstDateInData = new Date().setFullYear(2200);
-    var lastDateInData = new Date().setFullYear(1971);
-    function updateFirstAndLastDay(dateTime) {
-      dateTime = dateTime.setUTCHours(0,0,0,0);
-      if (dateTime < firstDateInData) {
-        firstDateInData = dateTime
-      }
-      if (dateTime > lastDateInData) {
-        lastDateInData = dateTime
-      }
-    }
-    for (var i=0; i<confirmedCases.length; i++) {
-      const c = confirmedCases[i]
-      const dateTime = new Date(Date.parse(c["date"]))
-      if (dateTime < lastMidnight) {
-        // We might have "partial data" for today, which would be an ugly corner case to present nicely on the graph.
-        // For now, let's simply throw away any data from today (any data which is timestamped after the following threshold).
-        updateFirstAndLastDay(dateTime)
-      }
-    }
-    for (var i=0; i<deaths.length; i++) {
-      const c = deaths[i]
-      const dateTime = new Date(Date.parse(c["date"]))
-      if (dateTime < lastMidnight) {
-        updateFirstAndLastDay(dateTime)
-      }
-    }*/
-
-    const epidemyStartDate = new Date(Date.parse(confirmedCases[1]["date"])).setUTCHours(0,0,0,0)
-    function daysFromZero(dateTime) {
-      return Math.round((new Date(dateTime).getTime() - new Date(epidemyStartDate).getTime()) / 86400000);
-    }
-
-    // Count confirmed cases per day, and index them according to "days from day 0"
-    const ccCounts = []
-    // Note: we are skipping the first confirmed case because there were no cases for 1 month after that.
-    for (var i=1; i<confirmedCases.length; i++) {
-      const c = confirmedCases[i]
-      const dateTime = new Date(Date.parse(c["date"])).setUTCHours(0,0,0,0);
-      if (dateTime < lastMidnight) {
-        const day = daysFromZero(dateTime)
-        ccCounts[day] = ccCounts[day]+1 || 1
-      }
-    }
-
-    // Count deaths per day, and index them according to "days from day 0"
-    const dCounts = []
-    for (var i=0; i<deaths.length; i++) {
-      const c = deaths[i]
-      const dateTime = new Date(Date.parse(c["date"])).setUTCHours(0,0,0,0);
-      if (dateTime < lastMidnight) {
-        const day = daysFromZero(dateTime)
-        dCounts[day] = dCounts[day]+1 || 1
-      }
-    }
-    
-    // Initialize P_all with the number of days that we need, initialize each day with [0,0,0,0,0]
-    const days = 35 // TODO properly; ccCounts.length
-    const P_all = []
-    for (var day=0; day<days; day++) {
-      P_all[day] = [0,0,0,0,0]
-    }
-    
-    // Fill deaths cumulatively
-    for (var day=0; day<days; day++) {
-      const newDeaths = dCounts[day] || 0
-      const oldDeaths = (day > 0 ? P_all[day-1][DEAD_I] : 0)
-      P_all[day][DEAD_I] = oldDeaths + newDeaths
-    }
-
-    // TODO: Develop a method to infer these from HS confirmed case counts!.
-    // TODO x[3] inf
-    // TODO x[4] exp
-    // TODO x[2] hosp
-
-    // As a temporary solution we have manually evaluated hard-coded values
-    
-    //const inf_vals = [0,1,2,5,10,15,23,33,35,22,26,42,64,158,290,543,575,555,505,590,660,840,1040,1205,1175,1130,1170,1260,1320,1415,1450,1530,1560,1591,1623]
-    //const exp_vals = [23,33,35,45,59,54,76,182,322,593,715,813,940,1015,930,1205,1500,1630,1790,1970,1960,2010,2085,2200,2330,2445,2500,2601,2653,2706,2760,2815,2871,2928,2986]
-    //const hosp_vals = [0,0,0,0,0,0,0,0,0,0,1,1,2,2,3,4,5,6,7,11,15,20,22,25,30,33,43,50,73,82,96,108,112,134,143]
-    //const rec_vals = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,17,27,33,39,50,68,116,207,379,559,730,883,1062,1261,1516,1832,2193,2534,2852,3175]
-    
-    const inf_vals = [0,1,2,5,10,15,0,0,23,33,35,22,26,42,64,158,290,543,575,555,505,590,660,840,1040,1205,1175,1130,1170,1260,1320,1415,1340,1300,1200]
-    const exp_vals = [23,33,35,45,59,54,76,182,322,593,715,813,940,1015,930,1205,1500,1630,1790,1970,1960,2010,2085,2200,1820,1415,1340,1300,1200,1600,2000,2000,2000,2000,2008]
-    const hosp_vals = [0,0,0,0,0,0,0,0,0,0,1,1,2,2,3,4,5,6,7,11,15,20,22,25,30,33,43,50,73,82,96,108,112,134,143,137]
-    const rec_vals = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,16,25,29,34,44,59,103,188,355,532,698,846,1018,1207,1446,1742,2085,2410]
-
-    function temporary_bandaid(vals, i) {
-      for (var day=0; day<days; day++) {
-        if (vals[day]) {
-          P_all[day][i] = vals[day]
+      // Csv rows come in the following format: first garbage, then data, then more garbage.
+      // Rows which have valid date are considered to be non-garbage.
+      if (!isValidDate(date)) {
+        if (!prevRowValid) {
+          continue
         }
+        break
       }
-    }
-    temporary_bandaid(inf_vals, INFECTIOUS_I)
-    temporary_bandaid(exp_vals, EXPOSED_I)
-    temporary_bandaid(hosp_vals, HOSPITAL_I)
-    temporary_bandaid(rec_vals, RECOVERED_I)
+      prevRowValid = true
 
-    return P_all
+      function h(col) {
+        return parseInt(row[col])
+      }
+
+      const susceptible =
+        N
+        - h('Exposed')
+        - h('Infectious')
+        - h('Mild')
+        - h('SevereHome')
+        - h('HospitalWillRecover')
+        - h('HospitalFatal')
+        - h('RecoveredMild')
+        - h('RecoveredSevere')
+        - h('Fatal')
+
+      goh_states.push([
+        susceptible / N,
+        h('Exposed') / N,
+        h('Infectious') / N,
+        h('Mild') / N,
+        h('SevereHome') / N,
+        h('HospitalWillRecover') / N,
+        h('HospitalFatal') / N,
+        h('RecoveredMild') / N,
+        h('RecoveredSevere') / N,
+        h('Fatal') / N,
+      ])
+
+      day++
+    }
+
+    return goh_states
   }
 
   function getLastHistoricTime(P_all_fin, dt) {
@@ -426,22 +481,40 @@
     return P_all_fin.concat(P_all_goh.slice(1))
   }
 
+  function getPmax(P_bars, states) {
+    var Pmax = 0
+    for (var i=0; i<P_bars.length; i++) {
+      const bars = P_bars[i]
+      var curr = 0
+      for (var j=0; j<states.length; j++) {
+        const state = states[j]
+        if (state['checked']) {
+          const k = state['key']
+          curr += P_bars[i][k]
+        }
+      }
+      if (curr > Pmax) {
+        Pmax = curr
+      }
+    }
+    return Pmax
+  }
 
 
 
 
-  
 
   /********************************** Generate state (choose which model to run, run it with user specified parameters, etc.) *********************************/
 
-  $: P_all_fin       = createHistoricalEstimatesFromFinnishData(finnishCoronaData)
-  $: P_all_goh       = get_solution(P_all_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration)
+  $: goh_states_fin  = loadFinnishHistoricalEstimates(finnishHistoricalEstimates, N)
+  $: P_all_fin       = map_goh_states_into_chartV2_states(goh_states_fin, N, P_ICU)
+  $: P_all_goh       = get_solution(goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration)
   $: P_all_both      = combine_historical_and_predictions(P_all_fin, P_all_goh)
   $: P_all           = fix_number_of_values(P_all_both, dt)
   $: P_bars          = get_every_nth(P_all, dt)
   $: timestep        = dt
   $: tmax            = dt*101
-  $: Pmax            = max(P_bars, checked)
+  $: Pmax            = getPmax(P_bars, stateMeta)
   $: lock            = false
   $: lastHistoricTime = getLastHistoricTime(P_all_fin, dt)
 
@@ -479,9 +552,9 @@
     return s
   }
   
-  function get_count_delta(bar, i) {
-    const currCount = P_all[bar*dt][i]
-    const prevCount = (bar > 0 ? P_all[bar*dt-1][i] : currCount)
+  function get_count_delta(k, bar) {
+    const currCount = P_all[bar*dt][k]
+    const prevCount = (bar > 0 ? P_all[bar*dt-1][k] : currCount)
     // We need to round intermediate values in order for delta to be consistent with rounded sigma values.
     // For example, if day1 sigma value is 100.6 and day day2 sigma value is 100.3, the delta needs to be 1,
     // because the user sees rounded values "101" and "100" and their delta should be 1, not 0.
@@ -493,52 +566,18 @@
     return Math.round(indexToTime(bar))
   }
 
-  function format_count_sigma(i, bar) {
-    if (i === SUSCEPTIBLE_I) { return formatCount(N - sumOfRoundedArrayValues(P_bars[bar])) }
-    if (i === REMOVED_I) { return formatCount(P_bars[bar][RECOVERED_I] + P_bars[bar][HOSPITAL_I] + P_bars[bar][DEAD_I]) }
-    return formatCount(P_bars[bar][i])
-  }
-
-  function format_count_delta(i, bar) {
-    if (i == SUSCEPTIBLE_I) {
-      const currCount = N - sumOfRoundedArrayValues(P_all[bar*dt])
-      const prevCount = (
-        bar > 0 ?
-        N - sumOfRoundedArrayValues(P_all[bar*dt-1]) :
-        currCount
-      )
-      const delta = Math.round(currCount) - Math.round(prevCount)
-      return formatDelta(delta)
-    }
-    if (i == REMOVED_I) {
-      const deltaSum = get_count_delta(bar, RECOVERED_I) + get_count_delta(bar, HOSPITAL_I) + get_count_delta(bar, DEAD_I)
-      return formatDelta(deltaSum)
-    }
-    return formatDelta(get_count_delta(bar, i))
-  }
-
-  function format_percent_sigma(i, bar) {
-    if (i == SUSCEPTIBLE_I) {
-      const count = N - sumOfRoundedArrayValues(P_bars[bar])
-      return formatPercent(count / N)
-    }
-    if (i == REMOVED_I) {
-      const countRemoved = P_bars[bar][RECOVERED_I] + P_bars[bar][HOSPITAL_I] + P_bars[bar][DEAD_I]
-      return formatPercent(countRemoved / N)
-    }
-    return formatPercent(P_bars[bar][i] / N)
-  }
-
-  function renderSigmaDelta(i, bar, thisParameterIsUnusedButItMustExistToForceSvelteToTriggerARender) {
+  function renderSigmaDelta(state, bar, P_all) {
+    // Note: P_all is unused but it must exist to force Svelte to trigger a render
+    const k = state["key"]
     return `<div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span>
               <i>
-                ${format_count_sigma(i, bar)} 
-                (${format_percent_sigma(i, bar)}%)
+                ${formatCount(P_bars[bar][k])} 
+                (${formatPercent(P_bars[bar][k] / N)}%)
               </i>
             </div>
             <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span>
               <i>
-                ${format_count_delta(i, bar)} on day ${getDay(bar)}
+                ${formatDelta(get_count_delta(k, bar))} on day ${getDay(bar)}
               </i>
             </div>`
   }
@@ -547,7 +586,7 @@
 
 
 
-  var colors = [ "#386cb0", "#8da0cb", "#4daf4a", "#f0027f", "#fdc086"]
+
 
   var Plock = 1
 
@@ -701,7 +740,6 @@
 
   window.addEventListener('mouseup', unlock_yaxis);
 
-  $: checked = [true, true, false, true, true]
   $: active  = 0
   $: active_ = active >= 0 ? active : P_bars.length - 1
 
@@ -970,7 +1008,7 @@
 
 </style>
 
-<h2>Corosim Finland</h2> <!-- Historical Estimates & Future Modelling -->
+<h2>Corosim</h2> <!-- Historical Estimates & Future Modelling -->
 <h5>A prototype by Futurice built on top of Gabriel Goh's Epidemic Calculator</h5>
 
 <div class="chart" style="display: flex; max-width: 1120px">
@@ -979,132 +1017,47 @@
     <div style="position:relative; top:48px; right:-115px">
       <div class="legendtext" style="position:absolute; left:-70px; top:-34px; width:150px; height: 100px; font-size: 13px; line-height:16px; font-weight: normal; text-align: center"><b>Highlighted day:</b><br>Day {getDay(active_)}</div>
 
-      <!-- Susceptible -->
-      <div style="position:absolute; left:0px; top:0px; width: 180px; height: 100px">
-        <span style="pointer-events: none"><Checkbox color="#CCC"/></span>
-        <Arrow height="41"/>
-        <div class="legend" style="position:absolute;">
-          <div class="legendtitle">Susceptible</div>
-          <div style="padding-top: 5px; padding-bottom: 1px">
-            {@html renderSigmaDelta(SUSCEPTIBLE_I, active_, P_all)}
+      <!-- Tooltip states -->
+      {#each stateMeta as state,i}
+        {#if state["checkable"]}
+          <div style="position:absolute; left:0px; top:{legendheight*(i-1)}px; width: 180px; height: 100px">
+            <Arrow height="43" arrowhead="" dasharray="3 2"/>
+            <Checkbox color="{state['color']}" bind:checked={state['checked']} />
+            <div class="legend" style="position:absolute;">
+              <div class="legendtitle">
+                {state["tooltip_title"]}
+              </div>
+              <div style="padding-top: 3px; padding-bottom: 1px">
+                {@html renderSigmaDelta(state, active_, P_all)}
+              </div>
+            </div>
+            <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4px; position:relative;">
+              {state["tooltip_desc"]}
+            </div>
           </div>
-        </div>
-        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4px; position:relative;">
-          Population not immune to disease.
-        </div>
-      </div>
+        {/if}
+      {/each}
 
-      <!-- Exposed -->
-      <div style="position:absolute; left:0px; top:{legendheight*1}px; width: 180px; height: 100px">
-        <Checkbox color="{colors[4]}" bind:checked={checked[4]}/>      
-        <Arrow height="41"/>
-        <div class="legend" style="position:absolute;">
-          <div class="legendtitle">Exposed</div>
-          <div style="padding-top: 5px; padding-bottom: 1px">
-            {@html renderSigmaDelta(EXPOSED_I, active_, P_all)}
-          </div>
-        </div>
-        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4px; position:relative;">
-          Population currently in incubation.
-        </div>
-      </div>
-
-      <!-- Infectious -->
-      <div style="position:absolute; left:0px; top:{legendheight*2}px; width: 180px; height: 100px">
-        <Checkbox color="{colors[3]}" bind:checked={checked[3]}/>
-        <Arrow height="41"/>   
-        <div class="legend" style="position:absolute;">
-          <div class="legendtitle">Infectious</div>   
-          <div style="padding-top: 5px; padding-bottom: 1px">
-            {@html renderSigmaDelta(INFECTIOUS_I, active_, P_all)}
-          </div>
-        </div>
-        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4px; position:relative;">
-          Number of infections <i>actively</i> circulating.
-        </div>
-      </div>
-
-      <!-- Removed -->
-      <div style="position:absolute; left:0px; top:{legendheight*3}px; width: 180px; height: 100px">
-        <Checkbox color="grey" callback={(s) => {checked[1] = s; checked[0] = s; checked[2] = s} }/>
-        <Arrow height="56" arrowhead="" dasharray="3 2"/>
-        <div class="legend" style="position:absolute;">
-          <div class="legendtitle">Removed</div>
-          <div style="padding-top: 10px; padding-bottom: 1px">
-            {@html renderSigmaDelta(REMOVED_I, active_, P_all)}
-          </div>
-        </div>
-        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4x; position:relative;">
-          Population no longer infectious due to isolation or immunity.
-        </div>
-      </div>
-
-      <!-- Recovered -->
-      <div style="position:absolute; left:0px; top:{legendheight*4+14-3}px; width: 180px; height: 100px">
-        <Checkbox color="{colors[2]}" bind:checked={checked[2]}/>
-        <Arrow height="43" arrowhead="" dasharray="3 2"/>
-        <div class="legend" style="position:absolute;">
-          <div class="legendtitle">Recovered</div>
-          <div style="padding-top: 3px; padding-bottom: 1px">
-            {@html renderSigmaDelta(RECOVERED_I, active_, P_all)}
-          </div>
-        </div>
-        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 8px; position:relative;">
-          Full recoveries.
-        </div>
-      </div>
-
-      <!-- Hospitalized -->
-      <div style="position:absolute; left:0px; top:{legendheight*5+14-3}px; width: 180px; height: 100px">
-        <Arrow height="43" arrowhead="" dasharray="3 2"/>
-        <Checkbox color="{colors[1]}" bind:checked={checked[1]}/>
-        <div class="legend" style="position:absolute;">
-          <div class="legendtitle">Hospitalized</div>
-          <div style="padding-top: 3px; padding-bottom: 1px">
-            {@html renderSigmaDelta(HOSPITAL_I, active_, P_all)}
-          </div>
-        </div>
-        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 10px; position:relative;">
-          Active hospitalizations.
-        </div>
-      </div>
-
-      <!-- Fatalities -->
-      <div style="position:absolute; left:0px; top:{legendheight*6+14-3}px; width: 180px; height: 100px">
-        <Arrow height="40" arrowhead="" dasharray="3 2"/>
-
-        <Checkbox color="{colors[0]}" bind:checked={checked[0]}/>
-
-        <div class="legend" style="position:absolute;">
-          <div class="legendtitle">Fatalities</div>
-          <div style="padding-top: 3px; padding-bottom: 1px">          
-            {@html renderSigmaDelta(DEAD_I, active_, P_all)}
-          </div>
-        </div>
-        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 10px; position:relative;">
-          Deaths.
-        </div>
-      </div>
     </div>
   </div>
 
   <div style="flex: 0 0 890px; width:890px; height: {height+128}px; position:relative;">
 
     <div style="position:relative; top:60px; left: 10px">
-      <Chart bind:checked={checked}
-             bind:active={active}
-             y = {P_bars} 
-             xmax = {Xmax}
-             timestep={timestep}
-             tmax={tmax}
-             N={N}
-             ymax={lock ? Plock: Pmax}
-             InterventionTime={InterventionTime}
-             lastHistoricTime={lastHistoricTime}
-             colors={colors}
-             log={!log}
-             />
-      </div>
+      <Chart
+        bind:active={active}
+        states = {P_bars} 
+        stateMeta = {stateMeta}
+        xmax = {Xmax}
+        timestep={timestep}
+        tmax={tmax}
+        N={N}
+        ymax={lock ? Plock: Pmax}
+        InterventionTime={InterventionTime}
+        lastHistoricTime={lastHistoricTime}
+        log={!log}
+        />
+    </div>
 
       {#if allow_x_axis_resizing}
         <div id="xAxisDrag"

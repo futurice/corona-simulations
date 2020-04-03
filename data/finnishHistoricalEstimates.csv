@@ -1,0 +1,47 @@
+Date,Confirmed new cases,New deaths,New incubations,Exposed,New infectious,Infectious,Mild,SevereHome,At hospital,HospitalWillRecover,HospitalFatal,RecoveredMild,RecoveredSevere,Recovered total,Fatal
+,,,,"Number of people who currently have the virus incubating, but not yet infectious.",,"Number of people who are currently infectious (not including persons in 'recovering', 'hospitalized', etc.)","Recovering, mild symptoms: Number of people who are not infectious anymore but are still experiencing mild symptoms.",Number of people who are currently not infectious anymore but are still experiencing severe symptoms but are not in hospital.,,Number of people who are currently in hospital and will later move to RecoveredSevere state.,Number of people who are currently in hospital and will later move to Fatal state.,"Number of people who have recovered, cumulative, after being in ""Mild"" state","Number of people who have recovered, cumulative, after being in a Severe state.",,"Number of people who have died, cumulative."
+"Be careful not to change the structure of this spreadsheet, because it needs to be parsed by our app.",From HS API,From HS API,"From Mikko, missing values extrapolated",Inferred assuming 5-day incubation period,Inferred assuming 5-day incubation period,Inferred assuming 5-day incubation period and 3-day infectious period,After infectious period: 4-6d from infection (ok?),Esim. seuraavan 2 (?) päivän aikana sairaalaan joutuvat?,"From Mikko, missing values extrapolated",total in hospital - hospitalFatal,"inferred from later fatalities, missing values extrapolated","5d from ""mild""",very few in the beginning,,From HS API
+,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+2020-02-25,1,0,0,23,0,0,0,0,0,0,0,0,0,0,0
+2020-02-26,0,0,0,33,0,1,0,0,0,0,0,0,0,0,0
+2020-02-27,1,0,23,35,0,2,0,0,0,0,0,0,0,0,0
+2020-02-28,0,0,10,45,0,5,0,0,0,0,0,0,0,0,0
+2020-02-29,3,0,2,59,0,10,0,0,0,0,0,0,0,0,0
+2020-03-01,1,0,10,54,0,15,0,0,0,0,0,0,0,0,0
+2020-03-02,0,0,14,76,0,0,0,0,0,0,0,0,0,0,0
+2020-03-03,0,0,18,182,23,0,0,0,0,0,0,0,0,0,0
+2020-03-04,5,0,32,322,10,23,0,1,0,0,0,0,0,0,0
+2020-03-05,3,0,108,593,2,33,0,2,0,0,0,0,0,0,0
+2020-03-06,4,0,150,715,10,35,0,3,1,1,0,0,0,0,0
+2020-03-07,5,0,285,813,14,22,19,4,1,1,0,0,0,0,0
+2020-03-08,9,0,140,940,18,26,28,5,2,2,0,0,0,0,0
+2020-03-09,7,0,130,1015,32,42,28,7,2,2,0,0,0,0,0
+2020-03-10,25,0,235,930,108,64,13,9,3,2,1,0,0,0,0
+2020-03-11,46,0,225,1205,150,158,15,11,4,3,1,0,0,0,0
+2020-03-12,46,0,200,1500,285,290,29,13,5,4,1,6,0,6,0
+2020-03-13,70,0,415,1630,140,543,46,18,6,5,1,16,0,16,0
+2020-03-14,16,0,425,1790,130,575,132,26,7,6,1,25,0,25,0
+2020-03-15,32,0,365,1970,235,555,255,35,11,9,3,29,0,29,0
+2020-03-16,40,0,385,1960,225,505,501,42,15,12,5,34,0,34,0
+2020-03-17,42,0,380,2010,200,590,528,47,20,16,7,44,0,44,0
+2020-03-18,41,0,405,2100,415,660,500,55,22,18,9,59,0,59,0
+2020-03-19,50,1,475,2220,425,840,442,63,25,20,11,103,0,103,1
+2020-03-20,73,0,455,1840,365,1040,514,76,30,24,13,188,0,188,1
+2020-03-21,105,0,505,1435,385,1205,567,93,33,26,17,355,0,355,1
+2020-03-22,74,0,420,1380,380,1175,717,123,43,34,9,531,0,532,1
+2020-03-23,92,0,420,1345,405,1130,885,155,50,40,10,698,0,698,1
+2020-03-24,88,2,420,1260,475,1170,1027,178,73,58,15,845,1,846,3
+2020-03-25,78,2,420,1680,455,1260,971,204,82,66,16,1017,1,1018,5
+2020-03-26,100,2,420,2100,505,1335,910,220,96,77,19,1206,1,1207,7
+2020-03-27,109,2,420,2100,420,1435,924,246,108,86,22,1445,2,1446,9
+2020-03-28,77,2,420,2100,420,1380,983,277,112,90,22,1740,2,1742,11
+2020-03-29,111,2,420,2100,420,1345,1055,280,134,107,27,2082,3,2085,13
+2020-03-30,71,4,420,2100,420,1260,1139,296,143,114,29,2406,4,2410,17
+2020-03-31,,0,420,2100,420,1260,1061,319,137,110,27,2709,6,2715,17
+2020-04-01,,2,420,2100,420,1260,1025,320,159,127,32,3017,7,3024,19
+2020-04-02,,,420,2100,420,1260,940,320,160,128,32,3345,9,3354,19
+It is safe to add anything after this line. Parsing ends when the first invalid date (this text) is encountered. Do not add date lines unless they have all the yellow values!,,,,,,,,,,,,,,,

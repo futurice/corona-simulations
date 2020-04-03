@@ -19,15 +19,8 @@
     return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
   }
 
-  var sum = function(arr, bools){
-    var x = 0
-    for (var i = 0; i < arr.length; i++) {
-      x = x + arr[i]*(bools[i] ? 1 : 0)
-    }
-    return x
-  }
-
-  export let y;
+  export let states;
+  export let stateMeta;
   export let tmax;
   export let xmax;
   export let vline;
@@ -35,12 +28,27 @@
   export let N;
   export let ymax;
   export let InterventionTime;
-  export let colors; 
   export let log = false;
   export let lastHistoricTime;
   
   function lastHistoricTimeHelper() {
-    return Math.min(Math.max(lastHistoricTime-1, 0), y.length-1)
+    return Math.min(Math.max(lastHistoricTime-1, 0), states.length-1)
+  }
+
+  function getBarY(state, stateMeta, j) {
+    var sumOfHeights = 0
+    for (var i=j; i<stateMeta.length; i++) {
+      sumOfHeights += getBarHeight(state, stateMeta, i)
+    }
+    return sumOfHeights
+  }
+
+  function getBarHeight(state, stateMeta, j) {
+    if (!stateMeta[j]["checked"]) {
+      return 0
+    }
+    const k = stateMeta[j]["key"]
+    return state[k]
   }
 
   const padding = { top: 20, right: 0, bottom: 20, left: 25 };
@@ -49,7 +57,7 @@
   let height = 420;
 
   $: xScale = scaleLinear()
-    .domain([0, y.length])
+    .domain([0, states.length])
     .range([padding.left, width - padding.right]);
 
   $: xScaleTime = scaleLinear()
@@ -57,12 +65,12 @@
     .range([padding.left, width - padding.right]);
 
   $: indexToTime = scaleLinear()
-    .domain([0, y.length])
+    .domain([0, states.length])
     .range([0, tmax])
 
   $: timeToIndex = scaleLinear()
     .domain([0, tmax])
-    .range([0, y.length])
+    .range([0, states.length])
 
   $: yScale = (log ? scaleLog(): scaleLinear())
     .domain([log ? 1: 0,  ymax/1])
@@ -74,7 +82,7 @@
 
 
   $: innerWidth = width - (padding.left + padding.right);
-  $: barWidth = innerWidth / y.length - 1.5;
+  $: barWidth = innerWidth / states.length - 1.5;
   $: active_hover = -1
   $: lock = false
   var active_lock = 0
@@ -206,7 +214,7 @@
     </g>
 
     <g class='bars'>
-      {#each range(y.length) as i}
+      {#each range(states.length) as i}
         <rect
           on:mouseover={() => showTip(i)}
           on:mouseout={() => showTip(-1)}
@@ -219,7 +227,7 @@
           style="fill:white; opacity: 0">     
         </rect>
 
-        {#each range(colors.length) as j}
+        {#each range(stateMeta.length) as j}
           {#if !log}
               <rect
                 on:mouseover={() => showTip(i)}
@@ -227,14 +235,14 @@
                 on:click={() => {lock = !lock; active_lock = indexToTime(i) }}
                 class="bar"
                 x="{xScale(i) + 2}"
-                y="{yScale( sum(y[i].slice(0,j+1), checked) )}"
+                y="{yScale(getBarY(states[i], stateMeta, j))}"
                 width="{barWidth}"
-                height="{Math.max(height - padding.bottom - yScale(y[i][j]*checked[j] ),0)}" 
-                style="fill:{colors[j]};
-                       opacity:{active == i ? 0.9: 0.6}">     
+                height="{Math.max(height - padding.bottom - yScale(getBarHeight(states[i], stateMeta, j)), 0)}" 
+                style="fill:{stateMeta[j]['color']}; opacity:{active == i ? 0.9: 0.6}">     
               </rect>
           {:else}
-              <rect
+          <!-- This commented out block is for log scale.
+                <rect
                 on:mouseover={() => showTip(i)}
                 on:mouseout={() => showTip(-1)}
                 on:click={() => {lock = !lock; active_lock = indexToTime(i) }}
@@ -257,14 +265,12 @@
                   }})()}" 
                 style="fill:{colors[j]};
                        opacity:{active == i ? 0.9: 0.6}">     
-              </rect>
+              </rect> -->
           {/if}
         {/each}
 
       {/each}
     </g>
-
-<!-- height="{Math.max(height - padding.bottom - yScale(y[i][j]*checked[j] ),0)}" -->
 
     <g class='bars'>
       {#each range(data.length) as i}
@@ -290,8 +296,7 @@
                   pointer-events: none;
                   width:100px;
                   left:{xScale(active)}px;
-                  top:{Math.max(yScale(sum(y[active], checked)),0) }px" class="tip"> 
-          <!-- {#if lock} <div style="position:absolute; top:-35px; left:-3.5px; font-family: Source Code Pro">🔒</div> {/if} -->
+                  top:{Math.max(yScale(getBarY(states[active], stateMeta, 0)),0) }px" class="tip"> 
           <svg style="position:absolute; top:-12px; left:0px" height="10" width="10">
           <path 
             d="M 0 0 L 10 0 L 5 10 z"
@@ -301,9 +306,6 @@
       </div>
     {/if}
 
-
-
-    
     <div id="historicalMarker" style="pointer-events: none;
               position: absolute;
               top: 20px;
@@ -312,33 +314,14 @@
               width:2px;
               background-color:#FFF;
               border-right: 1px dashed plum;
-              height: {Math.max(yScale(sum(y[lastHistoricTimeHelper()], checked)),0) - 30}px;">
+              height: {Math.max(yScale(getBarY(states[lastHistoricTimeHelper()], stateMeta, 0)),0) - 30}px;">
     </div>
-    <!-- WIP
-    <div style="position:absolute;
-                opacity: 0.5;
-                top: 20px;
-                left:{xScale(lastHistoricTimeHelper()) + 10}px;
-                width: 120px;
-                height: {Math.max(yScale(sum(y[lastHistoricTimeHelper()], checked)),0) - 30}px;">
-      <span style="font-size: 14px">Future ⟶</span>  
-    </div>
-    {#if lastHistoricTimeHelper() > 0}
-    <div style="position:absolute;
-                opacity: 0.5;
-                top: 20px;
-                left:{xScale(lastHistoricTimeHelper()) - 65}px;
-                height: {Math.max(yScale(sum(y[lastHistoricTimeHelper()], checked)),0) - 30}px;">
-      <span style="font-size: 14px">⟵ History</span>  
-    </div>
-    {/if}-->
 
     <div style="position:absolute; 
                   pointer-events: none;
                   width:100px;
                   left:{xScale(lastHistoricTimeHelper())}px;
-                  top:{Math.max(yScale(sum(y[lastHistoricTimeHelper()], checked)),0) }px" class="tip"> 
-          <!-- {#if lock} <div style="position:absolute; top:-35px; left:-3.5px; font-family: Source Code Pro">🔒</div> {/if} -->
+                  top:{Math.max(yScale(getBarY(states[lastHistoricTimeHelper()], stateMeta, 0)),0) }px" class="tip"> 
           <svg style="position:absolute; top:-12px; left:0px" height="10" width="10">
           <path 
             d="M 0 0 L 10 0 L 5 10 z"
@@ -346,10 +329,6 @@
             stroke-width="3" />
           </svg>
     </div>
-
-
-
-
 
   </div>
 
