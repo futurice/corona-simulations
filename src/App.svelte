@@ -772,21 +772,29 @@
 
   function get_milestones(P){
 
-    function argmax(x, index) {
-      return x.map((x, i) => [x[index], i]).reduce((r, a) => (a[0] > r[0] ? a : r))[1];
+    function argmax(k) {
+      var maxVal = 0
+      var maxValIndex = 0
+      for (var i=0; i<P.length; i++) {
+        const val = P[i][k]
+        if (val > maxVal) {
+          maxVal = val
+          maxValIndex = i
+        }
+      }
+      return maxValIndex
     }
 
-     //    Dead   Hospital          Recovered        Infectious   Exposed
     var milestones = []
     for (var i = 0; i < P.length; i++) {
-      if (P[i][0] >= 0.5) {
+      if (P[i][K_FATALITIES] >= 0.5) {
         milestones.push([i*dt, "First death"])
         break
       }
     }
 
-    var i = argmax(P, 1)
-    milestones.push([i*dt, "Peak: " + format(",")(Math.round(P[i][1])) + " hospitalizations"])
+    var i = argmax(K_INF_HOSP)
+    milestones.push([i*dt, "Peak: " + format(",")(Math.round(P[i][K_INF_HOSP])) + " hospitalizations"])
     return milestones
   }
 
