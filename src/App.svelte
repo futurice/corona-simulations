@@ -40,18 +40,18 @@
 
   // Chart V2 state object keys
   const K_SUSCEPTIBLE = 'susceptible'
-  const K_INF = 'inf'
-  const K_INF_HOSP = 'inf_hosp'
-  const K_INF_HOSP_ICU = 'inf_hosp_icu'
+  const K_INF = 'infected'
+  const K_HOSPITALIZED = 'hospitalized'
+  const K_ICU = 'icu'
   const K_RECOVERED = 'recovered'
   const K_FATALITIES = 'fatalities'
 
   class State {
-    constructor(susceptible, inf, inf_hosp, inf_hosp_icu, recovered, fatalities) {
+    constructor(susceptible, inf, hospitalized, icu, recovered, fatalities) {
       this[K_SUSCEPTIBLE] = susceptible
       this[K_INF] = inf
-      this[K_INF_HOSP] = inf_hosp
-      this[K_INF_HOSP_ICU] = inf_hosp_icu
+      this[K_HOSPITALIZED] = hospitalized
+      this[K_ICU] = icu
       this[K_RECOVERED] = recovered
       this[K_FATALITIES] = fatalities
     }
@@ -69,23 +69,23 @@
     {
       'key': K_INF,
       'tooltip_title': 'Infected',
-      'tooltip_desc': 'Active infections (incl. incubating, undiagnosed and hospitalized)',
+      'tooltip_desc': 'Active infections (incl. incubating, undiagnosed) (excl. hosp, icu)',
       'checkable': true,
       'checked': true,
       'color': '#f0027f',
     },
     {
-      'key': K_INF_HOSP,
+      'key': K_HOSPITALIZED,
       'tooltip_title': 'Hospitalized',
-      'tooltip_desc': 'Active hospitalizations (includes ICU)',
+      'tooltip_desc': 'Active hospitalizations (excluding ICU)',
       'checkable': true,
       'checked': true,
       'color': '#8da0cb'
     },
     {
-      'key': K_INF_HOSP_ICU,
+      'key': K_ICU,
       'tooltip_title': 'ICU',
-      'tooltip_desc': 'Patients in intensive care',
+      'tooltip_desc': 'Patients in intensive care, active',
       'checkable': true,
       'checked': true,
       'color': '#386cb0',
@@ -295,17 +295,18 @@
 
       // Then, compute ChartV2 states.
       const suscep = Math.round(susceptible * N)
-      const infected = Math.round((exposed + infectious + recovering_mild + recovering_severe_home + hospitalized_will_recover + hospitalized_will_die) * N)
-      const infected_hospitalized = Math.round((hospitalized_will_recover + hospitalized_will_die) * N)
-      const infected_hospitalized_icu = Math.round(P_ICU * infected_hospitalized)
+      const infected = Math.round((exposed + infectious + recovering_mild + recovering_severe_home) * N)
+      const hospitalized_and_icu = Math.round((hospitalized_will_recover + hospitalized_will_die) * N)
+      const hospitalized = Math.round((1 - P_ICU) * hospitalized_and_icu)
+      const icu = Math.round(P_ICU * hospitalized_and_icu)
       const recovered = Math.round((recovered_mild + recovered_severe) * N)
       const fatalities = Math.round(dead * N)
 
       return new State(
         suscep,
         infected,
-        infected_hospitalized,
-        infected_hospitalized_icu,
+        hospitalized,
+        icu,
         recovered,
         fatalities
       )
@@ -357,10 +358,8 @@
           + b[symptomatic_non_hospitalized_non_severe]
           + b[asymptomatic_severe_will_survive]
           + b[symptomatic_non_hospitalized_severe_will_survive]
-          + b[hospitalized_severe_will_survive]
           + b[asymptomatic_severe_will_die]
           + b[symptomatic_severe_will_die]
-          + b[hospitalized_severe_will_die]
           + b[asymptomatic_non_critical_will_survive]
           + b[symptomatic_non_critical_will_survive]
           + b[hospitalized_non_critical_will_survive]
@@ -368,13 +367,11 @@
           + b[symptomatic_non_critical_will_die]
           + b[hospitalized_non_critical_will_die]
 
-      const infected_hospitalized =
+      const hospitalized =
             b[hospitalized_severe_will_survive]
           + b[hospitalized_severe_will_die]
-          + b[hospitalized_non_critical_will_survive]
-          + b[hospitalized_non_critical_will_die]
 
-      const infected_hospitalized_icu =
+      const icu =
             b[hospitalized_severe_will_survive]
           + b[hospitalized_severe_will_die]
 
@@ -387,8 +384,8 @@
       return new State(
         h(suscep),
         h(infected),
-        h(infected_hospitalized),
-        h(infected_hospitalized_icu),
+        h(hospitalized),
+        h(icu),
         h(recov),
         h(fatalities)
       )
@@ -829,8 +826,8 @@
       }
     }
 
-    var i = argmax(K_INF_HOSP)
-    milestones.push([i*dt, "Peak: " + format(",")(Math.round(P[i][K_INF_HOSP])) + " hospitalizations"])
+    var i = argmax(K_HOSPITALIZED)
+    milestones.push([i*dt, "Peak: " + format(",")(Math.round(P[i][K_HOSPITALIZED])) + " hospitalizations"])
     return milestones
   }
 
