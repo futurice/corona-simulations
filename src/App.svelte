@@ -129,6 +129,7 @@
   $: dt                = 1
   $: P_SEVERE          = defaultParameters["hospitalization_rate"]
   $: P_ICU             = defaultParameters["icu_rate_from_hospitalized"]
+  $: icuCapacity       = defaultParameters["icu_capacity"]
   $: duration          = 7*12*1e10
 
   // Default parameters are "activated" on page load with the same mechanism that export uses ("share your model").
@@ -1116,6 +1117,7 @@
         ymax={lock ? Plock: Pmax}
         InterventionTime={InterventionTime}
         lastHistoricTime={lastHistoricTime}
+        icuCapacity={icuCapacity}
         log={!log}
         />
     </div>
@@ -1270,6 +1272,10 @@
       <div class="paneldesc" style="height:30px; border-top: 0px solid #EEE;">Zoom x-axis<br></div> 
       <div class="slidertext">1/{dt}</div>
       <input class="range" type=range bind:value={dt} min=1 max=4 step=1>
+
+      <div class="paneldesc" style="height:30px; border-top: 0px solid #EEE;">ICU capacity<br></div> 
+      <div class="slidertext">{icuCapacity === 0 ? 'Hidden' : icuCapacity}</div>
+      <input class="range" type=range bind:value={icuCapacity} min=0 max=2000 step=1>
 
 
     </div>

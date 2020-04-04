@@ -10,6 +10,7 @@ export default {
     fatality_rate: 0.006, // From https://www.thelancet.com/journals/laninf/article/PIIS1473-3099%2820%2930243-7/fulltext
     hospitalization_rate: 0.028, // Hospitalization rate. From Mikko Viikari.
     icu_rate_from_hospitalized: 0.3, // THL 25.3.2020
+    icu_capacity: 700, // Estimate from Heikki. Means maximum number of patients simultaneously in ICU.
 
     InterventionTime: 60, // this is just where the intervention slider is at initially
     OMInterventionAmt: -1/2, // intervention slider default position

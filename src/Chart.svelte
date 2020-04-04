@@ -30,9 +30,42 @@
   export let InterventionTime;
   export let log = false;
   export let lastHistoricTime;
+  export let icuCapacity;
   
   function lastHistoricTimeHelper() {
     return Math.min(Math.max(lastHistoricTime-1, 0), states.length-1)
+  }
+
+  function shouldWeDrawICUcapacity(stateMeta, ymax) {
+    // Note that we need stateMeta and ymax as parameters in order to trigger re-render on certain user actions.
+    var icuVisible = false
+    var areStatesBelowICUvisible = false
+    for (var i=0; i<stateMeta.length; i++) {
+      const state = stateMeta[i]
+      const visible = state["checked"]
+      if (state["key"] === "icu" && visible) {
+        icuVisible = true
+      } else if (icuVisible && visible) {
+        // For example, if fatality bars are drawn below ICU bars,
+        // it doesn't make sense to show the ICU capacity bar as a straight line.
+        return false
+      }
+    }
+    if (!icuVisible) {
+      // If ICU has not been checked visible, we don't care about ICU capacity.
+      return false
+    }
+    const pixelsFromBottom = yScale(0) - yScale(icuCapacity)
+    if (pixelsFromBottom < 10) {
+      // ICU capacity is so close to the x axis (due to y-scale) that it does not make sense to draw it.
+      return false
+    }
+    const pixelsFromTop = yScale(icuCapacity)
+    if (pixelsFromTop <= 0) {
+      // ICU capacity is at the edge of the chart or beyond it, does not make sense to draw.
+      return false
+    }
+    return true
   }
 
   function getBarY(state, stateMeta, j) {
@@ -192,6 +225,17 @@
 </style>
 
 <div style="width:{width+15}px; height: {height}px; position: relative; top:20px">
+
+  {#if shouldWeDrawICUcapacity(stateMeta, ymax)}
+    <div style="position: absolute;
+                top: {Math.max(yScale(icuCapacity),0)}px;
+                left: 30px;
+                width: {width - 30}px;
+                height: 1px;
+                border-top: 1px solid black;">
+    </div>
+  {/if}
+
   <svg style="position:absolute; height: {height}px">
 
     <!-- y axis -->
@@ -293,6 +337,7 @@
 
   <div style="position: absolute;width:{width+15}px; height: {height}px; position: absolute; top:0px; left:0px; pointer-events: none">
     
+    <!-- Pointer to active bar. -->
     {#if active >= 0}
       <div style="position:absolute; 
                   pointer-events: none;
@@ -308,6 +353,7 @@
       </div>
     {/if}
 
+    <!-- Last historical datapoint marker. -->
     <div id="historicalMarker" style="pointer-events: none;
               position: absolute;
               top: 20px;
@@ -318,7 +364,6 @@
               border-right: 1px dashed plum;
               height: {Math.max(yScale(getBarY(states[lastHistoricTimeHelper()], stateMeta, 0)),0) - 30}px;">
     </div>
-
     <div style="position:absolute; 
                   pointer-events: none;
                   width:100px;
