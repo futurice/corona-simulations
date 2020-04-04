@@ -229,6 +229,7 @@
 
         {#each range(stateMeta.length) as j}
           {#if !log}
+            {#if states[i][stateMeta[j]["key"]] > 0}
               <rect
                 on:mouseover={() => showTip(i)}
                 on:mouseout={() => showTip(-1)}
@@ -240,6 +241,7 @@
                 height="{Math.max(height - padding.bottom - yScale(getBarHeight(states[i], stateMeta, j)), 0)}" 
                 style="fill:{stateMeta[j]['color']}; opacity:{active == i ? 0.9: 0.6}">     
               </rect>
+            {/if}
           {:else}
           <!-- This commented out block is for log scale.
                 <rect

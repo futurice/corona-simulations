@@ -185,7 +185,7 @@
   }
 
   // P_prior, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration
-  function get_solution(historical_goh_states, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration) {
+  function get_solution(demo_mode, historical_goh_states, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration) {
 
     var interpolation_steps = 40
     var steps = 101*interpolation_steps*real_dt
@@ -197,7 +197,10 @@
 
       // SEIR ODE
 
-      const adjustedInterventionTime = InterventionTime - historical_goh_states.length
+      const adjustedInterventionTime =
+        demo_mode !== SHOW_FUTURE ?
+        InterventionTime - historical_goh_states.length :
+        InterventionTime
       
       if (t > adjustedInterventionTime && t < adjustedInterventionTime + duration){
         var beta = (InterventionAmt)*R0/(D_infectious)
@@ -459,8 +462,8 @@
     return goh_states
   }
 
-  function getLastHistoricTime(P_all_fin, dt) {
-    if (!P_all_fin) return 0
+  function getLastHistoricTime(demo_mode, P_all_fin, dt) {
+    if (!P_all_fin || demo_mode === SHOW_FUTURE) return 0
     return get_every_nth(P_all_fin, dt).length
   }
 
@@ -515,23 +518,34 @@
   }
 
 
-
+  const SHOW_HISTORICAL = 0
+  const SHOW_FUTURE = 1
+  const SHOW_HISTORICAL_AND_FUTURE = 2
 
 
   /********************************** Generate state (choose which model to run, run it with user specified parameters, etc.) *********************************/
 
+  function chooseP(demo_mode, P_all_fin, P_all_goh, dt) {
+    var P_chosen = []
+    const P_future = P_all_goh // TODO toggle between berkeley and goh here
+    if (demo_mode === SHOW_HISTORICAL) P_chosen = P_all_fin
+    if (demo_mode === SHOW_FUTURE) P_chosen = P_future
+    if (demo_mode === SHOW_HISTORICAL_AND_FUTURE) P_chosen = combine_historical_and_predictions(P_all_fin, P_future)
+    return fix_number_of_values(P_chosen, dt)
+  }
+
+  $: demo_mode       = SHOW_HISTORICAL_AND_FUTURE
   $: goh_states_fin  = loadFinnishHistoricalEstimates(finnishHistoricalEstimates, N)
   $: P_all_fin       = map_goh_states_into_chartV2_states(goh_states_fin, N, P_ICU)
-  $: P_all_goh       = get_solution(goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration)
+  $: P_all_goh       = get_solution(demo_mode, goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration)
   $: P_all_berkeley  = map_berkeley_states_into_chartV2_states(berkeley_states, N)
-  $: P_all_both      = combine_historical_and_predictions(P_all_fin, P_all_goh)
-  $: P_all           = fix_number_of_values(P_all_both, dt)
+  $: P_all           = chooseP(demo_mode, P_all_fin, P_all_goh, dt)
   $: P_bars          = get_every_nth(P_all, dt)
   $: timestep        = dt
   $: tmax            = dt*101
   $: Pmax            = getPmax(P_bars, stateMeta)
   $: lock            = false
-  $: lastHistoricTime = getLastHistoricTime(P_all_fin, dt)
+  $: lastHistoricTime = getLastHistoricTime(demo_mode, P_all_fin, dt)
 
 
 
@@ -673,7 +687,8 @@
     var dragged = function (d) {
       // InterventionTime = Math.max( (*(1 + (event.x - dragstarty)/500)), 10)
       // console.log(event.x)
-      InterventionTime = Math.min(tmax-1, Math.max(P_all_fin.length, InterventionTimeStart + xScaleTimeInv(event.x - dragstarty)))
+      const minX = (demo_mode === SHOW_FUTURE ? 0 : P_all_fin.length)
+      InterventionTime = Math.min(tmax-1, Math.max(minX, InterventionTimeStart + xScaleTimeInv(event.x - dragstarty)))
     }
 
     var dragend = function (d) {
@@ -698,7 +713,8 @@
     var dragged = function (d) {
       // InterventionTime = Math.max( (*(1 + (event.x - dragstarty)/500)), 10)
       // console.log(event.x)
-      duration = Math.min(tmax-1, Math.max(P_all_fin.length, durationStart + xScaleTimeInv(event.x - dragstarty)))
+      const minX = (demo_mode === SHOW_FUTURE ? 0 : P_all_fin.length)
+      duration = Math.min(tmax-1, Math.max(minX, durationStart + xScaleTimeInv(event.x - dragstarty)))
     }
 
     var dragend = function (d) {
@@ -1206,54 +1222,6 @@
           </div>
       </div>
 
-<!-- 
-      {#if xScaleTime(InterventionTime+duration) < (width - padding.right)}
-        <div id="dottedline2" style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:105px; left:10px; pointer-events: none;">
-          <div style="
-              position: absolute;
-              top:-38px;
-              left:{xScaleTime(InterventionTime+duration)}px;
-              visibility: {(xScaleTime(InterventionTime+duration) < (width - padding.right)) ? 'visible':'hidden'};
-              width:3px;
-              background-color:white;
-              border-right: 1px dashed black;
-              cursor:col-resize;
-              opacity: 0.3;
-              pointer-events: all;
-              height:{height+13}px">
-            <div style="position:absolute; opacity: 0.5; top:-10px; left:10px; width: 120px">
-            <span style="font-size: 13px">{@html math_inline("\\mathcal{R}_t=" + (R0*InterventionAmt).toFixed(2) )}</span> ⟶ 
-            </div>
-          </div>
-        </div>
-
-        <div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:120px; left:10px; pointer-events: none">
-          <div style="
-              opacity: 0.5;
-              position: absolute;
-              top:-38px;
-              left:{xScaleTime(InterventionTime+duration)}px;
-              visibility: {(xScaleTime(InterventionTime+duration) < (width - padding.right)) ? 'visible':'hidden'};
-              width:2px;
-              background-color:#FFF;
-              cursor:col-resize;
-              height:{height}px">
-              <div style="flex: 0 0 160px; width:200px; position:relative; top:-125px; left: 1px" >
-                <div class="caption" style="pointer-events: none; position: absolute; left:0; top:40px; width:150px; border-left: 2px solid #777; padding: 5px 7px 7px 7px; ">      
-                <div class="paneltext"  style="height:20px; text-align: right">
-                <div class="paneldesc">decrease transmission by<br></div>
-                </div>
-                <div style="pointer-events: all">
-                <div class="slidertext" on:mousedown={lock_yaxis}>{(InterventionAmt).toFixed(2)}</div>
-                <input class="range" type=range bind:value={InterventionAmt} min=0 max=1 step=0.01 on:mousedown={lock_yaxis}>
-                </div>
-                </div>
-              </div>
-            </div>
-        </div>
-      {/if} -->
-
-
       <div style="pointer-events: none;
                   position: absolute;
                   top:{height+84}px;
@@ -1293,19 +1261,13 @@
   <div class = "row">
 
     <div class="column">
-      <div class="paneltitle">Proto Zoom <!-- Population Inputs --> </div>
+      <div class="paneltitle">Proto Config</div>
 
+      <div class="paneldesc" style="height:30px">Demo mode<br></div>
+      <div class="slidertext">{demo_mode === SHOW_FUTURE ? 'Future' : (demo_mode === SHOW_HISTORICAL ? 'History' : 'History+Future')}</div>
+      <input class="range" style="margin-bottom: 8px"type=range bind:value={demo_mode} min=0 max=2 step=1>
 
-
-      <!--<div class="paneldesc" style="height:30px">Mode / Size of population. <br></div> -->
-      <!-- <div class="slidertext">{format(",")(Math.round(N))}</div> -->
-      <!-- <div class="slidertext">{P_demo_mode === 1 ? 'Future' : (P_demo_mode === 2 ? 'History' : 'History+Future')}</div> -->
-      <!-- <input class="range" style="margin-bottom: 8px"type=range bind:value={logN} min={5} max=25 step=0.01> -->
-      <!-- <input class="range" style="margin-bottom: 8px"type=range bind:value={P_demo_mode} min=1 max=3 step=1> -->
-
-
-
-      <div class="paneldesc" style="height:30px; border-top: 0px solid #EEE;">Zoom<br></div> 
+      <div class="paneldesc" style="height:30px; border-top: 0px solid #EEE;">Zoom x-axis<br></div> 
       <div class="slidertext">1/{dt}</div>
       <input class="range" type=range bind:value={dt} min=1 max=4 step=1>
 
