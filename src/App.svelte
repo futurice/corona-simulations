@@ -12,6 +12,8 @@
   import Arrow from './components/Arrow.svelte';
   import { format } from 'd3-format';
   import { event } from 'd3-selection';
+  import Icon from 'svelte-awesome';
+  import { search } from 'svelte-awesome/icons';
 
   import defaultParameters from '../default_parameters.js';
   import { UFState, getDefaultStateMeta } from './user_facing_states.js';
@@ -91,7 +93,9 @@
                "D_hospital_lag":D_hospital_lag,
                "P_SEVERE": P_SEVERE})
 
-
+  function toggleZoomStates() {
+    dt = (dt % 4) + 1
+  }
 
   function getLastHistoricTime(demo_mode, P_all_historical, dt) {
     if (!P_all_historical || demo_mode === SHOW_FUTURE) return 0
@@ -605,6 +609,10 @@
     font-size: 16.5px;
   }
 
+  :global(.magnifyingGlass:hover) {
+    color: #777 !important;
+  }
+
   th { font-weight: 500; text-align: left; padding-bottom: 5px; vertical-align: text-top;     border-bottom: 1px solid #DDD; }
 
   a:link { color: grey; }
@@ -653,7 +661,7 @@
 
   <div style="flex: 0 0 890px; width:890px; height: {height+128}px; position:relative;">
 
-    <div style="position:relative; top:60px; left: 10px">
+    <div style="position:relative; top:60px; left: 10px" >
       <Chart bind:active={active}
         states = {P_bars} 
         stateMeta = {stateMeta}
@@ -667,6 +675,15 @@
         icuCapacity={icuCapacity}
         log={!log}
         />
+      <div>
+        <div on:click={toggleZoomStates}>
+        <Icon data={search}
+          scale=2.5
+          class="magnifyingGlass"
+          style="color: #CCC; position: absolute; right: 70px; bottom: 0px; cursor: hand;"
+          />
+      </div>
+      </div>
     </div>
 
       {#if allow_x_axis_resizing}
@@ -845,7 +862,7 @@
         <div class="paneltitle">Care statistics</div>
         <div class="paneldesc" style="height:30px">Hospitalization rate.<br></div>
         <div class="slidertext">{(P_SEVERE*100).toFixed(2)} %</div>
-        <input class="range" style="margin-bottom: 8px"type=range bind:value={P_SEVERE} min={0} max=1 step=0.0001>      
+        <input class="range" style="margin-bottom: 8px" type=range bind:value={P_SEVERE} min={0} max=1 step=0.0001>      
         <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Time to hospitalization.<br></div>
         <div class="slidertext">{D_hospital_lag} Days</div>
         <input class="range" type=range bind:value={D_hospital_lag} min={0.5} max=100 step=0.01>
@@ -854,18 +871,13 @@
       <div class="column">
         <div class="paneltitle">ICU visualization</div>
 
-        <div class="paneldesc" style="height:30px; border-top: 0px solid #EEE;">Zoom x-axis<br></div> 
-        <div class="slidertext">1/{dt}</div>
-        <input class="range" type=range bind:value={dt} min=1 max=4 step=1>
-
         <div class="paneldesc" style="height:30px; border-top: 0px solid #EEE;">ICU rate<br></div> 
         <div class="slidertext">{P_ICU}</div>
-        <input class="range" type=range bind:value={P_ICU} min=0 max=1 step=0.01>
+        <input class="range" style="margin-bottom: 8px" type=range bind:value={P_ICU} min=0 max=1 step=0.01>
 
-        <div class="paneldesc" style="height:30px; border-top: 0px solid #EEE;">ICU capacity<br></div> 
+        <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">ICU capacity<br></div> 
         <div class="slidertext">{icuCapacity === 0 ? 'Hidden' : icuCapacity}</div>
         <input class="range" type=range bind:value={icuCapacity} min=0 max=10000 step=10>
-
 
       </div>
 
