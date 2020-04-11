@@ -4,6 +4,7 @@
   import { selectAll } from 'd3-selection'
   import { onMount } from 'svelte';
   import { createEventDispatcher } from 'svelte';
+  import { formatNumber } from '../utils.js';
 
   const dispatch = createEventDispatcher();
 
@@ -13,10 +14,6 @@
 
   $: showTip = function (i) {
     active_hover = i
-  }
-
-  function formatNumber(num) {
-    return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
   }
 
   export let states;
