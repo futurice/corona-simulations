@@ -1,7 +1,7 @@
 <script>
     import Checkbox from './Checkbox.svelte';
     import Arrow from './Arrow.svelte';
-    import { formatCount, formatPercent, formatDelta } from '../utils.js';
+    import { addDays, formatCount, formatPercent, formatDelta } from '../utils.js';
 
     const legendheight = 67
 
@@ -12,7 +12,7 @@
     export let P_bars;
     export let active_;
     export let indexToTime;
-    export let first_date;
+    export let firstBarDate;
 
     function sumOfRoundedArrayValues(arr) {
         var s = 0
@@ -37,12 +37,6 @@
         return Math.round(indexToTime(bar))
     }
 
-    function addDays(date, days) {
-        var result = new Date(date);
-        result.setDate(result.getDate() + days);
-        return result;
-    }
-
     function formatDate(date) {
         const year = new Intl.DateTimeFormat('en', { year: 'numeric' }).format(date)
         const month = new Intl.DateTimeFormat('en', { month: 'numeric' }).format(date)
@@ -52,7 +46,7 @@
 
     function getDate(bar) {
         const days = getDay(bar)
-        return formatDate(addDays(first_date, days))
+        return formatDate(addDays(firstBarDate, days))
     }
 
 </script>

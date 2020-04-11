@@ -16,6 +16,12 @@ export function formatPercent(proportion) {
     return (100 * proportion).toFixed(2)
 }
 
+export function addDays(date, days) {
+    var result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+}
+
 export const SHOW_HISTORICAL = 0
 export const SHOW_FUTURE = 1
 export const SHOW_HISTORICAL_AND_FUTURE = 2

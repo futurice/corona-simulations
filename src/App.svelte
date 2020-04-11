@@ -18,7 +18,7 @@
   import { get_solution_from_gohs_seir_ode, map_goh_states_into_UFStates } from './models/gohs_seir_ode.js';
   import { map_berkeley_states_into_UFStates } from './models/berkeley_abm.js';
   import { loadFinnishHistoricalEstimates } from './models/historical_estimates.js';
-  import { formatCount, formatPercent, formatDelta, SHOW_HISTORICAL, SHOW_FUTURE, SHOW_HISTORICAL_AND_FUTURE } from './utils.js';
+  import { addDays, formatCount, formatPercent, formatDelta, SHOW_HISTORICAL, SHOW_FUTURE, SHOW_HISTORICAL_AND_FUTURE } from './utils.js';
 
   import katex from 'katex';
 
@@ -165,14 +165,16 @@
     } else if (selected_model === 'berkeley') {
       return map_berkeley_states_into_UFStates(berkeley_states, N)
     } else {
-      console.log('Error! getSolution does not have handling for model', selected_model)
+      console.log('Error! getSolution does not have handling for model ', selected_model)
     }
   }
-
+  
   $: selected_model    = "goh"
-  $: [first_date, goh_states_fin] = loadFinnishHistoricalEstimates(finnishHistoricalEstimates, N)
   $: showHistory      = true
   $: demo_mode        = showHistory ? SHOW_HISTORICAL_AND_FUTURE : SHOW_FUTURE
+  $: [firstHistoricalDate,
+      goh_states_fin] = loadFinnishHistoricalEstimates(finnishHistoricalEstimates, N)
+  $: firstBarDate     = showHistory ? firstHistoricalDate : addDays(firstHistoricalDate, goh_states_fin.length - 1)
   $: P_all_historical = map_goh_states_into_UFStates(goh_states_fin, N, P_ICU)
   $: P_all_future     = get_solution(
                           demo_mode,
@@ -639,7 +641,7 @@
         P_bars = {P_bars}
         active_ = {active_}
         indexToTime = {indexToTime}
-        first_date = {first_date}
+        firstBarDate = {firstBarDate}
       />
 
     </div>
