@@ -569,19 +569,24 @@
 </style>
 
 <h2>Corosim</h2>
-<h5>Historical Estimates & Future Modelling of Coronavirus in Finland</h5>
+<h5>Historical Estimates & Future Predictions — Modelling COVID-19 in Finland</h5>
 
 <div class="chart" style="display: flex; max-width: 1120px">
+  <div style="flex: 0 0 270px; width:270px;">
+    <div style="position:relative; top:150px; right:-115px">
 
-  <ChartCompanion bind:stateMeta = {stateMeta}
-    N = {N}
-    dt = {dt}
-    P_all = {P_all}
-    P_bars = {P_bars}
-    active_ = {active_}
-    indexToTime = {indexToTime}
-    first_date = {first_date}
-  />
+      <ChartCompanion bind:stateMeta = {stateMeta}
+        N = {N}
+        dt = {dt}
+        P_all = {P_all}
+        P_bars = {P_bars}
+        active_ = {active_}
+        indexToTime = {indexToTime}
+        first_date = {first_date}
+      />
+
+    </div>
+  </div>
 
   <div style="flex: 0 0 890px; width:890px; height: {height+128}px; position:relative;">
 
