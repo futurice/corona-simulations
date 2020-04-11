@@ -18,7 +18,11 @@
   import { get_solution_from_gohs_seir_ode, map_goh_states_into_UFStates } from './models/gohs_seir_ode.js';
   import { map_berkeley_states_into_UFStates } from './models/berkeley_abm.js';
   import { loadFinnishHistoricalEstimates } from './models/historical_estimates.js';
-  import { addDays, formatCount, formatPercent, formatDelta, SHOW_HISTORICAL, SHOW_FUTURE, SHOW_HISTORICAL_AND_FUTURE } from './utils.js';
+  import { addDays,
+           formatCount, formatPercent, formatDelta,
+           SHOW_HISTORICAL, SHOW_FUTURE, SHOW_HISTORICAL_AND_FUTURE,
+           MODEL_GOH, MODEL_BERKELEY, MODEL_REINA,
+         } from './utils.js';
 
   import katex from 'katex';
 
@@ -169,7 +173,7 @@
     }
   }
   
-  $: selected_model    = "goh"
+  $: selected_model   = "goh"
   $: showHistory      = true
   $: demo_mode        = showHistory ? SHOW_HISTORICAL_AND_FUTURE : SHOW_FUTURE
   $: [firstHistoricalDate,
@@ -619,9 +623,9 @@
         Select scenario and model:
       </div>
       <select id="model-selection" bind:value={selected_model}>
-        <option value="goh" selected>Finland | Goh's SEIR ODE (live)</option>
-        <option value="berkeley">Finland | Berkeley ABM (precomputed)</option>
-        <option value="reina" disabled>Uusimaa | REINA ABM (precomputed)</option>
+        <option value={MODEL_GOH} selected >Finland | Goh's SEIR ODE (live)</option>
+        <option value={MODEL_BERKELEY} >Finland | Berkeley ABM (precomputed)</option>
+        <option value={MODEL_REINA} disabled >Uusimaa | REINA ABM (precomputed)</option>
       </select>
 
       <div style="position: font-family: nyt-franklin,helvetica,arial,sans-serif; font-size: 13px; margin-bottom: 10px; margin-top: 10px; margin-left: 2px;">
@@ -802,6 +806,10 @@
       <div class="paneldesc" style="height:30px; border-top: 0px solid #EEE;">Zoom x-axis<br></div> 
       <div class="slidertext">1/{dt}</div>
       <input class="range" type=range bind:value={dt} min=1 max=4 step=1>
+
+      <div class="paneldesc" style="height:30px; border-top: 0px solid #EEE;">ICU rate<br></div> 
+      <div class="slidertext">{P_ICU}</div>
+      <input class="range" type=range bind:value={P_ICU} min=0 max=1 step=0.01>
 
       <div class="paneldesc" style="height:30px; border-top: 0px solid #EEE;">ICU capacity<br></div> 
       <div class="slidertext">{icuCapacity === 0 ? 'Hidden' : icuCapacity}</div>
