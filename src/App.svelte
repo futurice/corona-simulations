@@ -89,9 +89,9 @@
 
 
 
-  function getLastHistoricTime(demo_mode, P_all_fin, dt) {
-    if (!P_all_fin || demo_mode === SHOW_FUTURE) return 0
-    return get_every_nth(P_all_fin, dt).length
+  function getLastHistoricTime(demo_mode, P_all_historical, dt) {
+    if (!P_all_historical || demo_mode === SHOW_FUTURE) return 0
+    return get_every_nth(P_all_historical, dt).length
   }
 
   function fix_number_of_values(P, dt) {
@@ -112,10 +112,10 @@
     return augmented
   }
 
-  function combine_historical_and_predictions(P_all_fin, P_all_goh) {
+  function combine_historical_and_predictions(P_all_historical, P_all_goh) {
     // We need to remove first element from P_all_goh because the end historical state
     // is used as the start state for the predictions.
-    return P_all_fin.concat(P_all_goh.slice(1))
+    return P_all_historical.concat(P_all_goh.slice(1))
   }
 
   function getPmax(P_bars, states) {
@@ -143,28 +143,66 @@
 
   /********************************** Generate state (choose which model to run, run it with user specified parameters, etc.) *********************************/
 
-  function chooseP(demo_mode, P_all_fin, P_all_goh, dt) {
+  function chooseP(demo_mode, P_all_historical, P_all_future, dt) {
     var P_chosen = []
-    const P_future = P_all_goh // TODO toggle between berkeley and goh here
-    if (demo_mode === SHOW_HISTORICAL) P_chosen = P_all_fin
-    if (demo_mode === SHOW_FUTURE) P_chosen = P_future
-    if (demo_mode === SHOW_HISTORICAL_AND_FUTURE) P_chosen = combine_historical_and_predictions(P_all_fin, P_future)
+    if (demo_mode === SHOW_HISTORICAL) P_chosen = P_all_historical
+    if (demo_mode === SHOW_FUTURE) P_chosen = P_all_future
+    if (demo_mode === SHOW_HISTORICAL_AND_FUTURE) P_chosen = combine_historical_and_predictions(P_all_historical, P_all_future)
     return fix_number_of_values(P_chosen, dt)
   }
 
-  $: [first_date, goh_states_fin] = loadFinnishHistoricalEstimates(finnishHistoricalEstimates, N)
-  $: demo_mode       = SHOW_HISTORICAL_AND_FUTURE
-  $: P_all_fin       = map_goh_states_into_UFStates(goh_states_fin, N, P_ICU)
-  $: P_all_goh       = get_solution_from_gohs_seir_ode(demo_mode, goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration)
-  $: P_all_berkeley  = map_berkeley_states_into_UFStates(berkeley_states, N)
-  $: P_all           = chooseP(demo_mode, P_all_fin, P_all_goh, dt)
-  $: P_bars          = get_every_nth(P_all, dt)
-  $: timestep        = dt
-  $: tmax            = dt*101
-  $: Pmax            = getPmax(P_bars, stateMeta)
-  $: lock            = false
-  $: lastHistoricTime = getLastHistoricTime(demo_mode, P_all_fin, dt)
+  function debugHelper([... vars]) {
+    if (vars.length == 0) return
+    console.log('*** DEBUG ***')
+    for (var i=0; i<vars.length; i++) {
+      console.log(vars[i])
+    }
+  }
 
+  function get_solution(demo_mode, selected_model, goh_states_fin, berkeley_states, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration) {
+    if (selected_model === 'goh') {
+      return get_solution_from_gohs_seir_ode(demo_mode, goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration)
+    } else if (selected_model === 'berkeley') {
+      return map_berkeley_states_into_UFStates(berkeley_states, N)
+    } else {
+      console.log('Error! getSolution does not have handling for model', selected_model)
+    }
+  }
+
+  $: selected_model    = "goh"
+  $: [first_date, goh_states_fin] = loadFinnishHistoricalEstimates(finnishHistoricalEstimates, N)
+  $: showHistory      = true
+  $: demo_mode        = showHistory ? SHOW_HISTORICAL_AND_FUTURE : SHOW_FUTURE
+  $: P_all_historical = map_goh_states_into_UFStates(goh_states_fin, N, P_ICU)
+  $: P_all_future     = get_solution(
+                          demo_mode,
+                          selected_model,
+                          goh_states_fin,
+                          berkeley_states,
+                          dt,
+                          N,
+                          I0,
+                          R0,
+                          D_incbation,
+                          D_infectious,
+                          D_recovery_mild,
+                          D_hospital_lag,
+                          D_recovery_severe,
+                          D_death, P_SEVERE,
+                          P_ICU,
+                          CFR,
+                          InterventionTime,
+                          InterventionAmt,
+                          duration
+                        )
+  $: P_all            = chooseP(demo_mode, P_all_historical, P_all_future, dt)
+  $: P_bars           = get_every_nth(P_all, dt)
+  $: timestep         = dt
+  $: tmax             = dt*101
+  $: Pmax             = getPmax(P_bars, stateMeta)
+  $: lock             = false
+  $: lastHistoricTime = getLastHistoricTime(demo_mode, P_all_historical, dt)
+  $: debugHelp        = debugHelper([])
 
 
 
@@ -220,7 +258,7 @@
     var dragged = function (d) {
       // InterventionTime = Math.max( (*(1 + (event.x - dragstarty)/500)), 10)
       // console.log(event.x)
-      const minX = (demo_mode === SHOW_FUTURE ? 0 : P_all_fin.length)
+      const minX = (demo_mode === SHOW_FUTURE ? 0 : P_all_historical.length)
       InterventionTime = Math.min(tmax-1, Math.max(minX, InterventionTimeStart + xScaleTimeInv(event.x - dragstarty)))
     }
 
@@ -246,7 +284,7 @@
     var dragged = function (d) {
       // InterventionTime = Math.max( (*(1 + (event.x - dragstarty)/500)), 10)
       // console.log(event.x)
-      const minX = (demo_mode === SHOW_FUTURE ? 0 : P_all_fin.length)
+      const minX = (demo_mode === SHOW_FUTURE ? 0 : P_all_historical.length)
       duration = Math.min(tmax-1, Math.max(minX, durationStart + xScaleTimeInv(event.x - dragstarty)))
     }
 
@@ -573,7 +611,26 @@
 
 <div class="chart" style="display: flex; max-width: 1120px">
   <div style="flex: 0 0 270px; width:270px;">
-    <div style="position:relative; top:150px; right:-115px">
+    <div style="height: 50px;">
+      
+      <div class="legendtext" style="font-size: 14px; line-height:16px; font-weight: bold; color: #777;">
+        Select scenario and model:
+      </div>
+      <select id="model-selection" bind:value={selected_model}>
+        <option value="goh" selected>Finland | Goh's SEIR ODE (live)</option>
+        <option value="berkeley">Finland | Berkeley ABM (precomputed)</option>
+        <option value="reina" disabled>Uusimaa | REINA ABM (precomputed)</option>
+      </select>
+
+      <div style="position: font-family: nyt-franklin,helvetica,arial,sans-serif; font-size: 13px; margin-bottom: 10px; margin-top: 10px; margin-left: 2px;">
+        <div class="tick" style="position: relative; color: #AAA; pointer-events:all;">
+          <Checkbox color="#BBB" bind:checked={showHistory}/><div style="position: relative; top: 4px; left:20px; color: #777;">Display historical estimates</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="position:relative; top:100px; right:-115px">
 
       <ChartCompanion bind:stateMeta = {stateMeta}
         N = {N}
@@ -723,15 +780,6 @@
               </div>
             {/each}
       </div>
-    
-    <!-- Log scale does not work even in the original Epidemic Calculator, so hide this button that toggles it. -->
-    <!--
-    <div style="opacity:{xScaleTime(InterventionTime) >= 192? 1.0 : 0.2}">
-      <div class="tick" style="color: #AAA; position:absolute; pointer-events:all; left:10px; top: 10px">
-        <Checkbox color="#CCC" bind:checked={log}/><div style="position: relative; top: 4px; left:20px">linear scale</div>
-      </div>
-    </div>
-    -->
 
    </div>
 
@@ -748,10 +796,6 @@
 
     <div class="column">
       <div class="paneltitle">Proto Config</div>
-
-      <div class="paneldesc" style="height:30px">Demo mode<br></div>
-      <div class="slidertext">{demo_mode === SHOW_FUTURE ? 'Future' : (demo_mode === SHOW_HISTORICAL ? 'History' : 'History+Future')}</div>
-      <input class="range" style="margin-bottom: 8px"type=range bind:value={demo_mode} min=0 max=2 step=1>
 
       <div class="paneldesc" style="height:30px; border-top: 0px solid #EEE;">Zoom x-axis<br></div> 
       <div class="slidertext">1/{dt}</div>

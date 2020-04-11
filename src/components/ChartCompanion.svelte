@@ -109,29 +109,29 @@
 {#each stateMeta as state,i}
 {#if state["checkable"]}
     <div style="position:absolute; left:0px; top:{legendheight*(i-1)}px; width: 180px; height: 100px">
-    <Arrow height="43" arrowhead="" dasharray="3 2"/>
-    <Checkbox color="{state['color']}" bind:checked={state['checked']} />
-    <div class="legend" style="position:absolute;">
-        <div class="legendtitle">
-        {state["tooltip_title"]}
-        </div>
-        <div style="padding-top: 3px; padding-bottom: 1px">
-            <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span>
-                <i>
-                {formatCount(P_bars[active_][state["key"]])} 
-                ({formatPercent(P_bars[active_][state["key"]] / N)}%)
-                </i>
+        <Arrow height="43" arrowhead="" dasharray="3 2"/>
+        <Checkbox color="{state['color']}" bind:checked={state['checked']} />
+        <div class="legend" style="position:absolute;">
+            <div class="legendtitle">
+            {state["tooltip_title"]}
             </div>
-            <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span>
-                <i>
-                {formatDelta(get_count_delta(state["key"], active_))} on day {getDay(active_)}
-                </i>
+            <div style="padding-top: 3px; padding-bottom: 1px">
+                <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span>
+                    <i>
+                    {formatCount(P_bars[active_][state["key"]])} 
+                    ({formatPercent(P_bars[active_][state["key"]] / N)}%)
+                    </i>
+                </div>
+                <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span>
+                    <i>
+                    {formatDelta(get_count_delta(state["key"], active_))} on day {getDay(active_)}
+                    </i>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4px; position:relative;">
-        {state["tooltip_desc"]}
-    </div>
+        <div class="legendtext" style="text-align: right; width:105px; left:-111px; top: 4px; position:relative;">
+            {state["tooltip_desc"]}
+        </div>
     </div>
 {/if}
 {/each}
