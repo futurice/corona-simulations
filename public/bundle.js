@@ -2,6 +2,12 @@
     'use strict';
 
     function noop() { }
+    function assign(tar, src) {
+        // @ts-ignore
+        for (const k in src)
+            tar[k] = src[k];
+        return tar;
+    }
     function add_location(element, file, line, column, char) {
         element.__svelte_meta = {
             loc: { file, line, column, char }
@@ -21,6 +27,22 @@
     }
     function safe_not_equal(a, b) {
         return a != a ? b == b : a !== b || ((a && typeof a === 'object') || typeof a === 'function');
+    }
+    function create_slot(definition, ctx, fn) {
+        if (definition) {
+            const slot_ctx = get_slot_context(definition, ctx, fn);
+            return definition[0](slot_ctx);
+        }
+    }
+    function get_slot_context(definition, ctx, fn) {
+        return definition[1]
+            ? assign({}, assign(ctx.$$scope.ctx, definition[1](fn ? fn(ctx) : {})))
+            : ctx.$$scope.ctx;
+    }
+    function get_slot_changes(definition, ctx, changed, fn) {
+        return definition[1]
+            ? assign({}, assign(ctx.$$scope.changed || {}, definition[1](fn ? fn(changed) : {})))
+            : ctx.$$scope.changed || {};
     }
 
     function append(target, node) {
@@ -63,6 +85,11 @@
         else
             node.setAttribute(attribute, value);
     }
+    function set_svg_attributes(node, attributes) {
+        for (const key in attributes) {
+            attr(node, key, attributes[key]);
+        }
+    }
     function to_number(value) {
         return value === '' ? undefined : +value;
     }
@@ -89,6 +116,9 @@
     function select_value(select) {
         const selected_option = select.querySelector(':checked') || select.options[0];
         return selected_option && selected_option.__value;
+    }
+    function toggle_class(element, name, toggle) {
+        element.classList[toggle ? 'add' : 'remove'](name);
     }
     function custom_event(type, detail) {
         const e = document.createEvent('CustomEvent');
@@ -227,6 +257,42 @@
             });
             block.o(local);
         }
+    }
+
+    const globals = (typeof window !== 'undefined' ? window : global);
+
+    function get_spread_update(levels, updates) {
+        const update = {};
+        const to_null_out = {};
+        const accounted_for = { $$scope: 1 };
+        let i = levels.length;
+        while (i--) {
+            const o = levels[i];
+            const n = updates[i];
+            if (n) {
+                for (const key in o) {
+                    if (!(key in n))
+                        to_null_out[key] = 1;
+                }
+                for (const key in n) {
+                    if (!accounted_for[key]) {
+                        update[key] = n[key];
+                        accounted_for[key] = 1;
+                    }
+                }
+                levels[i] = n;
+            }
+            else {
+                for (const key in o) {
+                    accounted_for[key] = 1;
+                }
+            }
+        }
+        for (const key in to_null_out) {
+            if (!(key in update))
+                update[key] = undefined;
+        }
+        return update;
     }
 
     function bind(component, name, callback) {
@@ -2555,7 +2621,7 @@
 
     var filterEvents = {};
 
-    var event = null;
+    var event$1 = null;
 
     if (typeof document !== "undefined") {
       var element$1 = document.documentElement;
@@ -2576,12 +2642,12 @@
 
     function contextListener(listener, index, group) {
       return function(event1) {
-        var event0 = event; // Events can be reentrant (e.g., focus).
-        event = event1;
+        var event0 = event$1; // Events can be reentrant (e.g., focus).
+        event$1 = event1;
         try {
           listener.call(this, this.__data__, index, group);
         } finally {
-          event = event0;
+          event$1 = event0;
         }
       };
     }
@@ -2651,13 +2717,13 @@
     }
 
     function customEvent(event1, listener, that, args) {
-      var event0 = event;
-      event1.sourceEvent = event;
-      event = event1;
+      var event0 = event$1;
+      event1.sourceEvent = event$1;
+      event$1 = event1;
       try {
         return listener.apply(that, args);
       } finally {
-        event = event0;
+        event$1 = event0;
       }
     }
 
@@ -2747,7 +2813,7 @@
     }
 
     function sourceEvent() {
-      var current = event, source;
+      var current = event$1, source;
       while (source = current.sourceEvent) current = source;
       return current;
     }
@@ -2791,12 +2857,12 @@
     }
 
     function nopropagation() {
-      event.stopImmediatePropagation();
+      event$1.stopImmediatePropagation();
     }
 
     function noevent() {
-      event.preventDefault();
-      event.stopImmediatePropagation();
+      event$1.preventDefault();
+      event$1.stopImmediatePropagation();
     }
 
     function nodrag(view) {
@@ -2851,7 +2917,7 @@
 
     // Ignore right-click, since that should open the context menu.
     function defaultFilter() {
-      return !event.ctrlKey && !event.button;
+      return !event$1.ctrlKey && !event$1.button;
     }
 
     function defaultContainer() {
@@ -2859,7 +2925,7 @@
     }
 
     function defaultSubject(d) {
-      return d == null ? {x: event.x, y: event.y} : d;
+      return d == null ? {x: event$1.x, y: event$1.y} : d;
     }
 
     function defaultTouchable() {
@@ -2895,34 +2961,34 @@
         if (touchending || !filter.apply(this, arguments)) return;
         var gesture = beforestart("mouse", container.apply(this, arguments), mouse, this, arguments);
         if (!gesture) return;
-        select(event.view).on("mousemove.drag", mousemoved, true).on("mouseup.drag", mouseupped, true);
-        nodrag(event.view);
+        select(event$1.view).on("mousemove.drag", mousemoved, true).on("mouseup.drag", mouseupped, true);
+        nodrag(event$1.view);
         nopropagation();
         mousemoving = false;
-        mousedownx = event.clientX;
-        mousedowny = event.clientY;
+        mousedownx = event$1.clientX;
+        mousedowny = event$1.clientY;
         gesture("start");
       }
 
       function mousemoved() {
         noevent();
         if (!mousemoving) {
-          var dx = event.clientX - mousedownx, dy = event.clientY - mousedowny;
+          var dx = event$1.clientX - mousedownx, dy = event$1.clientY - mousedowny;
           mousemoving = dx * dx + dy * dy > clickDistance2;
         }
         gestures.mouse("drag");
       }
 
       function mouseupped() {
-        select(event.view).on("mousemove.drag mouseup.drag", null);
-        yesdrag(event.view, mousemoving);
+        select(event$1.view).on("mousemove.drag mouseup.drag", null);
+        yesdrag(event$1.view, mousemoving);
         noevent();
         gestures.mouse("end");
       }
 
       function touchstarted() {
         if (!filter.apply(this, arguments)) return;
-        var touches = event.changedTouches,
+        var touches = event$1.changedTouches,
             c = container.apply(this, arguments),
             n = touches.length, i, gesture;
 
@@ -2935,7 +3001,7 @@
       }
 
       function touchmoved() {
-        var touches = event.changedTouches,
+        var touches = event$1.changedTouches,
             n = touches.length, i, gesture;
 
         for (i = 0; i < n; ++i) {
@@ -2947,7 +3013,7 @@
       }
 
       function touchended() {
-        var touches = event.changedTouches,
+        var touches = event$1.changedTouches,
             n = touches.length, i, gesture;
 
         if (touchending) clearTimeout(touchending);
@@ -2965,7 +3031,7 @@
             sublisteners = listeners.copy();
 
         if (!customEvent(new DragEvent(drag, "beforestart", s, id, active, p[0], p[1], 0, 0, sublisteners), function() {
-          if ((event.subject = s = subject.apply(that, args)) == null) return false;
+          if ((event$1.subject = s = subject.apply(that, args)) == null) return false;
           dx = s.x - p[0] || 0;
           dy = s.y - p[1] || 0;
           return true;
@@ -3010,2253 +3076,6 @@
       return drag;
     }
 
-    /* src/components/Chart.svelte generated by Svelte v3.12.1 */
-
-    const file = "src/components/Chart.svelte";
-
-    function get_each_context(ctx, list, i) {
-    	const child_ctx = Object.create(ctx);
-    	child_ctx.i = list[i];
-    	return child_ctx;
-    }
-
-    function get_each_context_2(ctx, list, i) {
-    	const child_ctx = Object.create(ctx);
-    	child_ctx.j = list[i];
-    	return child_ctx;
-    }
-
-    function get_each_context_1(ctx, list, i) {
-    	const child_ctx = Object.create(ctx);
-    	child_ctx.i = list[i];
-    	return child_ctx;
-    }
-
-    function get_each_context_3(ctx, list, i) {
-    	const child_ctx = Object.create(ctx);
-    	child_ctx.i = list[i];
-    	return child_ctx;
-    }
-
-    function get_each_context_4(ctx, list, i) {
-    	const child_ctx = Object.create(ctx);
-    	child_ctx.tick = list[i];
-    	return child_ctx;
-    }
-
-    // (229:2) {#if shouldWeDrawICUcapacity(stateMeta, ymax)}
-    function create_if_block_3(ctx) {
-    	var div;
-
-    	const block = {
-    		c: function create() {
-    			div = element("div");
-    			set_style(div, "position", "absolute");
-    			set_style(div, "top", "" + ctx.Math.max(ctx.yScale(ctx.icuCapacity),0) + "px");
-    			set_style(div, "left", "30px");
-    			set_style(div, "width", "" + (width - 30) + "px");
-    			set_style(div, "height", "1px");
-    			set_style(div, "border-top", "1px solid black");
-    			add_location(div, file, 229, 4, 5318);
-    		},
-
-    		m: function mount(target, anchor) {
-    			insert_dev(target, div, anchor);
-    		},
-
-    		p: function update(changed, ctx) {
-    			if (changed.yScale || changed.icuCapacity) {
-    				set_style(div, "top", "" + ctx.Math.max(ctx.yScale(ctx.icuCapacity),0) + "px");
-    			}
-    		},
-
-    		d: function destroy(detaching) {
-    			if (detaching) {
-    				detach_dev(div);
-    			}
-    		}
-    	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block_3.name, type: "if", source: "(229:2) {#if shouldWeDrawICUcapacity(stateMeta, ymax)}", ctx });
-    	return block;
-    }
-
-    // (243:6) {#each yScale.ticks(5) as tick}
-    function create_each_block_4(ctx) {
-    	var g, line, text_1, t0_value = Number.isInteger(ctx.Math.log10(ctx.tick)) ? formatNumber(ctx.tick) : (ctx.log ? "": formatNumber(ctx.tick)) + "", t0, t1_value = (ctx.tick == ctx.yScale.ticks(5)[0]) ? " ": "" + "", t1, g_class_value, g_transform_value;
-
-    	const block = {
-    		c: function create() {
-    			g = svg_element("g");
-    			line = svg_element("line");
-    			text_1 = svg_element("text");
-    			t0 = text(t0_value);
-    			t1 = text(t1_value);
-    			attr_dev(line, "x2", "100%");
-    			attr_dev(line, "class", "svelte-1hzt5y0");
-    			add_location(line, file, 244, 10, 5856);
-    			attr_dev(text_1, "y", "-4");
-    			attr_dev(text_1, "class", "svelte-1hzt5y0");
-    			add_location(text_1, file, 245, 10, 5890);
-    			attr_dev(g, "class", g_class_value = "tick tick-" + ctx.tick + " svelte-1hzt5y0");
-    			attr_dev(g, "transform", g_transform_value = "translate(0, " + (ctx.yScale(ctx.tick) - ctx.padding.bottom) + ")");
-    			add_location(g, file, 243, 8, 5759);
-    		},
-
-    		m: function mount(target, anchor) {
-    			insert_dev(target, g, anchor);
-    			append_dev(g, line);
-    			append_dev(g, text_1);
-    			append_dev(text_1, t0);
-    			append_dev(text_1, t1);
-    		},
-
-    		p: function update(changed, ctx) {
-    			if ((changed.yScale || changed.log) && t0_value !== (t0_value = Number.isInteger(ctx.Math.log10(ctx.tick)) ? formatNumber(ctx.tick) : (ctx.log ? "": formatNumber(ctx.tick)) + "")) {
-    				set_data_dev(t0, t0_value);
-    			}
-
-    			if ((changed.yScale) && t1_value !== (t1_value = (ctx.tick == ctx.yScale.ticks(5)[0]) ? " ": "" + "")) {
-    				set_data_dev(t1, t1_value);
-    			}
-
-    			if ((changed.yScale) && g_class_value !== (g_class_value = "tick tick-" + ctx.tick + " svelte-1hzt5y0")) {
-    				attr_dev(g, "class", g_class_value);
-    			}
-
-    			if ((changed.yScale) && g_transform_value !== (g_transform_value = "translate(0, " + (ctx.yScale(ctx.tick) - ctx.padding.bottom) + ")")) {
-    				attr_dev(g, "transform", g_transform_value);
-    			}
-    		},
-
-    		d: function destroy(detaching) {
-    			if (detaching) {
-    				detach_dev(g);
-    			}
-    		}
-    	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_each_block_4.name, type: "each", source: "(243:6) {#each yScale.ticks(5) as tick}", ctx });
-    	return block;
-    }
-
-    // (253:6) {#each xScaleTime.ticks() as i}
-    function create_each_block_3(ctx) {
-    	var g, text_1, t0_value = ctx.i == 0 ? "Day ":"" + "", t0, t1_value = ctx.i + "", t1, g_transform_value;
-
-    	const block = {
-    		c: function create() {
-    			g = svg_element("g");
-    			text_1 = svg_element("text");
-    			t0 = text(t0_value);
-    			t1 = text(t1_value);
-    			attr_dev(text_1, "x", "0");
-    			attr_dev(text_1, "y", "-4");
-    			attr_dev(text_1, "class", "svelte-1hzt5y0");
-    			add_location(text_1, file, 254, 10, 6248);
-    			attr_dev(g, "class", "tick svelte-1hzt5y0");
-    			attr_dev(g, "transform", g_transform_value = "translate(" + ctx.xScaleTime(ctx.i) + "," + height + ")");
-    			add_location(g, file, 253, 8, 6173);
-    		},
-
-    		m: function mount(target, anchor) {
-    			insert_dev(target, g, anchor);
-    			append_dev(g, text_1);
-    			append_dev(text_1, t0);
-    			append_dev(text_1, t1);
-    		},
-
-    		p: function update(changed, ctx) {
-    			if ((changed.xScaleTime) && t0_value !== (t0_value = ctx.i == 0 ? "Day ":"" + "")) {
-    				set_data_dev(t0, t0_value);
-    			}
-
-    			if ((changed.xScaleTime) && t1_value !== (t1_value = ctx.i + "")) {
-    				set_data_dev(t1, t1_value);
-    			}
-
-    			if ((changed.xScaleTime) && g_transform_value !== (g_transform_value = "translate(" + ctx.xScaleTime(ctx.i) + "," + height + ")")) {
-    				attr_dev(g, "transform", g_transform_value);
-    			}
-    		},
-
-    		d: function destroy(detaching) {
-    			if (detaching) {
-    				detach_dev(g);
-    			}
-    		}
-    	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_each_block_3.name, type: "each", source: "(253:6) {#each xScaleTime.ticks() as i}", ctx });
-    	return block;
-    }
-
-    // (289:10) {:else}
-    function create_else_block(ctx) {
-    	const block = {
-    		c: noop,
-    		m: noop,
-    		p: noop,
-    		d: noop
-    	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_else_block.name, type: "else", source: "(289:10) {:else}", ctx });
-    	return block;
-    }
-
-    // (275:10) {#if !log}
-    function create_if_block_1(ctx) {
-    	var if_block_anchor;
-
-    	var if_block = (ctx.states[ctx.i][ctx.stateMeta[ctx.j]["key"]] > 0) && create_if_block_2(ctx);
-
-    	const block = {
-    		c: function create() {
-    			if (if_block) if_block.c();
-    			if_block_anchor = empty();
-    		},
-
-    		m: function mount(target, anchor) {
-    			if (if_block) if_block.m(target, anchor);
-    			insert_dev(target, if_block_anchor, anchor);
-    		},
-
-    		p: function update(changed, ctx) {
-    			if (ctx.states[ctx.i][ctx.stateMeta[ctx.j]["key"]] > 0) {
-    				if (if_block) {
-    					if_block.p(changed, ctx);
-    				} else {
-    					if_block = create_if_block_2(ctx);
-    					if_block.c();
-    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
-    				}
-    			} else if (if_block) {
-    				if_block.d(1);
-    				if_block = null;
-    			}
-    		},
-
-    		d: function destroy(detaching) {
-    			if (if_block) if_block.d(detaching);
-
-    			if (detaching) {
-    				detach_dev(if_block_anchor);
-    			}
-    		}
-    	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block_1.name, type: "if", source: "(275:10) {#if !log}", ctx });
-    	return block;
-    }
-
-    // (276:12) {#if states[i][stateMeta[j]["key"]] > 0}
-    function create_if_block_2(ctx) {
-    	var rect, rect_x_value, rect_y_value, rect_height_value, dispose;
-
-    	function mouseover_handler_1() {
-    		return ctx.mouseover_handler_1(ctx);
-    	}
-
-    	function click_handler_1() {
-    		return ctx.click_handler_1(ctx);
-    	}
-
-    	const block = {
-    		c: function create() {
-    			rect = svg_element("rect");
-    			attr_dev(rect, "class", "bar svelte-1hzt5y0");
-    			attr_dev(rect, "x", rect_x_value = ctx.xScale(ctx.i) + 2);
-    			attr_dev(rect, "y", rect_y_value = ctx.yScale(getBarY(ctx.states[ctx.i], ctx.stateMeta, ctx.j)));
-    			attr_dev(rect, "width", ctx.barWidth);
-    			attr_dev(rect, "height", rect_height_value = ctx.Math.max(height - ctx.padding.bottom - ctx.yScale(getBarHeight(ctx.states[ctx.i], ctx.stateMeta, ctx.j)), 0));
-    			set_style(rect, "fill", ctx.stateMeta[ctx.j]['color']);
-    			set_style(rect, "opacity", (ctx.active == ctx.i ? 0.9: 0.6));
-    			add_location(rect, file, 276, 14, 6893);
-
-    			dispose = [
-    				listen_dev(rect, "mouseover", mouseover_handler_1),
-    				listen_dev(rect, "mouseout", ctx.mouseout_handler_1),
-    				listen_dev(rect, "click", click_handler_1)
-    			];
-    		},
-
-    		m: function mount(target, anchor) {
-    			insert_dev(target, rect, anchor);
-    		},
-
-    		p: function update(changed, new_ctx) {
-    			ctx = new_ctx;
-    			if ((changed.xScale || changed.states) && rect_x_value !== (rect_x_value = ctx.xScale(ctx.i) + 2)) {
-    				attr_dev(rect, "x", rect_x_value);
-    			}
-
-    			if ((changed.yScale || changed.states || changed.stateMeta) && rect_y_value !== (rect_y_value = ctx.yScale(getBarY(ctx.states[ctx.i], ctx.stateMeta, ctx.j)))) {
-    				attr_dev(rect, "y", rect_y_value);
-    			}
-
-    			if (changed.barWidth) {
-    				attr_dev(rect, "width", ctx.barWidth);
-    			}
-
-    			if ((changed.yScale || changed.states || changed.stateMeta) && rect_height_value !== (rect_height_value = ctx.Math.max(height - ctx.padding.bottom - ctx.yScale(getBarHeight(ctx.states[ctx.i], ctx.stateMeta, ctx.j)), 0))) {
-    				attr_dev(rect, "height", rect_height_value);
-    			}
-
-    			if (changed.stateMeta) {
-    				set_style(rect, "fill", ctx.stateMeta[ctx.j]['color']);
-    			}
-
-    			if (changed.active || changed.states) {
-    				set_style(rect, "opacity", (ctx.active == ctx.i ? 0.9: 0.6));
-    			}
-    		},
-
-    		d: function destroy(detaching) {
-    			if (detaching) {
-    				detach_dev(rect);
-    			}
-
-    			run_all(dispose);
-    		}
-    	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block_2.name, type: "if", source: "(276:12) {#if states[i][stateMeta[j][\"key\"]] > 0}", ctx });
-    	return block;
-    }
-
-    // (274:8) {#each range(stateMeta.length) as j}
-    function create_each_block_2(ctx) {
-    	var if_block_anchor;
-
-    	function select_block_type(changed, ctx) {
-    		if (!ctx.log) return create_if_block_1;
-    		return create_else_block;
-    	}
-
-    	var current_block_type = select_block_type(null, ctx);
-    	var if_block = current_block_type(ctx);
-
-    	const block = {
-    		c: function create() {
-    			if_block.c();
-    			if_block_anchor = empty();
-    		},
-
-    		m: function mount(target, anchor) {
-    			if_block.m(target, anchor);
-    			insert_dev(target, if_block_anchor, anchor);
-    		},
-
-    		p: function update(changed, ctx) {
-    			if (current_block_type === (current_block_type = select_block_type(changed, ctx)) && if_block) {
-    				if_block.p(changed, ctx);
-    			} else {
-    				if_block.d(1);
-    				if_block = current_block_type(ctx);
-    				if (if_block) {
-    					if_block.c();
-    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
-    				}
-    			}
-    		},
-
-    		d: function destroy(detaching) {
-    			if_block.d(detaching);
-
-    			if (detaching) {
-    				detach_dev(if_block_anchor);
-    			}
-    		}
-    	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_each_block_2.name, type: "each", source: "(274:8) {#each range(stateMeta.length) as j}", ctx });
-    	return block;
-    }
-
-    // (261:6) {#each range(states.length) as i}
-    function create_each_block_1(ctx) {
-    	var rect, rect_x_value, rect_width_value, each_1_anchor, dispose;
-
-    	function mouseover_handler() {
-    		return ctx.mouseover_handler(ctx);
-    	}
-
-    	function click_handler() {
-    		return ctx.click_handler(ctx);
-    	}
-
-    	let each_value_2 = range(ctx.stateMeta.length);
-
-    	let each_blocks = [];
-
-    	for (let i = 0; i < each_value_2.length; i += 1) {
-    		each_blocks[i] = create_each_block_2(get_each_context_2(ctx, each_value_2, i));
-    	}
-
-    	const block = {
-    		c: function create() {
-    			rect = svg_element("rect");
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].c();
-    			}
-
-    			each_1_anchor = empty();
-    			attr_dev(rect, "class", "bar svelte-1hzt5y0");
-    			attr_dev(rect, "x", rect_x_value = ctx.xScale(ctx.i) + 2);
-    			attr_dev(rect, "y", 0);
-    			attr_dev(rect, "width", rect_width_value = ctx.barWidth+3);
-    			attr_dev(rect, "height", height);
-    			set_style(rect, "fill", "white");
-    			set_style(rect, "opacity", "0");
-    			add_location(rect, file, 261, 8, 6404);
-
-    			dispose = [
-    				listen_dev(rect, "mouseover", mouseover_handler),
-    				listen_dev(rect, "mouseout", ctx.mouseout_handler),
-    				listen_dev(rect, "click", click_handler)
-    			];
-    		},
-
-    		m: function mount(target, anchor) {
-    			insert_dev(target, rect, anchor);
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].m(target, anchor);
-    			}
-
-    			insert_dev(target, each_1_anchor, anchor);
-    		},
-
-    		p: function update(changed, new_ctx) {
-    			ctx = new_ctx;
-    			if ((changed.xScale || changed.states) && rect_x_value !== (rect_x_value = ctx.xScale(ctx.i) + 2)) {
-    				attr_dev(rect, "x", rect_x_value);
-    			}
-
-    			if ((changed.barWidth) && rect_width_value !== (rect_width_value = ctx.barWidth+3)) {
-    				attr_dev(rect, "width", rect_width_value);
-    			}
-
-    			if (changed.log || changed.states || changed.range || changed.stateMeta || changed.xScale || changed.yScale || changed.getBarY || changed.barWidth || changed.Math || changed.height || changed.padding || changed.getBarHeight || changed.active) {
-    				each_value_2 = range(ctx.stateMeta.length);
-
-    				let i;
-    				for (i = 0; i < each_value_2.length; i += 1) {
-    					const child_ctx = get_each_context_2(ctx, each_value_2, i);
-
-    					if (each_blocks[i]) {
-    						each_blocks[i].p(changed, child_ctx);
-    					} else {
-    						each_blocks[i] = create_each_block_2(child_ctx);
-    						each_blocks[i].c();
-    						each_blocks[i].m(each_1_anchor.parentNode, each_1_anchor);
-    					}
-    				}
-
-    				for (; i < each_blocks.length; i += 1) {
-    					each_blocks[i].d(1);
-    				}
-    				each_blocks.length = each_value_2.length;
-    			}
-    		},
-
-    		d: function destroy(detaching) {
-    			if (detaching) {
-    				detach_dev(rect);
-    			}
-
-    			destroy_each(each_blocks, detaching);
-
-    			if (detaching) {
-    				detach_dev(each_1_anchor);
-    			}
-
-    			run_all(dispose);
-    		}
-    	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_each_block_1.name, type: "each", source: "(261:6) {#each range(states.length) as i}", ctx });
-    	return block;
-    }
-
-    // (322:6) {#each range(data.length) as i}
-    function create_each_block(ctx) {
-    	var rect, rect_x_value, rect_y_value, rect_height_value;
-
-    	const block = {
-    		c: function create() {
-    			rect = svg_element("rect");
-    			attr_dev(rect, "class", "bar svelte-1hzt5y0");
-    			attr_dev(rect, "x", rect_x_value = ctx.xScale( ctx.i+28 ) + 2);
-    			attr_dev(rect, "y", rect_y_value = ctx.yScale( ctx.data[ctx.i][1] ));
-    			attr_dev(rect, "width", ctx.barWidth);
-    			attr_dev(rect, "height", rect_height_value = height - ctx.padding.bottom - ctx.yScale( ctx.data[ctx.i][1] ));
-    			set_style(rect, "fill", "black");
-    			set_style(rect, "opacity", "0.5");
-    			set_style(rect, "box-shadow", "4px 10px 5px 2px rgba(0,0,0,0.75)");
-    			add_location(rect, file, 322, 8, 8819);
-    		},
-
-    		m: function mount(target, anchor) {
-    			insert_dev(target, rect, anchor);
-    		},
-
-    		p: function update(changed, ctx) {
-    			if ((changed.xScale) && rect_x_value !== (rect_x_value = ctx.xScale( ctx.i+28 ) + 2)) {
-    				attr_dev(rect, "x", rect_x_value);
-    			}
-
-    			if ((changed.yScale) && rect_y_value !== (rect_y_value = ctx.yScale( ctx.data[ctx.i][1] ))) {
-    				attr_dev(rect, "y", rect_y_value);
-    			}
-
-    			if (changed.barWidth) {
-    				attr_dev(rect, "width", ctx.barWidth);
-    			}
-
-    			if ((changed.yScale) && rect_height_value !== (rect_height_value = height - ctx.padding.bottom - ctx.yScale( ctx.data[ctx.i][1] ))) {
-    				attr_dev(rect, "height", rect_height_value);
-    			}
-    		},
-
-    		d: function destroy(detaching) {
-    			if (detaching) {
-    				detach_dev(rect);
-    			}
-    		}
-    	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_each_block.name, type: "each", source: "(322:6) {#each range(data.length) as i}", ctx });
-    	return block;
-    }
-
-    // (341:4) {#if active >= 0}
-    function create_if_block(ctx) {
-    	var div, svg, path, path_fill_value;
-
-    	const block = {
-    		c: function create() {
-    			div = element("div");
-    			svg = svg_element("svg");
-    			path = svg_element("path");
-    			attr_dev(path, "d", "M 0 0 L 10 0 L 5 10 z");
-    			attr_dev(path, "fill", path_fill_value = ctx.lock ? '#555':'#AAA');
-    			attr_dev(path, "stroke-width", "3");
-    			add_location(path, file, 347, 10, 9745);
-    			set_style(svg, "position", "absolute");
-    			set_style(svg, "top", "-12px");
-    			set_style(svg, "left", "0px");
-    			attr_dev(svg, "height", "10");
-    			attr_dev(svg, "width", "10");
-    			attr_dev(svg, "class", "svelte-1hzt5y0");
-    			add_location(svg, file, 346, 10, 9659);
-    			set_style(div, "position", "absolute");
-    			set_style(div, "pointer-events", "none");
-    			set_style(div, "width", "100px");
-    			set_style(div, "left", "" + ctx.xScale(ctx.active) + "px");
-    			set_style(div, "top", "" + ctx.Math.max(ctx.yScale(getBarY(ctx.states[ctx.active], ctx.stateMeta, 0)),0) + "px");
-    			attr_dev(div, "class", "tip");
-    			add_location(div, file, 341, 6, 9403);
-    		},
-
-    		m: function mount(target, anchor) {
-    			insert_dev(target, div, anchor);
-    			append_dev(div, svg);
-    			append_dev(svg, path);
-    		},
-
-    		p: function update(changed, ctx) {
-    			if ((changed.lock) && path_fill_value !== (path_fill_value = ctx.lock ? '#555':'#AAA')) {
-    				attr_dev(path, "fill", path_fill_value);
-    			}
-
-    			if (changed.xScale || changed.active) {
-    				set_style(div, "left", "" + ctx.xScale(ctx.active) + "px");
-    			}
-
-    			if (changed.yScale || changed.states || changed.active || changed.stateMeta) {
-    				set_style(div, "top", "" + ctx.Math.max(ctx.yScale(getBarY(ctx.states[ctx.active], ctx.stateMeta, 0)),0) + "px");
-    			}
-    		},
-
-    		d: function destroy(detaching) {
-    			if (detaching) {
-    				detach_dev(div);
-    			}
-    		}
-    	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block.name, type: "if", source: "(341:4) {#if active >= 0}", ctx });
-    	return block;
-    }
-
-    function create_fragment(ctx) {
-    	var div3, show_if = ctx.shouldWeDrawICUcapacity(ctx.stateMeta, ctx.ymax), t0, svg0, g0, g1, g2, g3, t1, div2, t2, div0, t3, div1, svg1, path;
-
-    	var if_block0 = (show_if) && create_if_block_3(ctx);
-
-    	let each_value_4 = ctx.yScale.ticks(5);
-
-    	let each_blocks_3 = [];
-
-    	for (let i = 0; i < each_value_4.length; i += 1) {
-    		each_blocks_3[i] = create_each_block_4(get_each_context_4(ctx, each_value_4, i));
-    	}
-
-    	let each_value_3 = ctx.xScaleTime.ticks();
-
-    	let each_blocks_2 = [];
-
-    	for (let i = 0; i < each_value_3.length; i += 1) {
-    		each_blocks_2[i] = create_each_block_3(get_each_context_3(ctx, each_value_3, i));
-    	}
-
-    	let each_value_1 = range(ctx.states.length);
-
-    	let each_blocks_1 = [];
-
-    	for (let i = 0; i < each_value_1.length; i += 1) {
-    		each_blocks_1[i] = create_each_block_1(get_each_context_1(ctx, each_value_1, i));
-    	}
-
-    	let each_value = range(ctx.data.length);
-
-    	let each_blocks = [];
-
-    	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
-    	}
-
-    	var if_block1 = (ctx.active >= 0) && create_if_block(ctx);
-
-    	const block = {
-    		c: function create() {
-    			div3 = element("div");
-    			if (if_block0) if_block0.c();
-    			t0 = space();
-    			svg0 = svg_element("svg");
-    			g0 = svg_element("g");
-
-    			for (let i = 0; i < each_blocks_3.length; i += 1) {
-    				each_blocks_3[i].c();
-    			}
-
-    			g1 = svg_element("g");
-
-    			for (let i = 0; i < each_blocks_2.length; i += 1) {
-    				each_blocks_2[i].c();
-    			}
-
-    			g2 = svg_element("g");
-
-    			for (let i = 0; i < each_blocks_1.length; i += 1) {
-    				each_blocks_1[i].c();
-    			}
-
-    			g3 = svg_element("g");
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].c();
-    			}
-
-    			t1 = space();
-    			div2 = element("div");
-    			if (if_block1) if_block1.c();
-    			t2 = space();
-    			div0 = element("div");
-    			t3 = space();
-    			div1 = element("div");
-    			svg1 = svg_element("svg");
-    			path = svg_element("path");
-    			attr_dev(g0, "class", "axis y-axis");
-    			attr_dev(g0, "transform", "translate(0," + ctx.padding.top + ")");
-    			add_location(g0, file, 241, 4, 5650);
-    			attr_dev(g1, "class", "axis x-axis svelte-1hzt5y0");
-    			add_location(g1, file, 251, 4, 6103);
-    			attr_dev(g2, "class", "bars");
-    			add_location(g2, file, 259, 4, 6339);
-    			attr_dev(g3, "class", "bars");
-    			add_location(g3, file, 320, 4, 8756);
-    			set_style(svg0, "position", "absolute");
-    			set_style(svg0, "height", "" + height + "px");
-    			attr_dev(svg0, "class", "svelte-1hzt5y0");
-    			add_location(svg0, file, 238, 2, 5573);
-    			attr_dev(div0, "id", "historicalMarker");
-    			set_style(div0, "pointer-events", "none");
-    			set_style(div0, "position", "absolute");
-    			set_style(div0, "top", "20px");
-    			set_style(div0, "left", "" + (ctx.xScale(ctx.lastHistoricTimeHelper()) + 3) + "px");
-    			set_style(div0, "visibility", "'visible'");
-    			set_style(div0, "width", "2px");
-    			set_style(div0, "background-color", "#FFF");
-    			set_style(div0, "border-right", "1px dashed plum");
-    			set_style(div0, "height", "" + (ctx.Math.max(ctx.yScale(getBarY(ctx.states[ctx.lastHistoricTimeHelper()], ctx.stateMeta, 0)),0) - 30) + "px");
-    			add_location(div0, file, 356, 4, 9957);
-    			attr_dev(path, "d", "M 0 0 L 10 0 L 5 10 z");
-    			attr_dev(path, "fill", "plum");
-    			attr_dev(path, "stroke-width", "3");
-    			add_location(path, file, 372, 10, 10780);
-    			set_style(svg1, "position", "absolute");
-    			set_style(svg1, "top", "-12px");
-    			set_style(svg1, "left", "0px");
-    			attr_dev(svg1, "height", "10");
-    			attr_dev(svg1, "width", "10");
-    			attr_dev(svg1, "class", "svelte-1hzt5y0");
-    			add_location(svg1, file, 371, 10, 10694);
-    			set_style(div1, "position", "absolute");
-    			set_style(div1, "pointer-events", "none");
-    			set_style(div1, "width", "100px");
-    			set_style(div1, "left", "" + ctx.xScale(ctx.lastHistoricTimeHelper()) + "px");
-    			set_style(div1, "top", "" + ctx.Math.max(ctx.yScale(getBarY(ctx.states[ctx.lastHistoricTimeHelper()], ctx.stateMeta, 0)),0) + "px");
-    			attr_dev(div1, "class", "tip");
-    			add_location(div1, file, 366, 4, 10402);
-    			set_style(div2, "position", "absolute");
-    			set_style(div2, "width", "" + (width+15) + "px");
-    			set_style(div2, "height", "" + height + "px");
-    			set_style(div2, "position", "absolute");
-    			set_style(div2, "top", "0px");
-    			set_style(div2, "left", "0px");
-    			set_style(div2, "pointer-events", "none");
-    			add_location(div2, file, 337, 2, 9201);
-    			set_style(div3, "width", "" + (width+15) + "px");
-    			set_style(div3, "height", "" + height + "px");
-    			set_style(div3, "position", "relative");
-    			set_style(div3, "top", "20px");
-    			add_location(div3, file, 226, 0, 5181);
-    		},
-
-    		l: function claim(nodes) {
-    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
-    		},
-
-    		m: function mount(target, anchor) {
-    			insert_dev(target, div3, anchor);
-    			if (if_block0) if_block0.m(div3, null);
-    			append_dev(div3, t0);
-    			append_dev(div3, svg0);
-    			append_dev(svg0, g0);
-
-    			for (let i = 0; i < each_blocks_3.length; i += 1) {
-    				each_blocks_3[i].m(g0, null);
-    			}
-
-    			append_dev(svg0, g1);
-
-    			for (let i = 0; i < each_blocks_2.length; i += 1) {
-    				each_blocks_2[i].m(g1, null);
-    			}
-
-    			append_dev(svg0, g2);
-
-    			for (let i = 0; i < each_blocks_1.length; i += 1) {
-    				each_blocks_1[i].m(g2, null);
-    			}
-
-    			append_dev(svg0, g3);
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].m(g3, null);
-    			}
-
-    			append_dev(div3, t1);
-    			append_dev(div3, div2);
-    			if (if_block1) if_block1.m(div2, null);
-    			append_dev(div2, t2);
-    			append_dev(div2, div0);
-    			append_dev(div2, t3);
-    			append_dev(div2, div1);
-    			append_dev(div1, svg1);
-    			append_dev(svg1, path);
-    		},
-
-    		p: function update(changed, ctx) {
-    			if (changed.stateMeta || changed.ymax) show_if = ctx.shouldWeDrawICUcapacity(ctx.stateMeta, ctx.ymax);
-
-    			if (show_if) {
-    				if (if_block0) {
-    					if_block0.p(changed, ctx);
-    				} else {
-    					if_block0 = create_if_block_3(ctx);
-    					if_block0.c();
-    					if_block0.m(div3, t0);
-    				}
-    			} else if (if_block0) {
-    				if_block0.d(1);
-    				if_block0 = null;
-    			}
-
-    			if (changed.yScale || changed.padding || changed.Math || changed.formatNumber || changed.log) {
-    				each_value_4 = ctx.yScale.ticks(5);
-
-    				let i;
-    				for (i = 0; i < each_value_4.length; i += 1) {
-    					const child_ctx = get_each_context_4(ctx, each_value_4, i);
-
-    					if (each_blocks_3[i]) {
-    						each_blocks_3[i].p(changed, child_ctx);
-    					} else {
-    						each_blocks_3[i] = create_each_block_4(child_ctx);
-    						each_blocks_3[i].c();
-    						each_blocks_3[i].m(g0, null);
-    					}
-    				}
-
-    				for (; i < each_blocks_3.length; i += 1) {
-    					each_blocks_3[i].d(1);
-    				}
-    				each_blocks_3.length = each_value_4.length;
-    			}
-
-    			if (changed.xScaleTime || changed.height) {
-    				each_value_3 = ctx.xScaleTime.ticks();
-
-    				let i;
-    				for (i = 0; i < each_value_3.length; i += 1) {
-    					const child_ctx = get_each_context_3(ctx, each_value_3, i);
-
-    					if (each_blocks_2[i]) {
-    						each_blocks_2[i].p(changed, child_ctx);
-    					} else {
-    						each_blocks_2[i] = create_each_block_3(child_ctx);
-    						each_blocks_2[i].c();
-    						each_blocks_2[i].m(g1, null);
-    					}
-    				}
-
-    				for (; i < each_blocks_2.length; i += 1) {
-    					each_blocks_2[i].d(1);
-    				}
-    				each_blocks_2.length = each_value_3.length;
-    			}
-
-    			if (changed.range || changed.stateMeta || changed.log || changed.states || changed.xScale || changed.yScale || changed.getBarY || changed.barWidth || changed.Math || changed.height || changed.padding || changed.getBarHeight || changed.active) {
-    				each_value_1 = range(ctx.states.length);
-
-    				let i;
-    				for (i = 0; i < each_value_1.length; i += 1) {
-    					const child_ctx = get_each_context_1(ctx, each_value_1, i);
-
-    					if (each_blocks_1[i]) {
-    						each_blocks_1[i].p(changed, child_ctx);
-    					} else {
-    						each_blocks_1[i] = create_each_block_1(child_ctx);
-    						each_blocks_1[i].c();
-    						each_blocks_1[i].m(g2, null);
-    					}
-    				}
-
-    				for (; i < each_blocks_1.length; i += 1) {
-    					each_blocks_1[i].d(1);
-    				}
-    				each_blocks_1.length = each_value_1.length;
-    			}
-
-    			if (changed.xScale || changed.range || changed.data || changed.yScale || changed.barWidth || changed.height || changed.padding) {
-    				each_value = range(ctx.data.length);
-
-    				let i;
-    				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context(ctx, each_value, i);
-
-    					if (each_blocks[i]) {
-    						each_blocks[i].p(changed, child_ctx);
-    					} else {
-    						each_blocks[i] = create_each_block(child_ctx);
-    						each_blocks[i].c();
-    						each_blocks[i].m(g3, null);
-    					}
-    				}
-
-    				for (; i < each_blocks.length; i += 1) {
-    					each_blocks[i].d(1);
-    				}
-    				each_blocks.length = each_value.length;
-    			}
-
-    			if (ctx.active >= 0) {
-    				if (if_block1) {
-    					if_block1.p(changed, ctx);
-    				} else {
-    					if_block1 = create_if_block(ctx);
-    					if_block1.c();
-    					if_block1.m(div2, t2);
-    				}
-    			} else if (if_block1) {
-    				if_block1.d(1);
-    				if_block1 = null;
-    			}
-
-    			if (changed.xScale) {
-    				set_style(div0, "left", "" + (ctx.xScale(ctx.lastHistoricTimeHelper()) + 3) + "px");
-    			}
-
-    			if (changed.yScale || changed.states || changed.stateMeta) {
-    				set_style(div0, "height", "" + (ctx.Math.max(ctx.yScale(getBarY(ctx.states[ctx.lastHistoricTimeHelper()], ctx.stateMeta, 0)),0) - 30) + "px");
-    			}
-
-    			if (changed.xScale) {
-    				set_style(div1, "left", "" + ctx.xScale(ctx.lastHistoricTimeHelper()) + "px");
-    			}
-
-    			if (changed.yScale || changed.states || changed.stateMeta) {
-    				set_style(div1, "top", "" + ctx.Math.max(ctx.yScale(getBarY(ctx.states[ctx.lastHistoricTimeHelper()], ctx.stateMeta, 0)),0) + "px");
-    			}
-    		},
-
-    		i: noop,
-    		o: noop,
-
-    		d: function destroy(detaching) {
-    			if (detaching) {
-    				detach_dev(div3);
-    			}
-
-    			if (if_block0) if_block0.d();
-
-    			destroy_each(each_blocks_3, detaching);
-
-    			destroy_each(each_blocks_2, detaching);
-
-    			destroy_each(each_blocks_1, detaching);
-
-    			destroy_each(each_blocks, detaching);
-
-    			if (if_block1) if_block1.d();
-    		}
-    	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_fragment.name, type: "component", source: "", ctx });
-    	return block;
-    }
-
-    let width  = 750;
-
-    let height = 420;
-
-    function range(n){
-      return Array(n).fill().map((_, i) => i);
-    }
-
-    function formatNumber(num) {
-      return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
-    }
-
-    function getBarY(state, stateMeta, j) {
-      var sumOfHeights = 0;
-      for (var i=j; i<stateMeta.length; i++) {
-        sumOfHeights += getBarHeight(state, stateMeta, i);
-      }
-      return sumOfHeights
-    }
-
-    function getBarHeight(state, stateMeta, j) {
-      if (!stateMeta[j]["checked"]) {
-        return 0
-      }
-      const k = stateMeta[j]["key"];
-      return state[k]
-    }
-
-    function instance($$self, $$props, $$invalidate) {
-
-      let { states, stateMeta, tmax, xmax, vline, timestep, N, ymax, InterventionTime, log: log$1 = false, lastHistoricTime, icuCapacity } = $$props;
-      
-      function lastHistoricTimeHelper() {
-        return Math.min(Math.max(lastHistoricTime-1, 0), states.length-1)
-      }
-
-      function shouldWeDrawICUcapacity(stateMeta, ymax) {
-        // Note that we need stateMeta and ymax as parameters in order to trigger re-render on certain user actions.
-        var icuVisible = false;
-        for (var i=0; i<stateMeta.length; i++) {
-          const state = stateMeta[i];
-          const visible = state["checked"];
-          if (state["key"] === "icu" && visible) {
-            icuVisible = true;
-          } else if (icuVisible && visible) {
-            // For example, if fatality bars are drawn below ICU bars,
-            // it doesn't make sense to show the ICU capacity bar as a straight line.
-            return false
-          }
-        }
-        if (!icuVisible) {
-          // If ICU has not been checked visible, we don't care about ICU capacity.
-          return false
-        }
-        const pixelsFromBottom = yScale(0) - yScale(icuCapacity);
-        if (pixelsFromBottom < 10) {
-          // ICU capacity is so close to the x axis (due to y-scale) that it does not make sense to draw it.
-          return false
-        }
-        const pixelsFromTop = yScale(icuCapacity);
-        if (pixelsFromTop <= 0) {
-          // ICU capacity is at the edge of the chart or beyond it, does not make sense to draw.
-          return false
-        }
-        return true
-      }
-
-      const padding = { top: 20, right: 0, bottom: 20, left: 25 };
-      var active_lock = 0;
-      let { active, checked } = $$props;
-
-      // var data = [[2   , 2  ], [5   , 2  ], [18  , 4  ], [28  , 6  ], [43  , 8  ], [61  , 12 ], [95  , 16 ], [139 , 19 ], [245 , 26 ], [388 , 34 ], [593 , 43 ], [978 , 54 ], [1501, 66 ], [2336, 77 ], [2922, 92 ], [3513, 107], [4747, 124]]
-      var data = [];
-
-    	const writable_props = ['states', 'stateMeta', 'tmax', 'xmax', 'vline', 'timestep', 'N', 'ymax', 'InterventionTime', 'log', 'lastHistoricTime', 'icuCapacity', 'active', 'checked'];
-    	Object.keys($$props).forEach(key => {
-    		if (!writable_props.includes(key) && !key.startsWith('$$')) console.warn(`<Chart> was created with unknown prop '${key}'`);
-    	});
-
-    	const mouseover_handler = ({ i }) => showTip(i);
-
-    	const mouseout_handler = () => showTip(-1);
-
-    	const click_handler = ({ i }) => {$$invalidate('lock', lock = !lock); $$invalidate('active_lock', active_lock = indexToTime(i)); };
-
-    	const mouseover_handler_1 = ({ i }) => showTip(i);
-
-    	const mouseout_handler_1 = () => showTip(-1);
-
-    	const click_handler_1 = ({ i }) => {$$invalidate('lock', lock = !lock); $$invalidate('active_lock', active_lock = indexToTime(i)); };
-
-    	$$self.$set = $$props => {
-    		if ('states' in $$props) $$invalidate('states', states = $$props.states);
-    		if ('stateMeta' in $$props) $$invalidate('stateMeta', stateMeta = $$props.stateMeta);
-    		if ('tmax' in $$props) $$invalidate('tmax', tmax = $$props.tmax);
-    		if ('xmax' in $$props) $$invalidate('xmax', xmax = $$props.xmax);
-    		if ('vline' in $$props) $$invalidate('vline', vline = $$props.vline);
-    		if ('timestep' in $$props) $$invalidate('timestep', timestep = $$props.timestep);
-    		if ('N' in $$props) $$invalidate('N', N = $$props.N);
-    		if ('ymax' in $$props) $$invalidate('ymax', ymax = $$props.ymax);
-    		if ('InterventionTime' in $$props) $$invalidate('InterventionTime', InterventionTime = $$props.InterventionTime);
-    		if ('log' in $$props) $$invalidate('log', log$1 = $$props.log);
-    		if ('lastHistoricTime' in $$props) $$invalidate('lastHistoricTime', lastHistoricTime = $$props.lastHistoricTime);
-    		if ('icuCapacity' in $$props) $$invalidate('icuCapacity', icuCapacity = $$props.icuCapacity);
-    		if ('active' in $$props) $$invalidate('active', active = $$props.active);
-    		if ('checked' in $$props) $$invalidate('checked', checked = $$props.checked);
-    	};
-
-    	$$self.$capture_state = () => {
-    		return { states, stateMeta, tmax, xmax, vline, timestep, N, ymax, InterventionTime, log: log$1, lastHistoricTime, icuCapacity, width, height, active_lock, active, checked, data, showTip, active_hover, yScale, xScale, xScaleTime, indexToTime, timeToIndex, yScaleL, innerWidth, barWidth, lock };
-    	};
-
-    	$$self.$inject_state = $$props => {
-    		if ('states' in $$props) $$invalidate('states', states = $$props.states);
-    		if ('stateMeta' in $$props) $$invalidate('stateMeta', stateMeta = $$props.stateMeta);
-    		if ('tmax' in $$props) $$invalidate('tmax', tmax = $$props.tmax);
-    		if ('xmax' in $$props) $$invalidate('xmax', xmax = $$props.xmax);
-    		if ('vline' in $$props) $$invalidate('vline', vline = $$props.vline);
-    		if ('timestep' in $$props) $$invalidate('timestep', timestep = $$props.timestep);
-    		if ('N' in $$props) $$invalidate('N', N = $$props.N);
-    		if ('ymax' in $$props) $$invalidate('ymax', ymax = $$props.ymax);
-    		if ('InterventionTime' in $$props) $$invalidate('InterventionTime', InterventionTime = $$props.InterventionTime);
-    		if ('log' in $$props) $$invalidate('log', log$1 = $$props.log);
-    		if ('lastHistoricTime' in $$props) $$invalidate('lastHistoricTime', lastHistoricTime = $$props.lastHistoricTime);
-    		if ('icuCapacity' in $$props) $$invalidate('icuCapacity', icuCapacity = $$props.icuCapacity);
-    		if ('width' in $$props) $$invalidate('width', width = $$props.width);
-    		if ('height' in $$props) $$invalidate('height', height = $$props.height);
-    		if ('active_lock' in $$props) $$invalidate('active_lock', active_lock = $$props.active_lock);
-    		if ('active' in $$props) $$invalidate('active', active = $$props.active);
-    		if ('checked' in $$props) $$invalidate('checked', checked = $$props.checked);
-    		if ('data' in $$props) $$invalidate('data', data = $$props.data);
-    		if ('showTip' in $$props) $$invalidate('showTip', showTip = $$props.showTip);
-    		if ('active_hover' in $$props) $$invalidate('active_hover', active_hover = $$props.active_hover);
-    		if ('yScale' in $$props) $$invalidate('yScale', yScale = $$props.yScale);
-    		if ('xScale' in $$props) $$invalidate('xScale', xScale = $$props.xScale);
-    		if ('xScaleTime' in $$props) $$invalidate('xScaleTime', xScaleTime = $$props.xScaleTime);
-    		if ('indexToTime' in $$props) $$invalidate('indexToTime', indexToTime = $$props.indexToTime);
-    		if ('timeToIndex' in $$props) $$invalidate('timeToIndex', timeToIndex = $$props.timeToIndex);
-    		if ('yScaleL' in $$props) yScaleL = $$props.yScaleL;
-    		if ('innerWidth' in $$props) $$invalidate('innerWidth', innerWidth = $$props.innerWidth);
-    		if ('barWidth' in $$props) $$invalidate('barWidth', barWidth = $$props.barWidth);
-    		if ('lock' in $$props) $$invalidate('lock', lock = $$props.lock);
-    	};
-
-    	let showTip, xScale, xScaleTime, indexToTime, timeToIndex, yScale, yScaleL, innerWidth, barWidth, active_hover, lock;
-
-    	$$self.$$.update = ($$dirty = { states: 1, width: 1, tmax: 1, log: 1, ymax: 1, height: 1, innerWidth: 1, lock: 1, timeToIndex: 1, active_lock: 1, active_hover: 1 }) => {
-    		if ($$dirty.states || $$dirty.width) { $$invalidate('xScale', xScale = linear$1()
-            .domain([0, states.length])
-            .range([padding.left, width - padding.right])); }
-    		if ($$dirty.tmax || $$dirty.width) { $$invalidate('xScaleTime', xScaleTime = linear$1()
-            .domain([0, tmax])
-            .range([padding.left, width - padding.right])); }
-    		if ($$dirty.states || $$dirty.tmax) { $$invalidate('indexToTime', indexToTime = linear$1()
-            .domain([0, states.length])
-            .range([0, tmax])); }
-    		if ($$dirty.tmax || $$dirty.states) { $$invalidate('timeToIndex', timeToIndex = linear$1()
-            .domain([0, tmax])
-            .range([0, states.length])); }
-    		if ($$dirty.log || $$dirty.ymax || $$dirty.height) { $$invalidate('yScale', yScale = (log$1 ? log(): linear$1())
-            .domain([log$1 ? 1: 0,  ymax/1])
-            .range([height - padding.bottom, padding.top])); }
-    		if ($$dirty.ymax || $$dirty.height) { yScaleL = log()
-            .domain([1,  ymax/1])
-            .range([0, height - padding.bottom - padding.top]); }
-    		if ($$dirty.width) { $$invalidate('innerWidth', innerWidth = width - (padding.left + padding.right)); }
-    		if ($$dirty.innerWidth || $$dirty.states) { $$invalidate('barWidth', barWidth = innerWidth / states.length - 1.5); }
-    		if ($$dirty.lock || $$dirty.timeToIndex || $$dirty.active_lock || $$dirty.active_hover) { $$invalidate('active', active = (function () {
-            if (lock){
-              var i = Math.round(timeToIndex(active_lock));
-              if (i > 99) {
-                $$invalidate('lock', lock = false);
-                i = 0;
-              } else {
-                return i
-              }
-            } else {
-              return active_hover
-            }
-          })()); }
-    	};
-
-    	$$invalidate('showTip', showTip = function (i) {
-            $$invalidate('active_hover', active_hover = i);
-          });
-    	$$invalidate('active_hover', active_hover = -1);
-    	$$invalidate('lock', lock = false);
-
-    	return {
-    		states,
-    		stateMeta,
-    		tmax,
-    		xmax,
-    		vline,
-    		timestep,
-    		N,
-    		ymax,
-    		InterventionTime,
-    		log: log$1,
-    		lastHistoricTime,
-    		icuCapacity,
-    		lastHistoricTimeHelper,
-    		shouldWeDrawICUcapacity,
-    		padding,
-    		active_lock,
-    		active,
-    		checked,
-    		data,
-    		showTip,
-    		Math,
-    		yScale,
-    		xScale,
-    		xScaleTime,
-    		indexToTime,
-    		barWidth,
-    		lock,
-    		mouseover_handler,
-    		mouseout_handler,
-    		click_handler,
-    		mouseover_handler_1,
-    		mouseout_handler_1,
-    		click_handler_1
-    	};
-    }
-
-    class Chart extends SvelteComponentDev {
-    	constructor(options) {
-    		super(options);
-    		init(this, options, instance, create_fragment, safe_not_equal, ["states", "stateMeta", "tmax", "xmax", "vline", "timestep", "N", "ymax", "InterventionTime", "log", "lastHistoricTime", "icuCapacity", "active", "checked"]);
-    		dispatch_dev("SvelteRegisterComponent", { component: this, tagName: "Chart", options, id: create_fragment.name });
-
-    		const { ctx } = this.$$;
-    		const props = options.props || {};
-    		if (ctx.states === undefined && !('states' in props)) {
-    			console.warn("<Chart> was created without expected prop 'states'");
-    		}
-    		if (ctx.stateMeta === undefined && !('stateMeta' in props)) {
-    			console.warn("<Chart> was created without expected prop 'stateMeta'");
-    		}
-    		if (ctx.tmax === undefined && !('tmax' in props)) {
-    			console.warn("<Chart> was created without expected prop 'tmax'");
-    		}
-    		if (ctx.xmax === undefined && !('xmax' in props)) {
-    			console.warn("<Chart> was created without expected prop 'xmax'");
-    		}
-    		if (ctx.vline === undefined && !('vline' in props)) {
-    			console.warn("<Chart> was created without expected prop 'vline'");
-    		}
-    		if (ctx.timestep === undefined && !('timestep' in props)) {
-    			console.warn("<Chart> was created without expected prop 'timestep'");
-    		}
-    		if (ctx.N === undefined && !('N' in props)) {
-    			console.warn("<Chart> was created without expected prop 'N'");
-    		}
-    		if (ctx.ymax === undefined && !('ymax' in props)) {
-    			console.warn("<Chart> was created without expected prop 'ymax'");
-    		}
-    		if (ctx.InterventionTime === undefined && !('InterventionTime' in props)) {
-    			console.warn("<Chart> was created without expected prop 'InterventionTime'");
-    		}
-    		if (ctx.lastHistoricTime === undefined && !('lastHistoricTime' in props)) {
-    			console.warn("<Chart> was created without expected prop 'lastHistoricTime'");
-    		}
-    		if (ctx.icuCapacity === undefined && !('icuCapacity' in props)) {
-    			console.warn("<Chart> was created without expected prop 'icuCapacity'");
-    		}
-    		if (ctx.active === undefined && !('active' in props)) {
-    			console.warn("<Chart> was created without expected prop 'active'");
-    		}
-    		if (ctx.checked === undefined && !('checked' in props)) {
-    			console.warn("<Chart> was created without expected prop 'checked'");
-    		}
-    	}
-
-    	get states() {
-    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set states(value) {
-    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get stateMeta() {
-    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set stateMeta(value) {
-    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get tmax() {
-    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set tmax(value) {
-    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get xmax() {
-    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set xmax(value) {
-    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get vline() {
-    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set vline(value) {
-    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get timestep() {
-    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set timestep(value) {
-    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get N() {
-    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set N(value) {
-    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get ymax() {
-    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set ymax(value) {
-    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get InterventionTime() {
-    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set InterventionTime(value) {
-    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get log() {
-    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set log(value) {
-    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get lastHistoricTime() {
-    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set lastHistoricTime(value) {
-    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get icuCapacity() {
-    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set icuCapacity(value) {
-    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get active() {
-    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set active(value) {
-    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get checked() {
-    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set checked(value) {
-    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-    }
-
-    /* src/components/Checkbox.svelte generated by Svelte v3.12.1 */
-
-    const file$1 = "src/components/Checkbox.svelte";
-
-    function create_fragment$1(ctx) {
-    	var div1, div0, t_value = ctx.checked?"✓":"" + "", t, dispose;
-
-    	const block = {
-    		c: function create() {
-    			div1 = element("div");
-    			div0 = element("div");
-    			t = text(t_value);
-    			set_style(div0, "cursor", "default");
-    			set_style(div0, "font-size", "12px");
-    			set_style(div0, "left", "2px");
-    			set_style(div0, "top", "-1px");
-    			set_style(div0, "position", "absolute");
-    			set_style(div0, "color", "white");
-    			add_location(div0, file$1, 19, 6, 593);
-    			set_style(div1, "position", "absolute");
-    			set_style(div1, "left", "-2px");
-    			set_style(div1, "top", "3px");
-    			set_style(div1, "width", "13px");
-    			set_style(div1, "height", "13px");
-    			set_style(div1, "background-color", (ctx.checked ? ctx.color:'white'));
-    			set_style(div1, "border-radius", "3px");
-    			set_style(div1, "opacity", "0.8");
-    			set_style(div1, "border", "2px solid " + (ctx.checked ? 'rgba(255,255,255,0)':ctx.color));
-    			set_style(div1, "box-shadow", "inset 1px 1px 3px rgba(0, 0, 0, 0.1)");
-    			set_style(div1, "user-select", "none");
-    			add_location(div1, file$1, 6, 0, 101);
-    			dispose = listen_dev(div1, "click", ctx.click_handler);
-    		},
-
-    		l: function claim(nodes) {
-    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
-    		},
-
-    		m: function mount(target, anchor) {
-    			insert_dev(target, div1, anchor);
-    			append_dev(div1, div0);
-    			append_dev(div0, t);
-    		},
-
-    		p: function update(changed, ctx) {
-    			if ((changed.checked) && t_value !== (t_value = ctx.checked?"✓":"" + "")) {
-    				set_data_dev(t, t_value);
-    			}
-
-    			if (changed.checked || changed.color) {
-    				set_style(div1, "background-color", (ctx.checked ? ctx.color:'white'));
-    				set_style(div1, "border", "2px solid " + (ctx.checked ? 'rgba(255,255,255,0)':ctx.color));
-    			}
-    		},
-
-    		i: noop,
-    		o: noop,
-
-    		d: function destroy(detaching) {
-    			if (detaching) {
-    				detach_dev(div1);
-    			}
-
-    			dispose();
-    		}
-    	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_fragment$1.name, type: "component", source: "", ctx });
-    	return block;
-    }
-
-    function instance$1($$self, $$props, $$invalidate) {
-    	let { color, checked = false, callback = () => {} } = $$props;
-
-    	const writable_props = ['color', 'checked', 'callback'];
-    	Object.keys($$props).forEach(key => {
-    		if (!writable_props.includes(key) && !key.startsWith('$$')) console.warn(`<Checkbox> was created with unknown prop '${key}'`);
-    	});
-
-    	const click_handler = () => {$$invalidate('checked', checked = !checked); callback(checked);};
-
-    	$$self.$set = $$props => {
-    		if ('color' in $$props) $$invalidate('color', color = $$props.color);
-    		if ('checked' in $$props) $$invalidate('checked', checked = $$props.checked);
-    		if ('callback' in $$props) $$invalidate('callback', callback = $$props.callback);
-    	};
-
-    	$$self.$capture_state = () => {
-    		return { color, checked, callback };
-    	};
-
-    	$$self.$inject_state = $$props => {
-    		if ('color' in $$props) $$invalidate('color', color = $$props.color);
-    		if ('checked' in $$props) $$invalidate('checked', checked = $$props.checked);
-    		if ('callback' in $$props) $$invalidate('callback', callback = $$props.callback);
-    	};
-
-    	return { color, checked, callback, click_handler };
-    }
-
-    class Checkbox extends SvelteComponentDev {
-    	constructor(options) {
-    		super(options);
-    		init(this, options, instance$1, create_fragment$1, safe_not_equal, ["color", "checked", "callback"]);
-    		dispatch_dev("SvelteRegisterComponent", { component: this, tagName: "Checkbox", options, id: create_fragment$1.name });
-
-    		const { ctx } = this.$$;
-    		const props = options.props || {};
-    		if (ctx.color === undefined && !('color' in props)) {
-    			console.warn("<Checkbox> was created without expected prop 'color'");
-    		}
-    	}
-
-    	get color() {
-    		throw new Error("<Checkbox>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set color(value) {
-    		throw new Error("<Checkbox>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get checked() {
-    		throw new Error("<Checkbox>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set checked(value) {
-    		throw new Error("<Checkbox>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get callback() {
-    		throw new Error("<Checkbox>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set callback(value) {
-    		throw new Error("<Checkbox>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-    }
-
-    /* src/components/Arrow.svelte generated by Svelte v3.12.1 */
-
-    const file$2 = "src/components/Arrow.svelte";
-
-    function create_fragment$2(ctx) {
-    	var svg0, defs0, marker0, path, defs1, marker1, circle, t, div, svg1, line, line_y__value, line_marker_end_value;
-
-    	const block = {
-    		c: function create() {
-    			svg0 = svg_element("svg");
-    			defs0 = svg_element("defs");
-    			marker0 = svg_element("marker");
-    			path = svg_element("path");
-    			defs1 = svg_element("defs");
-    			marker1 = svg_element("marker");
-    			circle = svg_element("circle");
-    			t = space();
-    			div = element("div");
-    			svg1 = svg_element("svg");
-    			line = svg_element("line");
-    			attr_dev(path, "d", "M2,2 L10,6 L2,10 L6,6 L2,2");
-    			set_style(path, "fill", "grey");
-    			add_location(path, file$2, 17, 6, 327);
-    			attr_dev(marker0, "id", "arrow");
-    			attr_dev(marker0, "markerUnits", "strokeWidth");
-    			attr_dev(marker0, "markerWidth", "10");
-    			attr_dev(marker0, "markerHeight", "10");
-    			attr_dev(marker0, "viewBox", "0 0 12 12");
-    			attr_dev(marker0, "refX", "6");
-    			attr_dev(marker0, "refY", "6");
-    			attr_dev(marker0, "orient", "auto");
-    			add_location(marker0, file$2, 8, 4, 140);
-    			add_location(defs0, file$2, 7, 2, 129);
-    			attr_dev(circle, "r", "3");
-    			attr_dev(circle, "cx", "3");
-    			attr_dev(circle, "cy", "6");
-    			set_style(circle, "fill", "grey");
-    			add_location(circle, file$2, 31, 6, 618);
-    			attr_dev(marker1, "id", "circle");
-    			attr_dev(marker1, "markerUnits", "strokeWidth");
-    			attr_dev(marker1, "markerWidth", "10");
-    			attr_dev(marker1, "markerHeight", "10");
-    			attr_dev(marker1, "viewBox", "0 0 12 12");
-    			attr_dev(marker1, "refX", "6");
-    			attr_dev(marker1, "refY", "6");
-    			attr_dev(marker1, "orient", "auto");
-    			add_location(marker1, file$2, 22, 4, 430);
-    			add_location(defs1, file$2, 21, 2, 419);
-    			attr_dev(svg0, "width", "0");
-    			attr_dev(svg0, "height", "0");
-    			add_location(svg0, file$2, 6, 0, 100);
-    			attr_dev(line, "x1", "8");
-    			attr_dev(line, "y1", "0");
-    			attr_dev(line, "x2", "8");
-    			attr_dev(line, "y2", line_y__value = ctx.height-5);
-    			attr_dev(line, "stroke", "grey");
-    			attr_dev(line, "stroke-width", "1.5");
-    			attr_dev(line, "marker-end", line_marker_end_value = "url(" + ctx.arrowhead + ")");
-    			attr_dev(line, "stroke-dasharray", ctx.dasharray);
-    			add_location(line, file$2, 39, 2, 892);
-    			add_location(svg1, file$2, 38, 0, 884);
-    			set_style(div, "position", "absolute");
-    			set_style(div, "left", "-1px");
-    			set_style(div, "top", "4px");
-    			set_style(div, "width", "15px");
-    			set_style(div, "height", "" + ctx.height + "px");
-    			set_style(div, "background-color", "none");
-    			set_style(div, "border-radius", "5px");
-    			set_style(div, "top", "25px");
-    			set_style(div, "opacity", "0.8");
-    			set_style(div, "pointer-events", "None");
-    			add_location(div, file$2, 37, 0, 707);
-    		},
-
-    		l: function claim(nodes) {
-    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
-    		},
-
-    		m: function mount(target, anchor) {
-    			insert_dev(target, svg0, anchor);
-    			append_dev(svg0, defs0);
-    			append_dev(defs0, marker0);
-    			append_dev(marker0, path);
-    			append_dev(svg0, defs1);
-    			append_dev(defs1, marker1);
-    			append_dev(marker1, circle);
-    			insert_dev(target, t, anchor);
-    			insert_dev(target, div, anchor);
-    			append_dev(div, svg1);
-    			append_dev(svg1, line);
-    		},
-
-    		p: function update(changed, ctx) {
-    			if ((changed.height) && line_y__value !== (line_y__value = ctx.height-5)) {
-    				attr_dev(line, "y2", line_y__value);
-    			}
-
-    			if ((changed.arrowhead) && line_marker_end_value !== (line_marker_end_value = "url(" + ctx.arrowhead + ")")) {
-    				attr_dev(line, "marker-end", line_marker_end_value);
-    			}
-
-    			if (changed.dasharray) {
-    				attr_dev(line, "stroke-dasharray", ctx.dasharray);
-    			}
-
-    			if (changed.height) {
-    				set_style(div, "height", "" + ctx.height + "px");
-    			}
-    		},
-
-    		i: noop,
-    		o: noop,
-
-    		d: function destroy(detaching) {
-    			if (detaching) {
-    				detach_dev(svg0);
-    				detach_dev(t);
-    				detach_dev(div);
-    			}
-    		}
-    	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_fragment$2.name, type: "component", source: "", ctx });
-    	return block;
-    }
-
-    function instance$2($$self, $$props, $$invalidate) {
-    	let { height, arrowhead = "#arrow", dasharray = "0 0" } = $$props;
-
-    	const writable_props = ['height', 'arrowhead', 'dasharray'];
-    	Object.keys($$props).forEach(key => {
-    		if (!writable_props.includes(key) && !key.startsWith('$$')) console.warn(`<Arrow> was created with unknown prop '${key}'`);
-    	});
-
-    	$$self.$set = $$props => {
-    		if ('height' in $$props) $$invalidate('height', height = $$props.height);
-    		if ('arrowhead' in $$props) $$invalidate('arrowhead', arrowhead = $$props.arrowhead);
-    		if ('dasharray' in $$props) $$invalidate('dasharray', dasharray = $$props.dasharray);
-    	};
-
-    	$$self.$capture_state = () => {
-    		return { height, arrowhead, dasharray };
-    	};
-
-    	$$self.$inject_state = $$props => {
-    		if ('height' in $$props) $$invalidate('height', height = $$props.height);
-    		if ('arrowhead' in $$props) $$invalidate('arrowhead', arrowhead = $$props.arrowhead);
-    		if ('dasharray' in $$props) $$invalidate('dasharray', dasharray = $$props.dasharray);
-    	};
-
-    	return { height, arrowhead, dasharray };
-    }
-
-    class Arrow extends SvelteComponentDev {
-    	constructor(options) {
-    		super(options);
-    		init(this, options, instance$2, create_fragment$2, safe_not_equal, ["height", "arrowhead", "dasharray"]);
-    		dispatch_dev("SvelteRegisterComponent", { component: this, tagName: "Arrow", options, id: create_fragment$2.name });
-
-    		const { ctx } = this.$$;
-    		const props = options.props || {};
-    		if (ctx.height === undefined && !('height' in props)) {
-    			console.warn("<Arrow> was created without expected prop 'height'");
-    		}
-    	}
-
-    	get height() {
-    		throw new Error("<Arrow>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set height(value) {
-    		throw new Error("<Arrow>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get arrowhead() {
-    		throw new Error("<Arrow>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set arrowhead(value) {
-    		throw new Error("<Arrow>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get dasharray() {
-    		throw new Error("<Arrow>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set dasharray(value) {
-    		throw new Error("<Arrow>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-    }
-
-    function formatNumber$1(num) {
-        return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
-    }
-
-    function formatCount(count) {
-        // Counts are floats in Goh's model, so they need to be rounded.
-        // Also formatting to string with space separators etc.
-        return formatNumber$1(Math.round(count))
-    }
-
-    function formatDelta(delta) {
-        return (delta >= 0 ? '+' : '') + formatCount(delta)
-    }
-
-    function formatPercent(proportion) {
-        return (100 * proportion).toFixed(2)
-    }
-
-    const SHOW_HISTORICAL = 0;
-    const SHOW_FUTURE = 1;
-    const SHOW_HISTORICAL_AND_FUTURE = 2;
-
-    /* src/components/ChartCompanion.svelte generated by Svelte v3.12.1 */
-
-    const file$3 = "src/components/ChartCompanion.svelte";
-
-    function get_each_context$1(ctx, list, i) {
-    	const child_ctx = Object.create(ctx);
-    	child_ctx.state = list[i];
-    	child_ctx.each_value = list;
-    	child_ctx.i = i;
-    	return child_ctx;
-    }
-
-    // (110:0) {#if state["checkable"]}
-    function create_if_block$1(ctx) {
-    	var div6, t0, updating_checked, t1, div4, div0, t2_value = ctx.state["tooltip_title"] + "", t2, t3, div3, div1, span0, t5, i0, t6_value = formatCount(ctx.P_bars[ctx.active_][ctx.state["key"]]) + "", t6, t7, t8_value = formatPercent(ctx.P_bars[ctx.active_][ctx.state["key"]] / ctx.N) + "", t8, t9, t10, div2, span1, t12, i1, t13_value = formatDelta(ctx.get_count_delta(ctx.state["key"], ctx.active_)) + "", t13, t14, t15_value = ctx.getDay(ctx.active_) + "", t15, t16, div5, t17_value = ctx.state["tooltip_desc"] + "", t17, t18, current;
-
-    	var arrow = new Arrow({
-    		props: {
-    		height: "43",
-    		arrowhead: "",
-    		dasharray: "3 2"
-    	},
-    		$$inline: true
-    	});
-
-    	function checkbox_checked_binding(value) {
-    		ctx.checkbox_checked_binding.call(null, value, ctx);
-    		updating_checked = true;
-    		add_flush_callback(() => updating_checked = false);
-    	}
-
-    	let checkbox_props = { color: ctx.state['color'] };
-    	if (ctx.state['checked'] !== void 0) {
-    		checkbox_props.checked = ctx.state['checked'];
-    	}
-    	var checkbox = new Checkbox({ props: checkbox_props, $$inline: true });
-
-    	binding_callbacks.push(() => bind(checkbox, 'checked', checkbox_checked_binding));
-
-    	const block = {
-    		c: function create() {
-    			div6 = element("div");
-    			arrow.$$.fragment.c();
-    			t0 = space();
-    			checkbox.$$.fragment.c();
-    			t1 = space();
-    			div4 = element("div");
-    			div0 = element("div");
-    			t2 = text(t2_value);
-    			t3 = space();
-    			div3 = element("div");
-    			div1 = element("div");
-    			span0 = element("span");
-    			span0.textContent = "∑";
-    			t5 = space();
-    			i0 = element("i");
-    			t6 = text(t6_value);
-    			t7 = text(" \n                    (");
-    			t8 = text(t8_value);
-    			t9 = text("%)");
-    			t10 = space();
-    			div2 = element("div");
-    			span1 = element("span");
-    			span1.textContent = "Δ";
-    			t12 = space();
-    			i1 = element("i");
-    			t13 = text(t13_value);
-    			t14 = text(" on day ");
-    			t15 = text(t15_value);
-    			t16 = space();
-    			div5 = element("div");
-    			t17 = text(t17_value);
-    			t18 = space();
-    			attr_dev(div0, "class", "legendtitle svelte-o6haoe");
-    			add_location(div0, file$3, 114, 12, 3381);
-    			set_style(span0, "font-size", "12px");
-    			set_style(span0, "padding-right", "3px");
-    			set_style(span0, "color", "#CCC");
-    			add_location(span0, file$3, 118, 43, 3570);
-    			add_location(i0, file$3, 119, 20, 3659);
-    			attr_dev(div1, "class", "legendtextnum svelte-o6haoe");
-    			add_location(div1, file$3, 118, 16, 3543);
-    			set_style(span1, "font-size", "12px");
-    			set_style(span1, "padding-right", "2px");
-    			set_style(span1, "color", "#CCC");
-    			add_location(span1, file$3, 124, 43, 3894);
-    			add_location(i1, file$3, 125, 20, 3983);
-    			attr_dev(div2, "class", "legendtextnum svelte-o6haoe");
-    			add_location(div2, file$3, 124, 16, 3867);
-    			set_style(div3, "padding-top", "3px");
-    			set_style(div3, "padding-bottom", "1px");
-    			add_location(div3, file$3, 117, 12, 3475);
-    			attr_dev(div4, "class", "legend svelte-o6haoe");
-    			set_style(div4, "position", "absolute");
-    			add_location(div4, file$3, 113, 8, 3321);
-    			attr_dev(div5, "class", "legendtext svelte-o6haoe");
-    			set_style(div5, "text-align", "right");
-    			set_style(div5, "width", "105px");
-    			set_style(div5, "left", "-111px");
-    			set_style(div5, "top", "4px");
-    			set_style(div5, "position", "relative");
-    			add_location(div5, file$3, 131, 8, 4176);
-    			set_style(div6, "position", "absolute");
-    			set_style(div6, "left", "0px");
-    			set_style(div6, "top", "" + legendheight*(ctx.i-1) + "px");
-    			set_style(div6, "width", "180px");
-    			set_style(div6, "height", "100px");
-    			add_location(div6, file$3, 110, 4, 3078);
-    		},
-
-    		m: function mount(target, anchor) {
-    			insert_dev(target, div6, anchor);
-    			mount_component(arrow, div6, null);
-    			append_dev(div6, t0);
-    			mount_component(checkbox, div6, null);
-    			append_dev(div6, t1);
-    			append_dev(div6, div4);
-    			append_dev(div4, div0);
-    			append_dev(div0, t2);
-    			append_dev(div4, t3);
-    			append_dev(div4, div3);
-    			append_dev(div3, div1);
-    			append_dev(div1, span0);
-    			append_dev(div1, t5);
-    			append_dev(div1, i0);
-    			append_dev(i0, t6);
-    			append_dev(i0, t7);
-    			append_dev(i0, t8);
-    			append_dev(i0, t9);
-    			append_dev(div3, t10);
-    			append_dev(div3, div2);
-    			append_dev(div2, span1);
-    			append_dev(div2, t12);
-    			append_dev(div2, i1);
-    			append_dev(i1, t13);
-    			append_dev(i1, t14);
-    			append_dev(i1, t15);
-    			append_dev(div6, t16);
-    			append_dev(div6, div5);
-    			append_dev(div5, t17);
-    			append_dev(div6, t18);
-    			current = true;
-    		},
-
-    		p: function update(changed, new_ctx) {
-    			ctx = new_ctx;
-    			var checkbox_changes = {};
-    			if (changed.stateMeta) checkbox_changes.color = ctx.state['color'];
-    			if (!updating_checked && changed.stateMeta) {
-    				checkbox_changes.checked = ctx.state['checked'];
-    			}
-    			checkbox.$set(checkbox_changes);
-
-    			if ((!current || changed.stateMeta) && t2_value !== (t2_value = ctx.state["tooltip_title"] + "")) {
-    				set_data_dev(t2, t2_value);
-    			}
-
-    			if ((!current || changed.P_bars || changed.active_ || changed.stateMeta) && t6_value !== (t6_value = formatCount(ctx.P_bars[ctx.active_][ctx.state["key"]]) + "")) {
-    				set_data_dev(t6, t6_value);
-    			}
-
-    			if ((!current || changed.P_bars || changed.active_ || changed.stateMeta || changed.N) && t8_value !== (t8_value = formatPercent(ctx.P_bars[ctx.active_][ctx.state["key"]] / ctx.N) + "")) {
-    				set_data_dev(t8, t8_value);
-    			}
-
-    			if ((!current || changed.stateMeta || changed.active_) && t13_value !== (t13_value = formatDelta(ctx.get_count_delta(ctx.state["key"], ctx.active_)) + "")) {
-    				set_data_dev(t13, t13_value);
-    			}
-
-    			if ((!current || changed.active_) && t15_value !== (t15_value = ctx.getDay(ctx.active_) + "")) {
-    				set_data_dev(t15, t15_value);
-    			}
-
-    			if ((!current || changed.stateMeta) && t17_value !== (t17_value = ctx.state["tooltip_desc"] + "")) {
-    				set_data_dev(t17, t17_value);
-    			}
-    		},
-
-    		i: function intro(local) {
-    			if (current) return;
-    			transition_in(arrow.$$.fragment, local);
-
-    			transition_in(checkbox.$$.fragment, local);
-
-    			current = true;
-    		},
-
-    		o: function outro(local) {
-    			transition_out(arrow.$$.fragment, local);
-    			transition_out(checkbox.$$.fragment, local);
-    			current = false;
-    		},
-
-    		d: function destroy(detaching) {
-    			if (detaching) {
-    				detach_dev(div6);
-    			}
-
-    			destroy_component(arrow);
-
-    			destroy_component(checkbox);
-    		}
-    	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block$1.name, type: "if", source: "(110:0) {#if state[\"checkable\"]}", ctx });
-    	return block;
-    }
-
-    // (109:0) {#each stateMeta as state,i}
-    function create_each_block$1(ctx) {
-    	var if_block_anchor, current;
-
-    	var if_block = (ctx.state["checkable"]) && create_if_block$1(ctx);
-
-    	const block = {
-    		c: function create() {
-    			if (if_block) if_block.c();
-    			if_block_anchor = empty();
-    		},
-
-    		m: function mount(target, anchor) {
-    			if (if_block) if_block.m(target, anchor);
-    			insert_dev(target, if_block_anchor, anchor);
-    			current = true;
-    		},
-
-    		p: function update(changed, ctx) {
-    			if (ctx.state["checkable"]) {
-    				if (if_block) {
-    					if_block.p(changed, ctx);
-    					transition_in(if_block, 1);
-    				} else {
-    					if_block = create_if_block$1(ctx);
-    					if_block.c();
-    					transition_in(if_block, 1);
-    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
-    				}
-    			} else if (if_block) {
-    				group_outros();
-    				transition_out(if_block, 1, 1, () => {
-    					if_block = null;
-    				});
-    				check_outros();
-    			}
-    		},
-
-    		i: function intro(local) {
-    			if (current) return;
-    			transition_in(if_block);
-    			current = true;
-    		},
-
-    		o: function outro(local) {
-    			transition_out(if_block);
-    			current = false;
-    		},
-
-    		d: function destroy(detaching) {
-    			if (if_block) if_block.d(detaching);
-
-    			if (detaching) {
-    				detach_dev(if_block_anchor);
-    			}
-    		}
-    	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_each_block$1.name, type: "each", source: "(109:0) {#each stateMeta as state,i}", ctx });
-    	return block;
-    }
-
-    function create_fragment$3(ctx) {
-    	var div, b, t1, br0, t2, t3_value = ctx.getDay(ctx.active_) + "", t3, t4, br1, t5_value = ctx.getDate(ctx.active_) + "", t5, t6, each_1_anchor, current;
-
-    	let each_value = ctx.stateMeta;
-
-    	let each_blocks = [];
-
-    	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block$1(get_each_context$1(ctx, each_value, i));
-    	}
-
-    	const out = i => transition_out(each_blocks[i], 1, 1, () => {
-    		each_blocks[i] = null;
-    	});
-
-    	const block = {
-    		c: function create() {
-    			div = element("div");
-    			b = element("b");
-    			b.textContent = "Highlighted day:";
-    			t1 = space();
-    			br0 = element("br");
-    			t2 = text("Day ");
-    			t3 = text(t3_value);
-    			t4 = space();
-    			br1 = element("br");
-    			t5 = text(t5_value);
-    			t6 = space();
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].c();
-    			}
-
-    			each_1_anchor = empty();
-    			add_location(b, file$3, 103, 0, 2939);
-    			add_location(br0, file$3, 104, 0, 2963);
-    			add_location(br1, file$3, 105, 0, 2989);
-    			attr_dev(div, "class", "legendtext svelte-o6haoe");
-    			set_style(div, "position", "absolute");
-    			set_style(div, "left", "-70px");
-    			set_style(div, "top", "-50px");
-    			set_style(div, "width", "150px");
-    			set_style(div, "height", "100px");
-    			set_style(div, "font-size", "13px");
-    			set_style(div, "line-height", "16px");
-    			set_style(div, "font-weight", "normal");
-    			set_style(div, "text-align", "center");
-    			add_location(div, file$3, 102, 0, 2761);
-    		},
-
-    		l: function claim(nodes) {
-    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
-    		},
-
-    		m: function mount(target, anchor) {
-    			insert_dev(target, div, anchor);
-    			append_dev(div, b);
-    			append_dev(div, t1);
-    			append_dev(div, br0);
-    			append_dev(div, t2);
-    			append_dev(div, t3);
-    			append_dev(div, t4);
-    			append_dev(div, br1);
-    			append_dev(div, t5);
-    			insert_dev(target, t6, anchor);
-
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].m(target, anchor);
-    			}
-
-    			insert_dev(target, each_1_anchor, anchor);
-    			current = true;
-    		},
-
-    		p: function update(changed, ctx) {
-    			if ((!current || changed.active_) && t3_value !== (t3_value = ctx.getDay(ctx.active_) + "")) {
-    				set_data_dev(t3, t3_value);
-    			}
-
-    			if ((!current || changed.active_) && t5_value !== (t5_value = ctx.getDate(ctx.active_) + "")) {
-    				set_data_dev(t5, t5_value);
-    			}
-
-    			if (changed.stateMeta || changed.legendheight || changed.getDay || changed.active_ || changed.formatDelta || changed.get_count_delta || changed.formatPercent || changed.P_bars || changed.N || changed.formatCount) {
-    				each_value = ctx.stateMeta;
-
-    				let i;
-    				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context$1(ctx, each_value, i);
-
-    					if (each_blocks[i]) {
-    						each_blocks[i].p(changed, child_ctx);
-    						transition_in(each_blocks[i], 1);
-    					} else {
-    						each_blocks[i] = create_each_block$1(child_ctx);
-    						each_blocks[i].c();
-    						transition_in(each_blocks[i], 1);
-    						each_blocks[i].m(each_1_anchor.parentNode, each_1_anchor);
-    					}
-    				}
-
-    				group_outros();
-    				for (i = each_value.length; i < each_blocks.length; i += 1) {
-    					out(i);
-    				}
-    				check_outros();
-    			}
-    		},
-
-    		i: function intro(local) {
-    			if (current) return;
-    			for (let i = 0; i < each_value.length; i += 1) {
-    				transition_in(each_blocks[i]);
-    			}
-
-    			current = true;
-    		},
-
-    		o: function outro(local) {
-    			each_blocks = each_blocks.filter(Boolean);
-    			for (let i = 0; i < each_blocks.length; i += 1) {
-    				transition_out(each_blocks[i]);
-    			}
-
-    			current = false;
-    		},
-
-    		d: function destroy(detaching) {
-    			if (detaching) {
-    				detach_dev(div);
-    				detach_dev(t6);
-    			}
-
-    			destroy_each(each_blocks, detaching);
-
-    			if (detaching) {
-    				detach_dev(each_1_anchor);
-    			}
-    		}
-    	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_fragment$3.name, type: "component", source: "", ctx });
-    	return block;
-    }
-
-    const legendheight = 67;
-
-    function addDays(date, days) {
-          var result = new Date(date);
-          result.setDate(result.getDate() + days);
-          return result;
-      }
-
-    function formatDate(date) {
-          const year = new Intl.DateTimeFormat('en', { year: 'numeric' }).format(date);
-          const month = new Intl.DateTimeFormat('en', { month: 'numeric' }).format(date);
-          const day = new Intl.DateTimeFormat('en', { day: '2-digit' }).format(date);
-          return `${day}.${month}.${year}`
-      }
-
-    function instance$3($$self, $$props, $$invalidate) {
-    	
-
-        let { N, dt, stateMeta, P_all, P_bars, active_, indexToTime, first_date } = $$props;
-      
-        function get_count_delta(k, bar) {
-            const currCount = P_all[bar*dt][k];
-            const prevCount = (bar > 0 ? P_all[bar*dt-1][k] : currCount);
-            // We need to round intermediate values in order for delta to be consistent with rounded sigma values.
-            // For example, if day1 sigma value is 100.6 and day day2 sigma value is 100.3, the delta needs to be 1,
-            // because the user sees rounded values "101" and "100" and their delta should be 1, not 0.
-            const delta = Math.round(currCount) - Math.round(prevCount);
-            return delta
-        }
-
-        function getDay(bar) {
-            return Math.round(indexToTime(bar))
-        }
-
-        function getDate(bar) {
-            const days = getDay(bar);
-            return formatDate(addDays(first_date, days))
-        }
-
-    	const writable_props = ['N', 'dt', 'stateMeta', 'P_all', 'P_bars', 'active_', 'indexToTime', 'first_date'];
-    	Object.keys($$props).forEach(key => {
-    		if (!writable_props.includes(key) && !key.startsWith('$$')) console.warn(`<ChartCompanion> was created with unknown prop '${key}'`);
-    	});
-
-    	function checkbox_checked_binding(value, { state }) {
-    		state['checked'] = value;
-    		$$invalidate('stateMeta', stateMeta);
-    	}
-
-    	$$self.$set = $$props => {
-    		if ('N' in $$props) $$invalidate('N', N = $$props.N);
-    		if ('dt' in $$props) $$invalidate('dt', dt = $$props.dt);
-    		if ('stateMeta' in $$props) $$invalidate('stateMeta', stateMeta = $$props.stateMeta);
-    		if ('P_all' in $$props) $$invalidate('P_all', P_all = $$props.P_all);
-    		if ('P_bars' in $$props) $$invalidate('P_bars', P_bars = $$props.P_bars);
-    		if ('active_' in $$props) $$invalidate('active_', active_ = $$props.active_);
-    		if ('indexToTime' in $$props) $$invalidate('indexToTime', indexToTime = $$props.indexToTime);
-    		if ('first_date' in $$props) $$invalidate('first_date', first_date = $$props.first_date);
-    	};
-
-    	$$self.$capture_state = () => {
-    		return { N, dt, stateMeta, P_all, P_bars, active_, indexToTime, first_date };
-    	};
-
-    	$$self.$inject_state = $$props => {
-    		if ('N' in $$props) $$invalidate('N', N = $$props.N);
-    		if ('dt' in $$props) $$invalidate('dt', dt = $$props.dt);
-    		if ('stateMeta' in $$props) $$invalidate('stateMeta', stateMeta = $$props.stateMeta);
-    		if ('P_all' in $$props) $$invalidate('P_all', P_all = $$props.P_all);
-    		if ('P_bars' in $$props) $$invalidate('P_bars', P_bars = $$props.P_bars);
-    		if ('active_' in $$props) $$invalidate('active_', active_ = $$props.active_);
-    		if ('indexToTime' in $$props) $$invalidate('indexToTime', indexToTime = $$props.indexToTime);
-    		if ('first_date' in $$props) $$invalidate('first_date', first_date = $$props.first_date);
-    	};
-
-    	return {
-    		N,
-    		dt,
-    		stateMeta,
-    		P_all,
-    		P_bars,
-    		active_,
-    		indexToTime,
-    		first_date,
-    		get_count_delta,
-    		getDay,
-    		getDate,
-    		checkbox_checked_binding
-    	};
-    }
-
-    class ChartCompanion extends SvelteComponentDev {
-    	constructor(options) {
-    		super(options);
-    		init(this, options, instance$3, create_fragment$3, safe_not_equal, ["N", "dt", "stateMeta", "P_all", "P_bars", "active_", "indexToTime", "first_date"]);
-    		dispatch_dev("SvelteRegisterComponent", { component: this, tagName: "ChartCompanion", options, id: create_fragment$3.name });
-
-    		const { ctx } = this.$$;
-    		const props = options.props || {};
-    		if (ctx.N === undefined && !('N' in props)) {
-    			console.warn("<ChartCompanion> was created without expected prop 'N'");
-    		}
-    		if (ctx.dt === undefined && !('dt' in props)) {
-    			console.warn("<ChartCompanion> was created without expected prop 'dt'");
-    		}
-    		if (ctx.stateMeta === undefined && !('stateMeta' in props)) {
-    			console.warn("<ChartCompanion> was created without expected prop 'stateMeta'");
-    		}
-    		if (ctx.P_all === undefined && !('P_all' in props)) {
-    			console.warn("<ChartCompanion> was created without expected prop 'P_all'");
-    		}
-    		if (ctx.P_bars === undefined && !('P_bars' in props)) {
-    			console.warn("<ChartCompanion> was created without expected prop 'P_bars'");
-    		}
-    		if (ctx.active_ === undefined && !('active_' in props)) {
-    			console.warn("<ChartCompanion> was created without expected prop 'active_'");
-    		}
-    		if (ctx.indexToTime === undefined && !('indexToTime' in props)) {
-    			console.warn("<ChartCompanion> was created without expected prop 'indexToTime'");
-    		}
-    		if (ctx.first_date === undefined && !('first_date' in props)) {
-    			console.warn("<ChartCompanion> was created without expected prop 'first_date'");
-    		}
-    	}
-
-    	get N() {
-    		throw new Error("<ChartCompanion>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set N(value) {
-    		throw new Error("<ChartCompanion>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get dt() {
-    		throw new Error("<ChartCompanion>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set dt(value) {
-    		throw new Error("<ChartCompanion>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get stateMeta() {
-    		throw new Error("<ChartCompanion>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set stateMeta(value) {
-    		throw new Error("<ChartCompanion>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get P_all() {
-    		throw new Error("<ChartCompanion>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set P_all(value) {
-    		throw new Error("<ChartCompanion>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get P_bars() {
-    		throw new Error("<ChartCompanion>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set P_bars(value) {
-    		throw new Error("<ChartCompanion>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get active_() {
-    		throw new Error("<ChartCompanion>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set active_(value) {
-    		throw new Error("<ChartCompanion>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get indexToTime() {
-    		throw new Error("<ChartCompanion>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set indexToTime(value) {
-    		throw new Error("<ChartCompanion>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get first_date() {
-    		throw new Error("<ChartCompanion>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set first_date(value) {
-    		throw new Error("<ChartCompanion>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-    }
-
     var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
     function unwrapExports (x) {
@@ -5265,829 +3084,6 @@
 
     function createCommonjsModule(fn, module) {
     	return module = { exports: {} }, fn(module, module.exports), module.exports;
-    }
-
-    var strictUriEncode = str => encodeURIComponent(str).replace(/[!'()*]/g, x => `%${x.charCodeAt(0).toString(16).toUpperCase()}`);
-
-    var token = '%[a-f0-9]{2}';
-    var singleMatcher = new RegExp(token, 'gi');
-    var multiMatcher = new RegExp('(' + token + ')+', 'gi');
-
-    function decodeComponents(components, split) {
-    	try {
-    		// Try to decode the entire string first
-    		return decodeURIComponent(components.join(''));
-    	} catch (err) {
-    		// Do nothing
-    	}
-
-    	if (components.length === 1) {
-    		return components;
-    	}
-
-    	split = split || 1;
-
-    	// Split the array in 2 parts
-    	var left = components.slice(0, split);
-    	var right = components.slice(split);
-
-    	return Array.prototype.concat.call([], decodeComponents(left), decodeComponents(right));
-    }
-
-    function decode(input) {
-    	try {
-    		return decodeURIComponent(input);
-    	} catch (err) {
-    		var tokens = input.match(singleMatcher);
-
-    		for (var i = 1; i < tokens.length; i++) {
-    			input = decodeComponents(tokens, i).join('');
-
-    			tokens = input.match(singleMatcher);
-    		}
-
-    		return input;
-    	}
-    }
-
-    function customDecodeURIComponent(input) {
-    	// Keep track of all the replacements and prefill the map with the `BOM`
-    	var replaceMap = {
-    		'%FE%FF': '\uFFFD\uFFFD',
-    		'%FF%FE': '\uFFFD\uFFFD'
-    	};
-
-    	var match = multiMatcher.exec(input);
-    	while (match) {
-    		try {
-    			// Decode as big chunks as possible
-    			replaceMap[match[0]] = decodeURIComponent(match[0]);
-    		} catch (err) {
-    			var result = decode(match[0]);
-
-    			if (result !== match[0]) {
-    				replaceMap[match[0]] = result;
-    			}
-    		}
-
-    		match = multiMatcher.exec(input);
-    	}
-
-    	// Add `%C2` at the end of the map to make sure it does not replace the combinator before everything else
-    	replaceMap['%C2'] = '\uFFFD';
-
-    	var entries = Object.keys(replaceMap);
-
-    	for (var i = 0; i < entries.length; i++) {
-    		// Replace all decoded components
-    		var key = entries[i];
-    		input = input.replace(new RegExp(key, 'g'), replaceMap[key]);
-    	}
-
-    	return input;
-    }
-
-    var decodeUriComponent = function (encodedURI) {
-    	if (typeof encodedURI !== 'string') {
-    		throw new TypeError('Expected `encodedURI` to be of type `string`, got `' + typeof encodedURI + '`');
-    	}
-
-    	try {
-    		encodedURI = encodedURI.replace(/\+/g, ' ');
-
-    		// Try the built in decoder first
-    		return decodeURIComponent(encodedURI);
-    	} catch (err) {
-    		// Fallback to a more advanced decoder
-    		return customDecodeURIComponent(encodedURI);
-    	}
-    };
-
-    var splitOnFirst = (string, separator) => {
-    	if (!(typeof string === 'string' && typeof separator === 'string')) {
-    		throw new TypeError('Expected the arguments to be of type `string`');
-    	}
-
-    	if (separator === '') {
-    		return [string];
-    	}
-
-    	const separatorIndex = string.indexOf(separator);
-
-    	if (separatorIndex === -1) {
-    		return [string];
-    	}
-
-    	return [
-    		string.slice(0, separatorIndex),
-    		string.slice(separatorIndex + separator.length)
-    	];
-    };
-
-    var queryString = createCommonjsModule(function (module, exports) {
-
-
-
-
-    function encoderForArrayFormat(options) {
-    	switch (options.arrayFormat) {
-    		case 'index':
-    			return key => (result, value) => {
-    				const index = result.length;
-    				if (value === undefined || (options.skipNull && value === null)) {
-    					return result;
-    				}
-
-    				if (value === null) {
-    					return [...result, [encode(key, options), '[', index, ']'].join('')];
-    				}
-
-    				return [
-    					...result,
-    					[encode(key, options), '[', encode(index, options), ']=', encode(value, options)].join('')
-    				];
-    			};
-
-    		case 'bracket':
-    			return key => (result, value) => {
-    				if (value === undefined || (options.skipNull && value === null)) {
-    					return result;
-    				}
-
-    				if (value === null) {
-    					return [...result, [encode(key, options), '[]'].join('')];
-    				}
-
-    				return [...result, [encode(key, options), '[]=', encode(value, options)].join('')];
-    			};
-
-    		case 'comma':
-    		case 'separator':
-    			return key => (result, value) => {
-    				if (value === null || value === undefined || value.length === 0) {
-    					return result;
-    				}
-
-    				if (result.length === 0) {
-    					return [[encode(key, options), '=', encode(value, options)].join('')];
-    				}
-
-    				return [[result, encode(value, options)].join(options.arrayFormatSeparator)];
-    			};
-
-    		default:
-    			return key => (result, value) => {
-    				if (value === undefined || (options.skipNull && value === null)) {
-    					return result;
-    				}
-
-    				if (value === null) {
-    					return [...result, encode(key, options)];
-    				}
-
-    				return [...result, [encode(key, options), '=', encode(value, options)].join('')];
-    			};
-    	}
-    }
-
-    function parserForArrayFormat(options) {
-    	let result;
-
-    	switch (options.arrayFormat) {
-    		case 'index':
-    			return (key, value, accumulator) => {
-    				result = /\[(\d*)\]$/.exec(key);
-
-    				key = key.replace(/\[\d*\]$/, '');
-
-    				if (!result) {
-    					accumulator[key] = value;
-    					return;
-    				}
-
-    				if (accumulator[key] === undefined) {
-    					accumulator[key] = {};
-    				}
-
-    				accumulator[key][result[1]] = value;
-    			};
-
-    		case 'bracket':
-    			return (key, value, accumulator) => {
-    				result = /(\[\])$/.exec(key);
-    				key = key.replace(/\[\]$/, '');
-
-    				if (!result) {
-    					accumulator[key] = value;
-    					return;
-    				}
-
-    				if (accumulator[key] === undefined) {
-    					accumulator[key] = [value];
-    					return;
-    				}
-
-    				accumulator[key] = [].concat(accumulator[key], value);
-    			};
-
-    		case 'comma':
-    		case 'separator':
-    			return (key, value, accumulator) => {
-    				const isArray = typeof value === 'string' && value.split('').indexOf(options.arrayFormatSeparator) > -1;
-    				const newValue = isArray ? value.split(options.arrayFormatSeparator).map(item => decode(item, options)) : value === null ? value : decode(value, options);
-    				accumulator[key] = newValue;
-    			};
-
-    		default:
-    			return (key, value, accumulator) => {
-    				if (accumulator[key] === undefined) {
-    					accumulator[key] = value;
-    					return;
-    				}
-
-    				accumulator[key] = [].concat(accumulator[key], value);
-    			};
-    	}
-    }
-
-    function validateArrayFormatSeparator(value) {
-    	if (typeof value !== 'string' || value.length !== 1) {
-    		throw new TypeError('arrayFormatSeparator must be single character string');
-    	}
-    }
-
-    function encode(value, options) {
-    	if (options.encode) {
-    		return options.strict ? strictUriEncode(value) : encodeURIComponent(value);
-    	}
-
-    	return value;
-    }
-
-    function decode(value, options) {
-    	if (options.decode) {
-    		return decodeUriComponent(value);
-    	}
-
-    	return value;
-    }
-
-    function keysSorter(input) {
-    	if (Array.isArray(input)) {
-    		return input.sort();
-    	}
-
-    	if (typeof input === 'object') {
-    		return keysSorter(Object.keys(input))
-    			.sort((a, b) => Number(a) - Number(b))
-    			.map(key => input[key]);
-    	}
-
-    	return input;
-    }
-
-    function removeHash(input) {
-    	const hashStart = input.indexOf('#');
-    	if (hashStart !== -1) {
-    		input = input.slice(0, hashStart);
-    	}
-
-    	return input;
-    }
-
-    function getHash(url) {
-    	let hash = '';
-    	const hashStart = url.indexOf('#');
-    	if (hashStart !== -1) {
-    		hash = url.slice(hashStart);
-    	}
-
-    	return hash;
-    }
-
-    function extract(input) {
-    	input = removeHash(input);
-    	const queryStart = input.indexOf('?');
-    	if (queryStart === -1) {
-    		return '';
-    	}
-
-    	return input.slice(queryStart + 1);
-    }
-
-    function parseValue(value, options) {
-    	if (options.parseNumbers && !Number.isNaN(Number(value)) && (typeof value === 'string' && value.trim() !== '')) {
-    		value = Number(value);
-    	} else if (options.parseBooleans && value !== null && (value.toLowerCase() === 'true' || value.toLowerCase() === 'false')) {
-    		value = value.toLowerCase() === 'true';
-    	}
-
-    	return value;
-    }
-
-    function parse(input, options) {
-    	options = Object.assign({
-    		decode: true,
-    		sort: true,
-    		arrayFormat: 'none',
-    		arrayFormatSeparator: ',',
-    		parseNumbers: false,
-    		parseBooleans: false
-    	}, options);
-
-    	validateArrayFormatSeparator(options.arrayFormatSeparator);
-
-    	const formatter = parserForArrayFormat(options);
-
-    	// Create an object with no prototype
-    	const ret = Object.create(null);
-
-    	if (typeof input !== 'string') {
-    		return ret;
-    	}
-
-    	input = input.trim().replace(/^[?#&]/, '');
-
-    	if (!input) {
-    		return ret;
-    	}
-
-    	for (const param of input.split('&')) {
-    		let [key, value] = splitOnFirst(options.decode ? param.replace(/\+/g, ' ') : param, '=');
-
-    		// Missing `=` should be `null`:
-    		// http://w3.org/TR/2012/WD-url-20120524/#collect-url-parameters
-    		value = value === undefined ? null : options.arrayFormat === 'comma' ? value : decode(value, options);
-    		formatter(decode(key, options), value, ret);
-    	}
-
-    	for (const key of Object.keys(ret)) {
-    		const value = ret[key];
-    		if (typeof value === 'object' && value !== null) {
-    			for (const k of Object.keys(value)) {
-    				value[k] = parseValue(value[k], options);
-    			}
-    		} else {
-    			ret[key] = parseValue(value, options);
-    		}
-    	}
-
-    	if (options.sort === false) {
-    		return ret;
-    	}
-
-    	return (options.sort === true ? Object.keys(ret).sort() : Object.keys(ret).sort(options.sort)).reduce((result, key) => {
-    		const value = ret[key];
-    		if (Boolean(value) && typeof value === 'object' && !Array.isArray(value)) {
-    			// Sort object keys, not values
-    			result[key] = keysSorter(value);
-    		} else {
-    			result[key] = value;
-    		}
-
-    		return result;
-    	}, Object.create(null));
-    }
-
-    exports.extract = extract;
-    exports.parse = parse;
-
-    exports.stringify = (object, options) => {
-    	if (!object) {
-    		return '';
-    	}
-
-    	options = Object.assign({
-    		encode: true,
-    		strict: true,
-    		arrayFormat: 'none',
-    		arrayFormatSeparator: ','
-    	}, options);
-
-    	validateArrayFormatSeparator(options.arrayFormatSeparator);
-
-    	const formatter = encoderForArrayFormat(options);
-
-    	const objectCopy = Object.assign({}, object);
-    	if (options.skipNull) {
-    		for (const key of Object.keys(objectCopy)) {
-    			if (objectCopy[key] === undefined || objectCopy[key] === null) {
-    				delete objectCopy[key];
-    			}
-    		}
-    	}
-
-    	const keys = Object.keys(objectCopy);
-
-    	if (options.sort !== false) {
-    		keys.sort(options.sort);
-    	}
-
-    	return keys.map(key => {
-    		const value = object[key];
-
-    		if (value === undefined) {
-    			return '';
-    		}
-
-    		if (value === null) {
-    			return encode(key, options);
-    		}
-
-    		if (Array.isArray(value)) {
-    			return value
-    				.reduce(formatter(key), [])
-    				.join('&');
-    		}
-
-    		return encode(key, options) + '=' + encode(value, options);
-    	}).filter(x => x.length > 0).join('&');
-    };
-
-    exports.parseUrl = (input, options) => {
-    	return {
-    		url: removeHash(input).split('?')[0] || '',
-    		query: parse(extract(input), options)
-    	};
-    };
-
-    exports.stringifyUrl = (input, options) => {
-    	const url = removeHash(input.url).split('?')[0] || '';
-    	const queryFromUrl = exports.extract(input.url);
-    	const parsedQueryFromUrl = exports.parse(queryFromUrl);
-    	const hash = getHash(input.url);
-    	const query = Object.assign(parsedQueryFromUrl, input.query);
-    	let queryString = exports.stringify(query, options);
-    	if (queryString) {
-    		queryString = `?${queryString}`;
-    	}
-
-    	return `${url}${queryString}${hash}`;
-    };
-    });
-    var queryString_1 = queryString.extract;
-    var queryString_2 = queryString.parse;
-    var queryString_3 = queryString.stringify;
-    var queryString_4 = queryString.parseUrl;
-    var queryString_5 = queryString.stringifyUrl;
-
-    var defaultParameters = {
-        days_from_incubation_to_death: 18, // From Mikko Viikari.
-        initial_population_count: 5538328, // 2020 Finnish population count.
-        R0: 1.05,
-        days_from_incubation_to_infectious: 5.2,     
-        days_from_infectious_to_not_infectious: 2.9,
-        days_in_mild_recovering_state: 11.1,
-        days_in_hospital: 13, // From Mikko Viikari. For comparison, THL's estimate was 8 days (published ~end of march)
-        days_in_severe_recovering_state_before_hospital: 11, // From Mikko Viikari. For comparison, THL's estimate was 10 days.
-        fatality_rate: 0.006, // From https://www.thelancet.com/journals/laninf/article/PIIS1473-3099%2820%2930243-7/fulltext
-        hospitalization_rate: 0.028, // Hospitalization rate. From Mikko Viikari.
-        icu_rate_from_hospitalized: 0.3, // THL 25.3.2020
-        icu_capacity: 700, // Estimate from Heikki. Means maximum number of patients simultaneously in ICU.
-
-        InterventionTime: 60, // this is just where the intervention slider is at initially
-        OMInterventionAmt: -1/2, // intervention slider default position
-    };
-
-    class UFState {
-      constructor(susceptible, inf, hospitalized, icu, recovered, fatalities) {
-        this['susceptible'] = susceptible;
-        this['infected'] = inf;
-        this['hospitalized'] = hospitalized;
-        this['icu'] = icu;
-        this['recovered'] = recovered;
-        this['fatalities'] = fatalities;
-      }
-    }
-
-    function getDefaultStateMeta() {
-        return [
-            {
-            'key': 'susceptible',
-            'tooltip_title': 'Susceptible',
-            'tooltip_desc': 'Population not immune to the disease',
-            'checkable': false,
-            'checked': false,
-            'color': '#c8ffba',
-            },
-            {
-            'key': 'infected',
-            'tooltip_title': 'Infected',
-            'tooltip_desc': 'Active infections (incl. incubating, undiagnosed) (excl. hosp, icu)',
-            'checkable': true,
-            'checked': true,
-            'color': '#f0027f',
-            },
-            {
-            'key': 'hospitalized',
-            'tooltip_title': 'Hospitalized',
-            'tooltip_desc': 'Active hospitalizations (excluding ICU)',
-            'checkable': true,
-            'checked': true,
-            'color': '#8da0cb'
-            },
-            {
-            'key': 'icu',
-            'tooltip_title': 'ICU',
-            'tooltip_desc': 'Patients in intensive care, active',
-            'checkable': true,
-            'checked': true,
-            'color': '#386cb0',
-            },
-            {
-            'key': 'recovered',
-            'tooltip_title': 'Recovered',
-            'tooltip_desc': 'Number of full recoveries, cumulative',
-            'checkable': true,
-            'checked': false,
-            'color': '#4daf4a',
-            },
-            {
-            'key': 'fatalities',
-            'tooltip_title': 'Fatalities',
-            'tooltip_desc': 'Number of deaths, cumulative',
-            'checkable': true,
-            'checked': true,
-            'color': "#000000",
-            },
-        ]
-    }
-
-    var Integrators = {
-        Euler    : [[1]],
-        Midpoint : [[.5,.5],[0, 1]],
-        Heun     : [[1, 1],[.5,.5]],
-        Ralston  : [[2/3,2/3],[.25,.75]],
-        K3       : [[.5,.5],[1,-1,2],[1/6,2/3,1/6]],
-        SSP33    : [[1,1],[.5,.25,.25],[1/6,1/6,2/3]],
-        SSP43    : [[.5,.5],[1,.5,.5],[.5,1/6,1/6,1/6],[1/6,1/6,1/6,1/2]],
-        RK4      : [[.5,.5],[.5,0,.5],[1,0,0,1],[1/6,1/3,1/3,1/6]],
-        RK38     : [[1/3,1/3],[2/3,-1/3,1],[1,1,-1,1],[1/8,3/8,3/8,1/8]]
-    };
-
-    // f is a func of time t and state y
-    // y is the initial state, t is the time, h is the timestep
-    // updated y is returned.
-    var integrate=(m,f,y,t,h)=>{
-        for (var k=[],ki=0; ki<m.length; ki++) {
-            var _y=y.slice(), dt=ki?((m[ki-1][0])*h):0;
-            for (var l=0; l<_y.length; l++) for (var j=1; j<=ki; j++) _y[l]=_y[l]+h*(m[ki-1][j])*(k[ki-1][l]);
-            k[ki]=f(t+dt,_y,dt); 
-        }
-        for (var r=y.slice(),l=0; l<_y.length; l++) for (var j=0; j<k.length; j++) r[l]=r[l]+h*(k[j][l])*(m[ki-1][j]);
-        return r;
-    };
-
-    // P_prior, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration
-    function get_solution_from_gohs_seir_ode(demo_mode, historical_goh_states, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration) {
-
-        var interpolation_steps = 40;
-        var steps = 101*interpolation_steps*real_dt;
-        var dt = 1/interpolation_steps;
-        var sample_step = interpolation_steps;
-
-        var method = Integrators["RK4"];
-        function f(t, x){
-
-            // SEIR ODE
-
-            const adjustedInterventionTime =
-            demo_mode !== SHOW_FUTURE ?
-            InterventionTime - historical_goh_states.length :
-            InterventionTime;
-            
-            if (t > adjustedInterventionTime && t < adjustedInterventionTime + duration){
-            var beta = (InterventionAmt)*R0/(D_infectious);
-            } else if (t > adjustedInterventionTime + duration) {
-            var beta = 0.5*R0/(D_infectious);        
-            } else {
-            var beta = R0/(D_infectious);
-            }
-            var a     = 1/D_incbation;
-            var gamma = 1/D_infectious;
-            
-            var S        = x[0]; // Susceptible
-            var E        = x[1]; // Exposed
-            var I        = x[2]; // Infectious 
-            var Mild     = x[3]; // Recovering (Mild)     
-            var Severe   = x[4]; // Recovering (Severe at home)
-            var Severe_H = x[5]; // Recovering (Severe in hospital)
-            var Fatal    = x[6]; // Recovering (Fatal)
-            var R_Mild   = x[7]; // Recovered
-            var R_Severe = x[8]; // Recovered
-            var R_Fatal  = x[9]; // Dead
-
-            var p_severe = P_SEVERE;
-            var p_fatal  = CFR;
-            var p_mild   = 1 - P_SEVERE - CFR;
-
-            var dS        = -beta*I*S;
-            var dE        =  beta*I*S - a*E;
-            var dI        =  a*E - gamma*I;
-            var dMild     =  p_mild*gamma*I   - (1/D_recovery_mild)*Mild;
-            var dSevere   =  p_severe*gamma*I - (1/D_hospital_lag)*Severe;
-            var dSevere_H =  (1/D_hospital_lag)*Severe - (1/D_recovery_severe)*Severe_H;
-            var dFatal    =  p_fatal*gamma*I  - (1/D_death)*Fatal;
-            var dR_Mild   =  (1/D_recovery_mild)*Mild;
-            var dR_Severe =  (1/D_recovery_severe)*Severe_H;
-            var dR_Fatal  =  (1/D_death)*Fatal;
-
-            //      0   1   2   3      4        5          6       7        8          9
-            return [dS, dE, dI, dMild, dSevere, dSevere_H, dFatal, dR_Mild, dR_Severe, dR_Fatal]
-        }
-
-        // If historical data is available, we take the last historical state as our start state.
-        var v =
-            historical_goh_states ?
-            v = historical_goh_states[historical_goh_states.length - 1] :
-            [1 - I0/N, 0, I0/N, 0, 0, 0, 0, 0, 0, 0];
-
-        var t = 0;
-        var goh_states = [];
-        while (steps--) { 
-            if ((steps+1) % (sample_step) == 0) {
-                goh_states.push(v.slice());
-            }
-            v =integrate(method,f,v,t,dt); 
-            t+=dt;
-        }
-
-        return map_goh_states_into_UFStates(goh_states, N, P_ICU)
-    }
-
-    /** Map Goh model's internal states into states represented by our chart. */
-    function map_goh_states_into_UFStates(goh_states, N, P_ICU) {
-        return goh_states.map(v => {
-            // First, just for readability, we name the states in the array
-            const susceptible = v[0];
-            const exposed = v[1];
-            const infectious = v[2];
-            const recovering_mild = v[3];
-            const recovering_severe_home = v[4];
-            const hospitalized_will_recover = v[5];
-            const hospitalized_will_die = v[6];
-            const recovered_mild = v[7];
-            const recovered_severe = v[8];
-            const dead = v[9];
-
-            // Then, compute ChartV2 states.
-            const suscep = Math.round(susceptible * N);
-            const infected = Math.round((exposed + infectious + recovering_mild + recovering_severe_home) * N);
-            const hospitalized_and_icu = Math.round((hospitalized_will_recover + hospitalized_will_die) * N);
-            const hospitalized = Math.round((1 - P_ICU) * hospitalized_and_icu);
-            const icu = Math.round(P_ICU * hospitalized_and_icu);
-            const recovered = Math.round((recovered_mild + recovered_severe) * N);
-            const fatalities = Math.round(dead * N);
-
-            return new UFState(
-                suscep,
-                infected,
-                hospitalized,
-                icu,
-                recovered,
-                fatalities
-            )
-        })
-    }
-
-    /** Map Berkeley model's internal states into states represented by our chart. */
-    function map_berkeley_states_into_UFStates(berkeley_states, N) {
-        const susceptible = 'S';
-        const incubating = 'E';
-        const asymptomatic = 'A';
-        const asymptomatic_non_severe = 'X1';
-        const symptomatic_non_hospitalized_non_severe = 'X2';
-        const asymptomatic_severe_will_survive = 'C1';
-        const symptomatic_non_hospitalized_severe_will_survive = 'C2';
-        const hospitalized_severe_will_survive = 'C3';
-        const asymptomatic_severe_will_die = 'D1';
-        const symptomatic_severe_will_die = 'D2';
-        const hospitalized_severe_will_die = 'D3';
-        const asymptomatic_non_critical_will_survive = 'HR1';
-        const symptomatic_non_critical_will_survive = 'HR2';
-        const hospitalized_non_critical_will_survive = 'HR3';
-        const asymptomatic_non_critical_will_die = 'HM1';
-        const symptomatic_non_critical_will_die = 'HM2';
-        const hospitalized_non_critical_will_die = 'HM3';
-        const recovered = 'R';
-        const dead = 'M';
-
-        // TODO figure out what are "RP" and "mc"
-
-        // TODO this / 4486 * N thing should be done in R
-
-        // group 1
-        function h(v) {
-            return Math.round(v / 4486 * N)
-        }
-
-        // TODO verify that states sum up to one for every day
-
-        return berkeley_states.map(b => {
-
-            const suscep =
-                    b[susceptible];
-
-            const infected =
-                    b[incubating]
-                + b[asymptomatic]
-                + b[asymptomatic_non_severe]
-                + b[symptomatic_non_hospitalized_non_severe]
-                + b[asymptomatic_severe_will_survive]
-                + b[symptomatic_non_hospitalized_severe_will_survive]
-                + b[asymptomatic_severe_will_die]
-                + b[symptomatic_severe_will_die]
-                + b[asymptomatic_non_critical_will_survive]
-                + b[symptomatic_non_critical_will_survive]
-                + b[hospitalized_non_critical_will_survive]
-                + b[asymptomatic_non_critical_will_die]
-                + b[symptomatic_non_critical_will_die]
-                + b[hospitalized_non_critical_will_die];
-
-            const hospitalized =
-                    b[hospitalized_severe_will_survive]
-                + b[hospitalized_severe_will_die];
-
-            const icu =
-                    b[hospitalized_severe_will_survive]
-                + b[hospitalized_severe_will_die];
-
-            const recov =
-                    b[recovered];
-
-            const fatalities =
-                    b[dead];
-
-            return new UFState(
-                h(suscep),
-                h(infected),
-                h(hospitalized),
-                h(icu),
-                h(recov),
-                h(fatalities)
-            )
-        }
-    )}
-
-    function isValidDate(d) {
-        return d instanceof Date && !isNaN(d);
-    }
-
-    function loadFinnishHistoricalEstimates(fin, N) {
-        // This function returns these 2.
-        var first_date = new Date();
-        var goh_states = [];
-
-        var prevRowValid = false;
-        for (var i=0; i<fin.length; i++) {
-            const row = fin[i];
-            const date = new Date(row['Date']);
-
-            // Csv rows come in the following format: first garbage, then data, then more garbage.
-            // Rows which have valid date are considered to be non-garbage.
-            if (!isValidDate(date)) {
-                if (!prevRowValid) {
-                    continue
-                }
-                break
-            }
-            if (isValidDate(date) && !prevRowValid) {
-                first_date = date;
-                prevRowValid = true;
-            }
-            
-
-            function h(col) {
-                return parseInt(row[col])
-            }
-
-            const susceptible =
-                N
-                - h('Exposed')
-                - h('Infectious')
-                - h('Mild')
-                - h('SevereHome')
-                - h('HospitalWillRecover')
-                - h('HospitalFatal')
-                - h('RecoveredMild')
-                - h('RecoveredSevere')
-                - h('Fatal');
-
-            goh_states.push([
-                susceptible / N,
-                h('Exposed') / N,
-                h('Infectious') / N,
-                h('Mild') / N,
-                h('SevereHome') / N,
-                h('HospitalWillRecover') / N,
-                h('HospitalFatal') / N,
-                h('RecoveredMild') / N,
-                h('RecoveredSevere') / N,
-                h('Fatal') / N,
-            ]);
-        }
-
-        return [first_date, goh_states]
     }
 
     var katex = createCommonjsModule(function (module, exports) {
@@ -23508,6 +20504,5377 @@
 
     var katex$1 = unwrapExports(katex);
 
+    function formatNumber(num) {
+        return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
+    }
+
+    function formatCount(count) {
+        // Counts are floats in Goh's model, so they need to be rounded.
+        // Also formatting to string with space separators etc.
+        return formatNumber(Math.round(count))
+    }
+
+    function formatDelta(delta) {
+        return (delta >= 0 ? '+' : '') + formatCount(delta)
+    }
+
+    function formatPercent(proportion) {
+        return (100 * proportion).toFixed(2)
+    }
+
+    function addDays(date, days) {
+        var result = new Date(date);
+        result.setDate(result.getDate() + days);
+        return result;
+    }
+
+    function math_inline(str) {
+        return katex$1.renderToString(str, {
+        throwOnError: false,
+        displayMode: false,
+        colorIsTextColor: true
+        });
+    }
+
+    const padding = { top: 20, right: 0, bottom: 20, left: 25 };
+
+    const SHOW_HISTORICAL = 0;
+    const SHOW_FUTURE = 1;
+    const SHOW_HISTORICAL_AND_FUTURE = 2;
+
+    const MODEL_GOH = 'goh';
+    const MODEL_BERKELEY = 'berkeley';
+    const MODEL_REINA = 'reina';
+
+    /* src/components/Chart.svelte generated by Svelte v3.12.1 */
+
+    const file = "src/components/Chart.svelte";
+
+    function get_each_context(ctx, list, i) {
+    	const child_ctx = Object.create(ctx);
+    	child_ctx.i = list[i];
+    	return child_ctx;
+    }
+
+    function get_each_context_2(ctx, list, i) {
+    	const child_ctx = Object.create(ctx);
+    	child_ctx.j = list[i];
+    	return child_ctx;
+    }
+
+    function get_each_context_1(ctx, list, i) {
+    	const child_ctx = Object.create(ctx);
+    	child_ctx.i = list[i];
+    	return child_ctx;
+    }
+
+    function get_each_context_3(ctx, list, i) {
+    	const child_ctx = Object.create(ctx);
+    	child_ctx.i = list[i];
+    	return child_ctx;
+    }
+
+    function get_each_context_4(ctx, list, i) {
+    	const child_ctx = Object.create(ctx);
+    	child_ctx.tick = list[i];
+    	return child_ctx;
+    }
+
+    // (224:2) {#if shouldWeDrawICUcapacity(stateMeta, ymax)}
+    function create_if_block_4(ctx) {
+    	var div;
+
+    	const block = {
+    		c: function create() {
+    			div = element("div");
+    			set_style(div, "position", "absolute");
+    			set_style(div, "top", "" + ctx.Math.max(ctx.yScale(ctx.icuCapacity),0) + "px");
+    			set_style(div, "left", "30px");
+    			set_style(div, "width", "" + (width - 30) + "px");
+    			set_style(div, "height", "1px");
+    			set_style(div, "border-top", "1px solid black");
+    			add_location(div, file, 224, 4, 5205);
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div, anchor);
+    		},
+
+    		p: function update(changed, ctx) {
+    			if (changed.yScale || changed.icuCapacity) {
+    				set_style(div, "top", "" + ctx.Math.max(ctx.yScale(ctx.icuCapacity),0) + "px");
+    			}
+    		},
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(div);
+    			}
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block_4.name, type: "if", source: "(224:2) {#if shouldWeDrawICUcapacity(stateMeta, ymax)}", ctx });
+    	return block;
+    }
+
+    // (238:6) {#each yScale.ticks(5) as tick}
+    function create_each_block_4(ctx) {
+    	var g, line, text_1, t0_value = Number.isInteger(ctx.Math.log10(ctx.tick)) ? formatNumber(ctx.tick) : (ctx.log ? "": formatNumber(ctx.tick)) + "", t0, t1_value = (ctx.tick == ctx.yScale.ticks(5)[0]) ? " ": "" + "", t1, g_class_value, g_transform_value;
+
+    	const block = {
+    		c: function create() {
+    			g = svg_element("g");
+    			line = svg_element("line");
+    			text_1 = svg_element("text");
+    			t0 = text(t0_value);
+    			t1 = text(t1_value);
+    			attr_dev(line, "x2", "100%");
+    			attr_dev(line, "class", "svelte-1hzt5y0");
+    			add_location(line, file, 239, 10, 5743);
+    			attr_dev(text_1, "y", "-4");
+    			attr_dev(text_1, "class", "svelte-1hzt5y0");
+    			add_location(text_1, file, 240, 10, 5777);
+    			attr_dev(g, "class", g_class_value = "tick tick-" + ctx.tick + " svelte-1hzt5y0");
+    			attr_dev(g, "transform", g_transform_value = "translate(0, " + (ctx.yScale(ctx.tick) - padding.bottom) + ")");
+    			add_location(g, file, 238, 8, 5646);
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, g, anchor);
+    			append_dev(g, line);
+    			append_dev(g, text_1);
+    			append_dev(text_1, t0);
+    			append_dev(text_1, t1);
+    		},
+
+    		p: function update(changed, ctx) {
+    			if ((changed.yScale || changed.log) && t0_value !== (t0_value = Number.isInteger(ctx.Math.log10(ctx.tick)) ? formatNumber(ctx.tick) : (ctx.log ? "": formatNumber(ctx.tick)) + "")) {
+    				set_data_dev(t0, t0_value);
+    			}
+
+    			if ((changed.yScale) && t1_value !== (t1_value = (ctx.tick == ctx.yScale.ticks(5)[0]) ? " ": "" + "")) {
+    				set_data_dev(t1, t1_value);
+    			}
+
+    			if ((changed.yScale) && g_class_value !== (g_class_value = "tick tick-" + ctx.tick + " svelte-1hzt5y0")) {
+    				attr_dev(g, "class", g_class_value);
+    			}
+
+    			if ((changed.yScale) && g_transform_value !== (g_transform_value = "translate(0, " + (ctx.yScale(ctx.tick) - padding.bottom) + ")")) {
+    				attr_dev(g, "transform", g_transform_value);
+    			}
+    		},
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(g);
+    			}
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_each_block_4.name, type: "each", source: "(238:6) {#each yScale.ticks(5) as tick}", ctx });
+    	return block;
+    }
+
+    // (248:6) {#each xScaleTime.ticks() as i}
+    function create_each_block_3(ctx) {
+    	var g, text_1, t0_value = ctx.i == 0 ? "Day ":"" + "", t0, t1_value = ctx.i + "", t1, g_transform_value;
+
+    	const block = {
+    		c: function create() {
+    			g = svg_element("g");
+    			text_1 = svg_element("text");
+    			t0 = text(t0_value);
+    			t1 = text(t1_value);
+    			attr_dev(text_1, "x", "0");
+    			attr_dev(text_1, "y", "-4");
+    			attr_dev(text_1, "class", "svelte-1hzt5y0");
+    			add_location(text_1, file, 249, 10, 6135);
+    			attr_dev(g, "class", "tick svelte-1hzt5y0");
+    			attr_dev(g, "transform", g_transform_value = "translate(" + ctx.xScaleTime(ctx.i) + "," + height + ")");
+    			add_location(g, file, 248, 8, 6060);
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, g, anchor);
+    			append_dev(g, text_1);
+    			append_dev(text_1, t0);
+    			append_dev(text_1, t1);
+    		},
+
+    		p: function update(changed, ctx) {
+    			if ((changed.xScaleTime) && t0_value !== (t0_value = ctx.i == 0 ? "Day ":"" + "")) {
+    				set_data_dev(t0, t0_value);
+    			}
+
+    			if ((changed.xScaleTime) && t1_value !== (t1_value = ctx.i + "")) {
+    				set_data_dev(t1, t1_value);
+    			}
+
+    			if ((changed.xScaleTime) && g_transform_value !== (g_transform_value = "translate(" + ctx.xScaleTime(ctx.i) + "," + height + ")")) {
+    				attr_dev(g, "transform", g_transform_value);
+    			}
+    		},
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(g);
+    			}
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_each_block_3.name, type: "each", source: "(248:6) {#each xScaleTime.ticks() as i}", ctx });
+    	return block;
+    }
+
+    // (284:10) {:else}
+    function create_else_block(ctx) {
+    	const block = {
+    		c: noop,
+    		m: noop,
+    		p: noop,
+    		d: noop
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_else_block.name, type: "else", source: "(284:10) {:else}", ctx });
+    	return block;
+    }
+
+    // (270:10) {#if !log}
+    function create_if_block_2(ctx) {
+    	var if_block_anchor;
+
+    	var if_block = (ctx.states[ctx.i][ctx.stateMeta[ctx.j]["key"]] > 0) && create_if_block_3(ctx);
+
+    	const block = {
+    		c: function create() {
+    			if (if_block) if_block.c();
+    			if_block_anchor = empty();
+    		},
+
+    		m: function mount(target, anchor) {
+    			if (if_block) if_block.m(target, anchor);
+    			insert_dev(target, if_block_anchor, anchor);
+    		},
+
+    		p: function update(changed, ctx) {
+    			if (ctx.states[ctx.i][ctx.stateMeta[ctx.j]["key"]] > 0) {
+    				if (if_block) {
+    					if_block.p(changed, ctx);
+    				} else {
+    					if_block = create_if_block_3(ctx);
+    					if_block.c();
+    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
+    				}
+    			} else if (if_block) {
+    				if_block.d(1);
+    				if_block = null;
+    			}
+    		},
+
+    		d: function destroy(detaching) {
+    			if (if_block) if_block.d(detaching);
+
+    			if (detaching) {
+    				detach_dev(if_block_anchor);
+    			}
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block_2.name, type: "if", source: "(270:10) {#if !log}", ctx });
+    	return block;
+    }
+
+    // (271:12) {#if states[i][stateMeta[j]["key"]] > 0}
+    function create_if_block_3(ctx) {
+    	var rect, rect_x_value, rect_y_value, rect_height_value, dispose;
+
+    	function mouseover_handler_1() {
+    		return ctx.mouseover_handler_1(ctx);
+    	}
+
+    	function click_handler_1() {
+    		return ctx.click_handler_1(ctx);
+    	}
+
+    	const block = {
+    		c: function create() {
+    			rect = svg_element("rect");
+    			attr_dev(rect, "class", "bar svelte-1hzt5y0");
+    			attr_dev(rect, "x", rect_x_value = ctx.xScale(ctx.i) + 2);
+    			attr_dev(rect, "y", rect_y_value = ctx.yScale(getBarY(ctx.states[ctx.i], ctx.stateMeta, ctx.j)));
+    			attr_dev(rect, "width", ctx.barWidth);
+    			attr_dev(rect, "height", rect_height_value = ctx.Math.max(height - padding.bottom - ctx.yScale(getBarHeight(ctx.states[ctx.i], ctx.stateMeta, ctx.j)), 0));
+    			set_style(rect, "fill", ctx.stateMeta[ctx.j]['color']);
+    			set_style(rect, "opacity", (ctx.active == ctx.i ? 0.9: 0.6));
+    			add_location(rect, file, 271, 14, 6780);
+
+    			dispose = [
+    				listen_dev(rect, "mouseover", mouseover_handler_1),
+    				listen_dev(rect, "mouseout", ctx.mouseout_handler_1),
+    				listen_dev(rect, "click", click_handler_1)
+    			];
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, rect, anchor);
+    		},
+
+    		p: function update(changed, new_ctx) {
+    			ctx = new_ctx;
+    			if ((changed.xScale || changed.states) && rect_x_value !== (rect_x_value = ctx.xScale(ctx.i) + 2)) {
+    				attr_dev(rect, "x", rect_x_value);
+    			}
+
+    			if ((changed.yScale || changed.states || changed.stateMeta) && rect_y_value !== (rect_y_value = ctx.yScale(getBarY(ctx.states[ctx.i], ctx.stateMeta, ctx.j)))) {
+    				attr_dev(rect, "y", rect_y_value);
+    			}
+
+    			if (changed.barWidth) {
+    				attr_dev(rect, "width", ctx.barWidth);
+    			}
+
+    			if ((changed.yScale || changed.states || changed.stateMeta) && rect_height_value !== (rect_height_value = ctx.Math.max(height - padding.bottom - ctx.yScale(getBarHeight(ctx.states[ctx.i], ctx.stateMeta, ctx.j)), 0))) {
+    				attr_dev(rect, "height", rect_height_value);
+    			}
+
+    			if (changed.stateMeta) {
+    				set_style(rect, "fill", ctx.stateMeta[ctx.j]['color']);
+    			}
+
+    			if (changed.active || changed.states) {
+    				set_style(rect, "opacity", (ctx.active == ctx.i ? 0.9: 0.6));
+    			}
+    		},
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(rect);
+    			}
+
+    			run_all(dispose);
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block_3.name, type: "if", source: "(271:12) {#if states[i][stateMeta[j][\"key\"]] > 0}", ctx });
+    	return block;
+    }
+
+    // (269:8) {#each range(stateMeta.length) as j}
+    function create_each_block_2(ctx) {
+    	var if_block_anchor;
+
+    	function select_block_type(changed, ctx) {
+    		if (!ctx.log) return create_if_block_2;
+    		return create_else_block;
+    	}
+
+    	var current_block_type = select_block_type(null, ctx);
+    	var if_block = current_block_type(ctx);
+
+    	const block = {
+    		c: function create() {
+    			if_block.c();
+    			if_block_anchor = empty();
+    		},
+
+    		m: function mount(target, anchor) {
+    			if_block.m(target, anchor);
+    			insert_dev(target, if_block_anchor, anchor);
+    		},
+
+    		p: function update(changed, ctx) {
+    			if (current_block_type === (current_block_type = select_block_type(changed, ctx)) && if_block) {
+    				if_block.p(changed, ctx);
+    			} else {
+    				if_block.d(1);
+    				if_block = current_block_type(ctx);
+    				if (if_block) {
+    					if_block.c();
+    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
+    				}
+    			}
+    		},
+
+    		d: function destroy(detaching) {
+    			if_block.d(detaching);
+
+    			if (detaching) {
+    				detach_dev(if_block_anchor);
+    			}
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_each_block_2.name, type: "each", source: "(269:8) {#each range(stateMeta.length) as j}", ctx });
+    	return block;
+    }
+
+    // (256:6) {#each range(states.length) as i}
+    function create_each_block_1(ctx) {
+    	var rect, rect_x_value, rect_width_value, each_1_anchor, dispose;
+
+    	function mouseover_handler() {
+    		return ctx.mouseover_handler(ctx);
+    	}
+
+    	function click_handler() {
+    		return ctx.click_handler(ctx);
+    	}
+
+    	let each_value_2 = range(ctx.stateMeta.length);
+
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value_2.length; i += 1) {
+    		each_blocks[i] = create_each_block_2(get_each_context_2(ctx, each_value_2, i));
+    	}
+
+    	const block = {
+    		c: function create() {
+    			rect = svg_element("rect");
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			each_1_anchor = empty();
+    			attr_dev(rect, "class", "bar svelte-1hzt5y0");
+    			attr_dev(rect, "x", rect_x_value = ctx.xScale(ctx.i) + 2);
+    			attr_dev(rect, "y", 0);
+    			attr_dev(rect, "width", rect_width_value = ctx.barWidth+3);
+    			attr_dev(rect, "height", height);
+    			set_style(rect, "fill", "white");
+    			set_style(rect, "opacity", "0");
+    			add_location(rect, file, 256, 8, 6291);
+
+    			dispose = [
+    				listen_dev(rect, "mouseover", mouseover_handler),
+    				listen_dev(rect, "mouseout", ctx.mouseout_handler),
+    				listen_dev(rect, "click", click_handler)
+    			];
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, rect, anchor);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].m(target, anchor);
+    			}
+
+    			insert_dev(target, each_1_anchor, anchor);
+    		},
+
+    		p: function update(changed, new_ctx) {
+    			ctx = new_ctx;
+    			if ((changed.xScale || changed.states) && rect_x_value !== (rect_x_value = ctx.xScale(ctx.i) + 2)) {
+    				attr_dev(rect, "x", rect_x_value);
+    			}
+
+    			if ((changed.barWidth) && rect_width_value !== (rect_width_value = ctx.barWidth+3)) {
+    				attr_dev(rect, "width", rect_width_value);
+    			}
+
+    			if (changed.log || changed.states || changed.range || changed.stateMeta || changed.xScale || changed.yScale || changed.getBarY || changed.barWidth || changed.Math || changed.height || changed.padding || changed.getBarHeight || changed.active) {
+    				each_value_2 = range(ctx.stateMeta.length);
+
+    				let i;
+    				for (i = 0; i < each_value_2.length; i += 1) {
+    					const child_ctx = get_each_context_2(ctx, each_value_2, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(changed, child_ctx);
+    					} else {
+    						each_blocks[i] = create_each_block_2(child_ctx);
+    						each_blocks[i].c();
+    						each_blocks[i].m(each_1_anchor.parentNode, each_1_anchor);
+    					}
+    				}
+
+    				for (; i < each_blocks.length; i += 1) {
+    					each_blocks[i].d(1);
+    				}
+    				each_blocks.length = each_value_2.length;
+    			}
+    		},
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(rect);
+    			}
+
+    			destroy_each(each_blocks, detaching);
+
+    			if (detaching) {
+    				detach_dev(each_1_anchor);
+    			}
+
+    			run_all(dispose);
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_each_block_1.name, type: "each", source: "(256:6) {#each range(states.length) as i}", ctx });
+    	return block;
+    }
+
+    // (317:6) {#each range(data.length) as i}
+    function create_each_block(ctx) {
+    	var rect, rect_x_value, rect_y_value, rect_height_value;
+
+    	const block = {
+    		c: function create() {
+    			rect = svg_element("rect");
+    			attr_dev(rect, "class", "bar svelte-1hzt5y0");
+    			attr_dev(rect, "x", rect_x_value = ctx.xScale( ctx.i+28 ) + 2);
+    			attr_dev(rect, "y", rect_y_value = ctx.yScale( ctx.data[ctx.i][1] ));
+    			attr_dev(rect, "width", ctx.barWidth);
+    			attr_dev(rect, "height", rect_height_value = height - padding.bottom - ctx.yScale( ctx.data[ctx.i][1] ));
+    			set_style(rect, "fill", "black");
+    			set_style(rect, "opacity", "0.5");
+    			set_style(rect, "box-shadow", "4px 10px 5px 2px rgba(0,0,0,0.75)");
+    			add_location(rect, file, 317, 8, 8706);
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, rect, anchor);
+    		},
+
+    		p: function update(changed, ctx) {
+    			if ((changed.xScale) && rect_x_value !== (rect_x_value = ctx.xScale( ctx.i+28 ) + 2)) {
+    				attr_dev(rect, "x", rect_x_value);
+    			}
+
+    			if ((changed.yScale) && rect_y_value !== (rect_y_value = ctx.yScale( ctx.data[ctx.i][1] ))) {
+    				attr_dev(rect, "y", rect_y_value);
+    			}
+
+    			if (changed.barWidth) {
+    				attr_dev(rect, "width", ctx.barWidth);
+    			}
+
+    			if ((changed.yScale) && rect_height_value !== (rect_height_value = height - padding.bottom - ctx.yScale( ctx.data[ctx.i][1] ))) {
+    				attr_dev(rect, "height", rect_height_value);
+    			}
+    		},
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(rect);
+    			}
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_each_block.name, type: "each", source: "(317:6) {#each range(data.length) as i}", ctx });
+    	return block;
+    }
+
+    // (336:4) {#if active >= 0}
+    function create_if_block_1(ctx) {
+    	var div, svg, path, path_fill_value;
+
+    	const block = {
+    		c: function create() {
+    			div = element("div");
+    			svg = svg_element("svg");
+    			path = svg_element("path");
+    			attr_dev(path, "d", "M 0 0 L 10 0 L 5 10 z");
+    			attr_dev(path, "fill", path_fill_value = ctx.lock ? '#555':'#AAA');
+    			attr_dev(path, "stroke-width", "3");
+    			add_location(path, file, 342, 10, 9632);
+    			set_style(svg, "position", "absolute");
+    			set_style(svg, "top", "-12px");
+    			set_style(svg, "left", "0px");
+    			attr_dev(svg, "height", "10");
+    			attr_dev(svg, "width", "10");
+    			attr_dev(svg, "class", "svelte-1hzt5y0");
+    			add_location(svg, file, 341, 10, 9546);
+    			set_style(div, "position", "absolute");
+    			set_style(div, "pointer-events", "none");
+    			set_style(div, "width", "100px");
+    			set_style(div, "left", "" + ctx.xScale(ctx.active) + "px");
+    			set_style(div, "top", "" + ctx.Math.max(ctx.yScale(getBarY(ctx.states[ctx.active], ctx.stateMeta, 0)),0) + "px");
+    			attr_dev(div, "class", "tip");
+    			add_location(div, file, 336, 6, 9290);
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div, anchor);
+    			append_dev(div, svg);
+    			append_dev(svg, path);
+    		},
+
+    		p: function update(changed, ctx) {
+    			if ((changed.lock) && path_fill_value !== (path_fill_value = ctx.lock ? '#555':'#AAA')) {
+    				attr_dev(path, "fill", path_fill_value);
+    			}
+
+    			if (changed.xScale || changed.active) {
+    				set_style(div, "left", "" + ctx.xScale(ctx.active) + "px");
+    			}
+
+    			if (changed.yScale || changed.states || changed.active || changed.stateMeta) {
+    				set_style(div, "top", "" + ctx.Math.max(ctx.yScale(getBarY(ctx.states[ctx.active], ctx.stateMeta, 0)),0) + "px");
+    			}
+    		},
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(div);
+    			}
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block_1.name, type: "if", source: "(336:4) {#if active >= 0}", ctx });
+    	return block;
+    }
+
+    // (352:4) {#if xScale(lastHistoricTimeHelper()) > xScale(0)}
+    function create_if_block(ctx) {
+    	var div0, t, div1, svg, path;
+
+    	const block = {
+    		c: function create() {
+    			div0 = element("div");
+    			t = space();
+    			div1 = element("div");
+    			svg = svg_element("svg");
+    			path = svg_element("path");
+    			attr_dev(div0, "id", "historicalMarker");
+    			set_style(div0, "pointer-events", "none");
+    			set_style(div0, "position", "absolute");
+    			set_style(div0, "top", "20px");
+    			set_style(div0, "left", "" + (ctx.xScale(ctx.lastHistoricTimeHelper()) + 3) + "px");
+    			set_style(div0, "visibility", "'visible'");
+    			set_style(div0, "width", "2px");
+    			set_style(div0, "background-color", "#FFF");
+    			set_style(div0, "border-right", "1px dashed plum");
+    			set_style(div0, "height", "" + (ctx.Math.max(ctx.yScale(getBarY(ctx.states[ctx.lastHistoricTimeHelper()], ctx.stateMeta, 0)),0) - 30) + "px");
+    			add_location(div0, file, 352, 6, 9901);
+    			attr_dev(path, "d", "M 0 0 L 10 0 L 5 10 z");
+    			attr_dev(path, "fill", "plum");
+    			attr_dev(path, "stroke-width", "3");
+    			add_location(path, file, 368, 12, 10756);
+    			set_style(svg, "position", "absolute");
+    			set_style(svg, "top", "-12px");
+    			set_style(svg, "left", "0px");
+    			attr_dev(svg, "height", "10");
+    			attr_dev(svg, "width", "10");
+    			attr_dev(svg, "class", "svelte-1hzt5y0");
+    			add_location(svg, file, 367, 12, 10668);
+    			set_style(div1, "position", "absolute");
+    			set_style(div1, "pointer-events", "none");
+    			set_style(div1, "width", "100px");
+    			set_style(div1, "left", "" + ctx.xScale(ctx.lastHistoricTimeHelper()) + "px");
+    			set_style(div1, "top", "" + ctx.Math.max(ctx.yScale(getBarY(ctx.states[ctx.lastHistoricTimeHelper()], ctx.stateMeta, 0)),0) + "px");
+    			attr_dev(div1, "class", "tip");
+    			add_location(div1, file, 362, 6, 10366);
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div0, anchor);
+    			insert_dev(target, t, anchor);
+    			insert_dev(target, div1, anchor);
+    			append_dev(div1, svg);
+    			append_dev(svg, path);
+    		},
+
+    		p: function update(changed, ctx) {
+    			if (changed.xScale) {
+    				set_style(div0, "left", "" + (ctx.xScale(ctx.lastHistoricTimeHelper()) + 3) + "px");
+    			}
+
+    			if (changed.yScale || changed.states || changed.stateMeta) {
+    				set_style(div0, "height", "" + (ctx.Math.max(ctx.yScale(getBarY(ctx.states[ctx.lastHistoricTimeHelper()], ctx.stateMeta, 0)),0) - 30) + "px");
+    			}
+
+    			if (changed.xScale) {
+    				set_style(div1, "left", "" + ctx.xScale(ctx.lastHistoricTimeHelper()) + "px");
+    			}
+
+    			if (changed.yScale || changed.states || changed.stateMeta) {
+    				set_style(div1, "top", "" + ctx.Math.max(ctx.yScale(getBarY(ctx.states[ctx.lastHistoricTimeHelper()], ctx.stateMeta, 0)),0) + "px");
+    			}
+    		},
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(div0);
+    				detach_dev(t);
+    				detach_dev(div1);
+    			}
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block.name, type: "if", source: "(352:4) {#if xScale(lastHistoricTimeHelper()) > xScale(0)}", ctx });
+    	return block;
+    }
+
+    function create_fragment(ctx) {
+    	var div1, show_if_1 = ctx.shouldWeDrawICUcapacity(ctx.stateMeta, ctx.ymax), t0, svg, g0, g1, g2, g3, t1, div0, t2, show_if = ctx.xScale(ctx.lastHistoricTimeHelper()) > ctx.xScale(0);
+
+    	var if_block0 = (show_if_1) && create_if_block_4(ctx);
+
+    	let each_value_4 = ctx.yScale.ticks(5);
+
+    	let each_blocks_3 = [];
+
+    	for (let i = 0; i < each_value_4.length; i += 1) {
+    		each_blocks_3[i] = create_each_block_4(get_each_context_4(ctx, each_value_4, i));
+    	}
+
+    	let each_value_3 = ctx.xScaleTime.ticks();
+
+    	let each_blocks_2 = [];
+
+    	for (let i = 0; i < each_value_3.length; i += 1) {
+    		each_blocks_2[i] = create_each_block_3(get_each_context_3(ctx, each_value_3, i));
+    	}
+
+    	let each_value_1 = range(ctx.states.length);
+
+    	let each_blocks_1 = [];
+
+    	for (let i = 0; i < each_value_1.length; i += 1) {
+    		each_blocks_1[i] = create_each_block_1(get_each_context_1(ctx, each_value_1, i));
+    	}
+
+    	let each_value = range(ctx.data.length);
+
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
+    	}
+
+    	var if_block1 = (ctx.active >= 0) && create_if_block_1(ctx);
+
+    	var if_block2 = (show_if) && create_if_block(ctx);
+
+    	const block = {
+    		c: function create() {
+    			div1 = element("div");
+    			if (if_block0) if_block0.c();
+    			t0 = space();
+    			svg = svg_element("svg");
+    			g0 = svg_element("g");
+
+    			for (let i = 0; i < each_blocks_3.length; i += 1) {
+    				each_blocks_3[i].c();
+    			}
+
+    			g1 = svg_element("g");
+
+    			for (let i = 0; i < each_blocks_2.length; i += 1) {
+    				each_blocks_2[i].c();
+    			}
+
+    			g2 = svg_element("g");
+
+    			for (let i = 0; i < each_blocks_1.length; i += 1) {
+    				each_blocks_1[i].c();
+    			}
+
+    			g3 = svg_element("g");
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			t1 = space();
+    			div0 = element("div");
+    			if (if_block1) if_block1.c();
+    			t2 = space();
+    			if (if_block2) if_block2.c();
+    			attr_dev(g0, "class", "axis y-axis");
+    			attr_dev(g0, "transform", "translate(0," + padding.top + ")");
+    			add_location(g0, file, 236, 4, 5537);
+    			attr_dev(g1, "class", "axis x-axis svelte-1hzt5y0");
+    			add_location(g1, file, 246, 4, 5990);
+    			attr_dev(g2, "class", "bars");
+    			add_location(g2, file, 254, 4, 6226);
+    			attr_dev(g3, "class", "bars");
+    			add_location(g3, file, 315, 4, 8643);
+    			set_style(svg, "position", "absolute");
+    			set_style(svg, "height", "" + height + "px");
+    			attr_dev(svg, "class", "svelte-1hzt5y0");
+    			add_location(svg, file, 233, 2, 5460);
+    			set_style(div0, "position", "absolute");
+    			set_style(div0, "width", "" + (width+15) + "px");
+    			set_style(div0, "height", "" + height + "px");
+    			set_style(div0, "position", "absolute");
+    			set_style(div0, "top", "0px");
+    			set_style(div0, "left", "0px");
+    			set_style(div0, "pointer-events", "none");
+    			add_location(div0, file, 332, 2, 9088);
+    			set_style(div1, "width", "" + (width+15) + "px");
+    			set_style(div1, "height", "" + height + "px");
+    			set_style(div1, "position", "relative");
+    			set_style(div1, "top", "20px");
+    			add_location(div1, file, 221, 0, 5068);
+    		},
+
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div1, anchor);
+    			if (if_block0) if_block0.m(div1, null);
+    			append_dev(div1, t0);
+    			append_dev(div1, svg);
+    			append_dev(svg, g0);
+
+    			for (let i = 0; i < each_blocks_3.length; i += 1) {
+    				each_blocks_3[i].m(g0, null);
+    			}
+
+    			append_dev(svg, g1);
+
+    			for (let i = 0; i < each_blocks_2.length; i += 1) {
+    				each_blocks_2[i].m(g1, null);
+    			}
+
+    			append_dev(svg, g2);
+
+    			for (let i = 0; i < each_blocks_1.length; i += 1) {
+    				each_blocks_1[i].m(g2, null);
+    			}
+
+    			append_dev(svg, g3);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].m(g3, null);
+    			}
+
+    			append_dev(div1, t1);
+    			append_dev(div1, div0);
+    			if (if_block1) if_block1.m(div0, null);
+    			append_dev(div0, t2);
+    			if (if_block2) if_block2.m(div0, null);
+    		},
+
+    		p: function update(changed, ctx) {
+    			if (changed.stateMeta || changed.ymax) show_if_1 = ctx.shouldWeDrawICUcapacity(ctx.stateMeta, ctx.ymax);
+
+    			if (show_if_1) {
+    				if (if_block0) {
+    					if_block0.p(changed, ctx);
+    				} else {
+    					if_block0 = create_if_block_4(ctx);
+    					if_block0.c();
+    					if_block0.m(div1, t0);
+    				}
+    			} else if (if_block0) {
+    				if_block0.d(1);
+    				if_block0 = null;
+    			}
+
+    			if (changed.yScale || changed.padding || changed.Math || changed.formatNumber || changed.log) {
+    				each_value_4 = ctx.yScale.ticks(5);
+
+    				let i;
+    				for (i = 0; i < each_value_4.length; i += 1) {
+    					const child_ctx = get_each_context_4(ctx, each_value_4, i);
+
+    					if (each_blocks_3[i]) {
+    						each_blocks_3[i].p(changed, child_ctx);
+    					} else {
+    						each_blocks_3[i] = create_each_block_4(child_ctx);
+    						each_blocks_3[i].c();
+    						each_blocks_3[i].m(g0, null);
+    					}
+    				}
+
+    				for (; i < each_blocks_3.length; i += 1) {
+    					each_blocks_3[i].d(1);
+    				}
+    				each_blocks_3.length = each_value_4.length;
+    			}
+
+    			if (changed.xScaleTime || changed.height) {
+    				each_value_3 = ctx.xScaleTime.ticks();
+
+    				let i;
+    				for (i = 0; i < each_value_3.length; i += 1) {
+    					const child_ctx = get_each_context_3(ctx, each_value_3, i);
+
+    					if (each_blocks_2[i]) {
+    						each_blocks_2[i].p(changed, child_ctx);
+    					} else {
+    						each_blocks_2[i] = create_each_block_3(child_ctx);
+    						each_blocks_2[i].c();
+    						each_blocks_2[i].m(g1, null);
+    					}
+    				}
+
+    				for (; i < each_blocks_2.length; i += 1) {
+    					each_blocks_2[i].d(1);
+    				}
+    				each_blocks_2.length = each_value_3.length;
+    			}
+
+    			if (changed.range || changed.stateMeta || changed.log || changed.states || changed.xScale || changed.yScale || changed.getBarY || changed.barWidth || changed.Math || changed.height || changed.padding || changed.getBarHeight || changed.active) {
+    				each_value_1 = range(ctx.states.length);
+
+    				let i;
+    				for (i = 0; i < each_value_1.length; i += 1) {
+    					const child_ctx = get_each_context_1(ctx, each_value_1, i);
+
+    					if (each_blocks_1[i]) {
+    						each_blocks_1[i].p(changed, child_ctx);
+    					} else {
+    						each_blocks_1[i] = create_each_block_1(child_ctx);
+    						each_blocks_1[i].c();
+    						each_blocks_1[i].m(g2, null);
+    					}
+    				}
+
+    				for (; i < each_blocks_1.length; i += 1) {
+    					each_blocks_1[i].d(1);
+    				}
+    				each_blocks_1.length = each_value_1.length;
+    			}
+
+    			if (changed.xScale || changed.range || changed.data || changed.yScale || changed.barWidth || changed.height || changed.padding) {
+    				each_value = range(ctx.data.length);
+
+    				let i;
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(changed, child_ctx);
+    					} else {
+    						each_blocks[i] = create_each_block(child_ctx);
+    						each_blocks[i].c();
+    						each_blocks[i].m(g3, null);
+    					}
+    				}
+
+    				for (; i < each_blocks.length; i += 1) {
+    					each_blocks[i].d(1);
+    				}
+    				each_blocks.length = each_value.length;
+    			}
+
+    			if (ctx.active >= 0) {
+    				if (if_block1) {
+    					if_block1.p(changed, ctx);
+    				} else {
+    					if_block1 = create_if_block_1(ctx);
+    					if_block1.c();
+    					if_block1.m(div0, t2);
+    				}
+    			} else if (if_block1) {
+    				if_block1.d(1);
+    				if_block1 = null;
+    			}
+
+    			if (changed.xScale) show_if = ctx.xScale(ctx.lastHistoricTimeHelper()) > ctx.xScale(0);
+
+    			if (show_if) {
+    				if (if_block2) {
+    					if_block2.p(changed, ctx);
+    				} else {
+    					if_block2 = create_if_block(ctx);
+    					if_block2.c();
+    					if_block2.m(div0, null);
+    				}
+    			} else if (if_block2) {
+    				if_block2.d(1);
+    				if_block2 = null;
+    			}
+    		},
+
+    		i: noop,
+    		o: noop,
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(div1);
+    			}
+
+    			if (if_block0) if_block0.d();
+
+    			destroy_each(each_blocks_3, detaching);
+
+    			destroy_each(each_blocks_2, detaching);
+
+    			destroy_each(each_blocks_1, detaching);
+
+    			destroy_each(each_blocks, detaching);
+
+    			if (if_block1) if_block1.d();
+    			if (if_block2) if_block2.d();
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_fragment.name, type: "component", source: "", ctx });
+    	return block;
+    }
+
+    let width  = 750;
+
+    let height = 420;
+
+    function range(n){
+      return Array(n).fill().map((_, i) => i);
+    }
+
+    function getBarY(state, stateMeta, j) {
+      var sumOfHeights = 0;
+      for (var i=j; i<stateMeta.length; i++) {
+        sumOfHeights += getBarHeight(state, stateMeta, i);
+      }
+      return sumOfHeights
+    }
+
+    function getBarHeight(state, stateMeta, j) {
+      if (!stateMeta[j]["checked"]) {
+        return 0
+      }
+      const k = stateMeta[j]["key"];
+      return state[k]
+    }
+
+    function instance($$self, $$props, $$invalidate) {
+
+      let { states, stateMeta, tmax, xmax, vline, timestep, N, ymax, InterventionTime, log: log$1 = false, lastHistoricTime, icuCapacity } = $$props;
+      
+      function lastHistoricTimeHelper() {
+        return Math.min(Math.max(lastHistoricTime-1, 0), states.length-1)
+      }
+
+      function shouldWeDrawICUcapacity(stateMeta, ymax) {
+        // Note that we need stateMeta and ymax as parameters in order to trigger re-render on certain user actions.
+        var icuVisible = false;
+        for (var i=0; i<stateMeta.length; i++) {
+          const state = stateMeta[i];
+          const visible = state["checked"];
+          if (state["key"] === "icu" && visible) {
+            icuVisible = true;
+          } else if (icuVisible && visible) {
+            // For example, if fatality bars are drawn below ICU bars,
+            // it doesn't make sense to show the ICU capacity bar as a straight line.
+            return false
+          }
+        }
+        if (!icuVisible) {
+          // If ICU has not been checked visible, we don't care about ICU capacity.
+          return false
+        }
+        const pixelsFromBottom = yScale(0) - yScale(icuCapacity);
+        if (pixelsFromBottom < 10) {
+          // ICU capacity is so close to the x axis (due to y-scale) that it does not make sense to draw it.
+          return false
+        }
+        const pixelsFromTop = yScale(icuCapacity);
+        if (pixelsFromTop <= 0) {
+          // ICU capacity is at the edge of the chart or beyond it, does not make sense to draw.
+          return false
+        }
+        return true
+      }
+      var active_lock = 0;
+      let { active, checked } = $$props;
+
+      // var data = [[2   , 2  ], [5   , 2  ], [18  , 4  ], [28  , 6  ], [43  , 8  ], [61  , 12 ], [95  , 16 ], [139 , 19 ], [245 , 26 ], [388 , 34 ], [593 , 43 ], [978 , 54 ], [1501, 66 ], [2336, 77 ], [2922, 92 ], [3513, 107], [4747, 124]]
+      var data = [];
+
+    	const writable_props = ['states', 'stateMeta', 'tmax', 'xmax', 'vline', 'timestep', 'N', 'ymax', 'InterventionTime', 'log', 'lastHistoricTime', 'icuCapacity', 'active', 'checked'];
+    	Object.keys($$props).forEach(key => {
+    		if (!writable_props.includes(key) && !key.startsWith('$$')) console.warn(`<Chart> was created with unknown prop '${key}'`);
+    	});
+
+    	const mouseover_handler = ({ i }) => showTip(i);
+
+    	const mouseout_handler = () => showTip(-1);
+
+    	const click_handler = ({ i }) => {$$invalidate('lock', lock = !lock); $$invalidate('active_lock', active_lock = indexToTime(i)); };
+
+    	const mouseover_handler_1 = ({ i }) => showTip(i);
+
+    	const mouseout_handler_1 = () => showTip(-1);
+
+    	const click_handler_1 = ({ i }) => {$$invalidate('lock', lock = !lock); $$invalidate('active_lock', active_lock = indexToTime(i)); };
+
+    	$$self.$set = $$props => {
+    		if ('states' in $$props) $$invalidate('states', states = $$props.states);
+    		if ('stateMeta' in $$props) $$invalidate('stateMeta', stateMeta = $$props.stateMeta);
+    		if ('tmax' in $$props) $$invalidate('tmax', tmax = $$props.tmax);
+    		if ('xmax' in $$props) $$invalidate('xmax', xmax = $$props.xmax);
+    		if ('vline' in $$props) $$invalidate('vline', vline = $$props.vline);
+    		if ('timestep' in $$props) $$invalidate('timestep', timestep = $$props.timestep);
+    		if ('N' in $$props) $$invalidate('N', N = $$props.N);
+    		if ('ymax' in $$props) $$invalidate('ymax', ymax = $$props.ymax);
+    		if ('InterventionTime' in $$props) $$invalidate('InterventionTime', InterventionTime = $$props.InterventionTime);
+    		if ('log' in $$props) $$invalidate('log', log$1 = $$props.log);
+    		if ('lastHistoricTime' in $$props) $$invalidate('lastHistoricTime', lastHistoricTime = $$props.lastHistoricTime);
+    		if ('icuCapacity' in $$props) $$invalidate('icuCapacity', icuCapacity = $$props.icuCapacity);
+    		if ('active' in $$props) $$invalidate('active', active = $$props.active);
+    		if ('checked' in $$props) $$invalidate('checked', checked = $$props.checked);
+    	};
+
+    	$$self.$capture_state = () => {
+    		return { states, stateMeta, tmax, xmax, vline, timestep, N, ymax, InterventionTime, log: log$1, lastHistoricTime, icuCapacity, width, height, active_lock, active, checked, data, showTip, active_hover, yScale, xScale, xScaleTime, indexToTime, timeToIndex, yScaleL, innerWidth, barWidth, lock };
+    	};
+
+    	$$self.$inject_state = $$props => {
+    		if ('states' in $$props) $$invalidate('states', states = $$props.states);
+    		if ('stateMeta' in $$props) $$invalidate('stateMeta', stateMeta = $$props.stateMeta);
+    		if ('tmax' in $$props) $$invalidate('tmax', tmax = $$props.tmax);
+    		if ('xmax' in $$props) $$invalidate('xmax', xmax = $$props.xmax);
+    		if ('vline' in $$props) $$invalidate('vline', vline = $$props.vline);
+    		if ('timestep' in $$props) $$invalidate('timestep', timestep = $$props.timestep);
+    		if ('N' in $$props) $$invalidate('N', N = $$props.N);
+    		if ('ymax' in $$props) $$invalidate('ymax', ymax = $$props.ymax);
+    		if ('InterventionTime' in $$props) $$invalidate('InterventionTime', InterventionTime = $$props.InterventionTime);
+    		if ('log' in $$props) $$invalidate('log', log$1 = $$props.log);
+    		if ('lastHistoricTime' in $$props) $$invalidate('lastHistoricTime', lastHistoricTime = $$props.lastHistoricTime);
+    		if ('icuCapacity' in $$props) $$invalidate('icuCapacity', icuCapacity = $$props.icuCapacity);
+    		if ('width' in $$props) $$invalidate('width', width = $$props.width);
+    		if ('height' in $$props) $$invalidate('height', height = $$props.height);
+    		if ('active_lock' in $$props) $$invalidate('active_lock', active_lock = $$props.active_lock);
+    		if ('active' in $$props) $$invalidate('active', active = $$props.active);
+    		if ('checked' in $$props) $$invalidate('checked', checked = $$props.checked);
+    		if ('data' in $$props) $$invalidate('data', data = $$props.data);
+    		if ('showTip' in $$props) $$invalidate('showTip', showTip = $$props.showTip);
+    		if ('active_hover' in $$props) $$invalidate('active_hover', active_hover = $$props.active_hover);
+    		if ('yScale' in $$props) $$invalidate('yScale', yScale = $$props.yScale);
+    		if ('xScale' in $$props) $$invalidate('xScale', xScale = $$props.xScale);
+    		if ('xScaleTime' in $$props) $$invalidate('xScaleTime', xScaleTime = $$props.xScaleTime);
+    		if ('indexToTime' in $$props) $$invalidate('indexToTime', indexToTime = $$props.indexToTime);
+    		if ('timeToIndex' in $$props) $$invalidate('timeToIndex', timeToIndex = $$props.timeToIndex);
+    		if ('yScaleL' in $$props) yScaleL = $$props.yScaleL;
+    		if ('innerWidth' in $$props) $$invalidate('innerWidth', innerWidth = $$props.innerWidth);
+    		if ('barWidth' in $$props) $$invalidate('barWidth', barWidth = $$props.barWidth);
+    		if ('lock' in $$props) $$invalidate('lock', lock = $$props.lock);
+    	};
+
+    	let showTip, xScale, xScaleTime, indexToTime, timeToIndex, yScale, yScaleL, innerWidth, barWidth, active_hover, lock;
+
+    	$$self.$$.update = ($$dirty = { states: 1, width: 1, tmax: 1, log: 1, ymax: 1, height: 1, innerWidth: 1, lock: 1, timeToIndex: 1, active_lock: 1, active_hover: 1 }) => {
+    		if ($$dirty.states || $$dirty.width) { $$invalidate('xScale', xScale = linear$1()
+            .domain([0, states.length])
+            .range([padding.left, width - padding.right])); }
+    		if ($$dirty.tmax || $$dirty.width) { $$invalidate('xScaleTime', xScaleTime = linear$1()
+            .domain([0, tmax])
+            .range([padding.left, width - padding.right])); }
+    		if ($$dirty.states || $$dirty.tmax) { $$invalidate('indexToTime', indexToTime = linear$1()
+            .domain([0, states.length])
+            .range([0, tmax])); }
+    		if ($$dirty.tmax || $$dirty.states) { $$invalidate('timeToIndex', timeToIndex = linear$1()
+            .domain([0, tmax])
+            .range([0, states.length])); }
+    		if ($$dirty.log || $$dirty.ymax || $$dirty.height) { $$invalidate('yScale', yScale = (log$1 ? log(): linear$1())
+            .domain([log$1 ? 1: 0,  ymax/1])
+            .range([height - padding.bottom, padding.top])); }
+    		if ($$dirty.ymax || $$dirty.height) { yScaleL = log()
+            .domain([1,  ymax/1])
+            .range([0, height - padding.bottom - padding.top]); }
+    		if ($$dirty.width) { $$invalidate('innerWidth', innerWidth = width - (padding.left + padding.right)); }
+    		if ($$dirty.innerWidth || $$dirty.states) { $$invalidate('barWidth', barWidth = innerWidth / states.length - 1.5); }
+    		if ($$dirty.lock || $$dirty.timeToIndex || $$dirty.active_lock || $$dirty.active_hover) { $$invalidate('active', active = (function () {
+            if (lock){
+              var i = Math.round(timeToIndex(active_lock));
+              if (i > 99) {
+                $$invalidate('lock', lock = false);
+                i = 0;
+              } else {
+                return i
+              }
+            } else {
+              return active_hover
+            }
+          })()); }
+    	};
+
+    	$$invalidate('showTip', showTip = function (i) {
+            $$invalidate('active_hover', active_hover = i);
+          });
+    	$$invalidate('active_hover', active_hover = -1);
+    	$$invalidate('lock', lock = false);
+
+    	return {
+    		states,
+    		stateMeta,
+    		tmax,
+    		xmax,
+    		vline,
+    		timestep,
+    		N,
+    		ymax,
+    		InterventionTime,
+    		log: log$1,
+    		lastHistoricTime,
+    		icuCapacity,
+    		lastHistoricTimeHelper,
+    		shouldWeDrawICUcapacity,
+    		active_lock,
+    		active,
+    		checked,
+    		data,
+    		showTip,
+    		Math,
+    		yScale,
+    		xScale,
+    		xScaleTime,
+    		indexToTime,
+    		barWidth,
+    		lock,
+    		mouseover_handler,
+    		mouseout_handler,
+    		click_handler,
+    		mouseover_handler_1,
+    		mouseout_handler_1,
+    		click_handler_1
+    	};
+    }
+
+    class Chart extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+    		init(this, options, instance, create_fragment, safe_not_equal, ["states", "stateMeta", "tmax", "xmax", "vline", "timestep", "N", "ymax", "InterventionTime", "log", "lastHistoricTime", "icuCapacity", "active", "checked"]);
+    		dispatch_dev("SvelteRegisterComponent", { component: this, tagName: "Chart", options, id: create_fragment.name });
+
+    		const { ctx } = this.$$;
+    		const props = options.props || {};
+    		if (ctx.states === undefined && !('states' in props)) {
+    			console.warn("<Chart> was created without expected prop 'states'");
+    		}
+    		if (ctx.stateMeta === undefined && !('stateMeta' in props)) {
+    			console.warn("<Chart> was created without expected prop 'stateMeta'");
+    		}
+    		if (ctx.tmax === undefined && !('tmax' in props)) {
+    			console.warn("<Chart> was created without expected prop 'tmax'");
+    		}
+    		if (ctx.xmax === undefined && !('xmax' in props)) {
+    			console.warn("<Chart> was created without expected prop 'xmax'");
+    		}
+    		if (ctx.vline === undefined && !('vline' in props)) {
+    			console.warn("<Chart> was created without expected prop 'vline'");
+    		}
+    		if (ctx.timestep === undefined && !('timestep' in props)) {
+    			console.warn("<Chart> was created without expected prop 'timestep'");
+    		}
+    		if (ctx.N === undefined && !('N' in props)) {
+    			console.warn("<Chart> was created without expected prop 'N'");
+    		}
+    		if (ctx.ymax === undefined && !('ymax' in props)) {
+    			console.warn("<Chart> was created without expected prop 'ymax'");
+    		}
+    		if (ctx.InterventionTime === undefined && !('InterventionTime' in props)) {
+    			console.warn("<Chart> was created without expected prop 'InterventionTime'");
+    		}
+    		if (ctx.lastHistoricTime === undefined && !('lastHistoricTime' in props)) {
+    			console.warn("<Chart> was created without expected prop 'lastHistoricTime'");
+    		}
+    		if (ctx.icuCapacity === undefined && !('icuCapacity' in props)) {
+    			console.warn("<Chart> was created without expected prop 'icuCapacity'");
+    		}
+    		if (ctx.active === undefined && !('active' in props)) {
+    			console.warn("<Chart> was created without expected prop 'active'");
+    		}
+    		if (ctx.checked === undefined && !('checked' in props)) {
+    			console.warn("<Chart> was created without expected prop 'checked'");
+    		}
+    	}
+
+    	get states() {
+    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set states(value) {
+    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get stateMeta() {
+    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set stateMeta(value) {
+    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get tmax() {
+    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set tmax(value) {
+    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get xmax() {
+    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set xmax(value) {
+    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get vline() {
+    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set vline(value) {
+    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get timestep() {
+    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set timestep(value) {
+    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get N() {
+    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set N(value) {
+    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get ymax() {
+    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set ymax(value) {
+    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get InterventionTime() {
+    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set InterventionTime(value) {
+    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get log() {
+    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set log(value) {
+    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get lastHistoricTime() {
+    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set lastHistoricTime(value) {
+    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get icuCapacity() {
+    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set icuCapacity(value) {
+    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get active() {
+    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set active(value) {
+    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get checked() {
+    		throw new Error("<Chart>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set checked(value) {
+    		throw new Error("<Chart>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+    }
+
+    /* src/components/Checkbox.svelte generated by Svelte v3.12.1 */
+
+    const file$1 = "src/components/Checkbox.svelte";
+
+    function create_fragment$1(ctx) {
+    	var div1, div0, t_value = ctx.checked?"✓":"" + "", t, dispose;
+
+    	const block = {
+    		c: function create() {
+    			div1 = element("div");
+    			div0 = element("div");
+    			t = text(t_value);
+    			set_style(div0, "cursor", "default");
+    			set_style(div0, "font-size", "12px");
+    			set_style(div0, "left", "2px");
+    			set_style(div0, "top", "-1px");
+    			set_style(div0, "position", "absolute");
+    			set_style(div0, "color", "white");
+    			add_location(div0, file$1, 19, 6, 593);
+    			set_style(div1, "position", "absolute");
+    			set_style(div1, "left", "-2px");
+    			set_style(div1, "top", "3px");
+    			set_style(div1, "width", "13px");
+    			set_style(div1, "height", "13px");
+    			set_style(div1, "background-color", (ctx.checked ? ctx.color:'white'));
+    			set_style(div1, "border-radius", "3px");
+    			set_style(div1, "opacity", "0.8");
+    			set_style(div1, "border", "2px solid " + (ctx.checked ? 'rgba(255,255,255,0)':ctx.color));
+    			set_style(div1, "box-shadow", "inset 1px 1px 3px rgba(0, 0, 0, 0.1)");
+    			set_style(div1, "user-select", "none");
+    			add_location(div1, file$1, 6, 0, 101);
+    			dispose = listen_dev(div1, "click", ctx.click_handler);
+    		},
+
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div1, anchor);
+    			append_dev(div1, div0);
+    			append_dev(div0, t);
+    		},
+
+    		p: function update(changed, ctx) {
+    			if ((changed.checked) && t_value !== (t_value = ctx.checked?"✓":"" + "")) {
+    				set_data_dev(t, t_value);
+    			}
+
+    			if (changed.checked || changed.color) {
+    				set_style(div1, "background-color", (ctx.checked ? ctx.color:'white'));
+    				set_style(div1, "border", "2px solid " + (ctx.checked ? 'rgba(255,255,255,0)':ctx.color));
+    			}
+    		},
+
+    		i: noop,
+    		o: noop,
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(div1);
+    			}
+
+    			dispose();
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_fragment$1.name, type: "component", source: "", ctx });
+    	return block;
+    }
+
+    function instance$1($$self, $$props, $$invalidate) {
+    	let { color, checked = false, callback = () => {} } = $$props;
+
+    	const writable_props = ['color', 'checked', 'callback'];
+    	Object.keys($$props).forEach(key => {
+    		if (!writable_props.includes(key) && !key.startsWith('$$')) console.warn(`<Checkbox> was created with unknown prop '${key}'`);
+    	});
+
+    	const click_handler = () => {$$invalidate('checked', checked = !checked); callback(checked);};
+
+    	$$self.$set = $$props => {
+    		if ('color' in $$props) $$invalidate('color', color = $$props.color);
+    		if ('checked' in $$props) $$invalidate('checked', checked = $$props.checked);
+    		if ('callback' in $$props) $$invalidate('callback', callback = $$props.callback);
+    	};
+
+    	$$self.$capture_state = () => {
+    		return { color, checked, callback };
+    	};
+
+    	$$self.$inject_state = $$props => {
+    		if ('color' in $$props) $$invalidate('color', color = $$props.color);
+    		if ('checked' in $$props) $$invalidate('checked', checked = $$props.checked);
+    		if ('callback' in $$props) $$invalidate('callback', callback = $$props.callback);
+    	};
+
+    	return { color, checked, callback, click_handler };
+    }
+
+    class Checkbox extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+    		init(this, options, instance$1, create_fragment$1, safe_not_equal, ["color", "checked", "callback"]);
+    		dispatch_dev("SvelteRegisterComponent", { component: this, tagName: "Checkbox", options, id: create_fragment$1.name });
+
+    		const { ctx } = this.$$;
+    		const props = options.props || {};
+    		if (ctx.color === undefined && !('color' in props)) {
+    			console.warn("<Checkbox> was created without expected prop 'color'");
+    		}
+    	}
+
+    	get color() {
+    		throw new Error("<Checkbox>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set color(value) {
+    		throw new Error("<Checkbox>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get checked() {
+    		throw new Error("<Checkbox>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set checked(value) {
+    		throw new Error("<Checkbox>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get callback() {
+    		throw new Error("<Checkbox>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set callback(value) {
+    		throw new Error("<Checkbox>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+    }
+
+    /* src/components/Arrow.svelte generated by Svelte v3.12.1 */
+
+    const file$2 = "src/components/Arrow.svelte";
+
+    function create_fragment$2(ctx) {
+    	var svg0, defs0, marker0, path, defs1, marker1, circle, t, div, svg1, line, line_y__value, line_marker_end_value;
+
+    	const block = {
+    		c: function create() {
+    			svg0 = svg_element("svg");
+    			defs0 = svg_element("defs");
+    			marker0 = svg_element("marker");
+    			path = svg_element("path");
+    			defs1 = svg_element("defs");
+    			marker1 = svg_element("marker");
+    			circle = svg_element("circle");
+    			t = space();
+    			div = element("div");
+    			svg1 = svg_element("svg");
+    			line = svg_element("line");
+    			attr_dev(path, "d", "M2,2 L10,6 L2,10 L6,6 L2,2");
+    			set_style(path, "fill", "grey");
+    			add_location(path, file$2, 17, 6, 327);
+    			attr_dev(marker0, "id", "arrow");
+    			attr_dev(marker0, "markerUnits", "strokeWidth");
+    			attr_dev(marker0, "markerWidth", "10");
+    			attr_dev(marker0, "markerHeight", "10");
+    			attr_dev(marker0, "viewBox", "0 0 12 12");
+    			attr_dev(marker0, "refX", "6");
+    			attr_dev(marker0, "refY", "6");
+    			attr_dev(marker0, "orient", "auto");
+    			add_location(marker0, file$2, 8, 4, 140);
+    			add_location(defs0, file$2, 7, 2, 129);
+    			attr_dev(circle, "r", "3");
+    			attr_dev(circle, "cx", "3");
+    			attr_dev(circle, "cy", "6");
+    			set_style(circle, "fill", "grey");
+    			add_location(circle, file$2, 31, 6, 618);
+    			attr_dev(marker1, "id", "circle");
+    			attr_dev(marker1, "markerUnits", "strokeWidth");
+    			attr_dev(marker1, "markerWidth", "10");
+    			attr_dev(marker1, "markerHeight", "10");
+    			attr_dev(marker1, "viewBox", "0 0 12 12");
+    			attr_dev(marker1, "refX", "6");
+    			attr_dev(marker1, "refY", "6");
+    			attr_dev(marker1, "orient", "auto");
+    			add_location(marker1, file$2, 22, 4, 430);
+    			add_location(defs1, file$2, 21, 2, 419);
+    			attr_dev(svg0, "width", "0");
+    			attr_dev(svg0, "height", "0");
+    			add_location(svg0, file$2, 6, 0, 100);
+    			attr_dev(line, "x1", "8");
+    			attr_dev(line, "y1", "0");
+    			attr_dev(line, "x2", "8");
+    			attr_dev(line, "y2", line_y__value = ctx.height-5);
+    			attr_dev(line, "stroke", "grey");
+    			attr_dev(line, "stroke-width", "1.5");
+    			attr_dev(line, "marker-end", line_marker_end_value = "url(" + ctx.arrowhead + ")");
+    			attr_dev(line, "stroke-dasharray", ctx.dasharray);
+    			add_location(line, file$2, 39, 2, 892);
+    			add_location(svg1, file$2, 38, 0, 884);
+    			set_style(div, "position", "absolute");
+    			set_style(div, "left", "-1px");
+    			set_style(div, "top", "4px");
+    			set_style(div, "width", "15px");
+    			set_style(div, "height", "" + ctx.height + "px");
+    			set_style(div, "background-color", "none");
+    			set_style(div, "border-radius", "5px");
+    			set_style(div, "top", "25px");
+    			set_style(div, "opacity", "0.8");
+    			set_style(div, "pointer-events", "None");
+    			add_location(div, file$2, 37, 0, 707);
+    		},
+
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, svg0, anchor);
+    			append_dev(svg0, defs0);
+    			append_dev(defs0, marker0);
+    			append_dev(marker0, path);
+    			append_dev(svg0, defs1);
+    			append_dev(defs1, marker1);
+    			append_dev(marker1, circle);
+    			insert_dev(target, t, anchor);
+    			insert_dev(target, div, anchor);
+    			append_dev(div, svg1);
+    			append_dev(svg1, line);
+    		},
+
+    		p: function update(changed, ctx) {
+    			if ((changed.height) && line_y__value !== (line_y__value = ctx.height-5)) {
+    				attr_dev(line, "y2", line_y__value);
+    			}
+
+    			if ((changed.arrowhead) && line_marker_end_value !== (line_marker_end_value = "url(" + ctx.arrowhead + ")")) {
+    				attr_dev(line, "marker-end", line_marker_end_value);
+    			}
+
+    			if (changed.dasharray) {
+    				attr_dev(line, "stroke-dasharray", ctx.dasharray);
+    			}
+
+    			if (changed.height) {
+    				set_style(div, "height", "" + ctx.height + "px");
+    			}
+    		},
+
+    		i: noop,
+    		o: noop,
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(svg0);
+    				detach_dev(t);
+    				detach_dev(div);
+    			}
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_fragment$2.name, type: "component", source: "", ctx });
+    	return block;
+    }
+
+    function instance$2($$self, $$props, $$invalidate) {
+    	let { height, arrowhead = "#arrow", dasharray = "0 0" } = $$props;
+
+    	const writable_props = ['height', 'arrowhead', 'dasharray'];
+    	Object.keys($$props).forEach(key => {
+    		if (!writable_props.includes(key) && !key.startsWith('$$')) console.warn(`<Arrow> was created with unknown prop '${key}'`);
+    	});
+
+    	$$self.$set = $$props => {
+    		if ('height' in $$props) $$invalidate('height', height = $$props.height);
+    		if ('arrowhead' in $$props) $$invalidate('arrowhead', arrowhead = $$props.arrowhead);
+    		if ('dasharray' in $$props) $$invalidate('dasharray', dasharray = $$props.dasharray);
+    	};
+
+    	$$self.$capture_state = () => {
+    		return { height, arrowhead, dasharray };
+    	};
+
+    	$$self.$inject_state = $$props => {
+    		if ('height' in $$props) $$invalidate('height', height = $$props.height);
+    		if ('arrowhead' in $$props) $$invalidate('arrowhead', arrowhead = $$props.arrowhead);
+    		if ('dasharray' in $$props) $$invalidate('dasharray', dasharray = $$props.dasharray);
+    	};
+
+    	return { height, arrowhead, dasharray };
+    }
+
+    class Arrow extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+    		init(this, options, instance$2, create_fragment$2, safe_not_equal, ["height", "arrowhead", "dasharray"]);
+    		dispatch_dev("SvelteRegisterComponent", { component: this, tagName: "Arrow", options, id: create_fragment$2.name });
+
+    		const { ctx } = this.$$;
+    		const props = options.props || {};
+    		if (ctx.height === undefined && !('height' in props)) {
+    			console.warn("<Arrow> was created without expected prop 'height'");
+    		}
+    	}
+
+    	get height() {
+    		throw new Error("<Arrow>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set height(value) {
+    		throw new Error("<Arrow>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get arrowhead() {
+    		throw new Error("<Arrow>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set arrowhead(value) {
+    		throw new Error("<Arrow>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get dasharray() {
+    		throw new Error("<Arrow>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set dasharray(value) {
+    		throw new Error("<Arrow>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+    }
+
+    /* src/components/ChartCompanion.svelte generated by Svelte v3.12.1 */
+
+    const file$3 = "src/components/ChartCompanion.svelte";
+
+    function get_each_context$1(ctx, list, i) {
+    	const child_ctx = Object.create(ctx);
+    	child_ctx.state = list[i];
+    	child_ctx.each_value = list;
+    	child_ctx.i = i;
+    	return child_ctx;
+    }
+
+    // (104:0) {#if state["checkable"]}
+    function create_if_block$1(ctx) {
+    	var div6, t0, updating_checked, t1, div4, div0, t2_value = ctx.state["tooltip_title"] + "", t2, t3, div3, div1, span0, t5, i0, t6_value = formatCount(ctx.P_bars[ctx.active_][ctx.state["key"]]) + "", t6, t7, t8_value = formatPercent(ctx.P_bars[ctx.active_][ctx.state["key"]] / ctx.N) + "", t8, t9, t10, div2, span1, t12, i1, t13_value = formatDelta(ctx.get_count_delta(ctx.state["key"], ctx.active_)) + "", t13, t14, t15_value = ctx.getDay(ctx.active_) + "", t15, t16, div5, t17_value = ctx.state["tooltip_desc"] + "", t17, t18, current;
+
+    	var arrow = new Arrow({
+    		props: {
+    		height: "43",
+    		arrowhead: "",
+    		dasharray: "3 2"
+    	},
+    		$$inline: true
+    	});
+
+    	function checkbox_checked_binding(value) {
+    		ctx.checkbox_checked_binding.call(null, value, ctx);
+    		updating_checked = true;
+    		add_flush_callback(() => updating_checked = false);
+    	}
+
+    	let checkbox_props = { color: ctx.state['color'] };
+    	if (ctx.state['checked'] !== void 0) {
+    		checkbox_props.checked = ctx.state['checked'];
+    	}
+    	var checkbox = new Checkbox({ props: checkbox_props, $$inline: true });
+
+    	binding_callbacks.push(() => bind(checkbox, 'checked', checkbox_checked_binding));
+
+    	const block = {
+    		c: function create() {
+    			div6 = element("div");
+    			arrow.$$.fragment.c();
+    			t0 = space();
+    			checkbox.$$.fragment.c();
+    			t1 = space();
+    			div4 = element("div");
+    			div0 = element("div");
+    			t2 = text(t2_value);
+    			t3 = space();
+    			div3 = element("div");
+    			div1 = element("div");
+    			span0 = element("span");
+    			span0.textContent = "∑";
+    			t5 = space();
+    			i0 = element("i");
+    			t6 = text(t6_value);
+    			t7 = text(" \n                    (");
+    			t8 = text(t8_value);
+    			t9 = text("%)");
+    			t10 = space();
+    			div2 = element("div");
+    			span1 = element("span");
+    			span1.textContent = "Δ";
+    			t12 = space();
+    			i1 = element("i");
+    			t13 = text(t13_value);
+    			t14 = text(" on day ");
+    			t15 = text(t15_value);
+    			t16 = space();
+    			div5 = element("div");
+    			t17 = text(t17_value);
+    			t18 = space();
+    			attr_dev(div0, "class", "legendtitle svelte-o6haoe");
+    			add_location(div0, file$3, 108, 12, 3243);
+    			set_style(span0, "font-size", "12px");
+    			set_style(span0, "padding-right", "3px");
+    			set_style(span0, "color", "#CCC");
+    			add_location(span0, file$3, 112, 43, 3432);
+    			add_location(i0, file$3, 113, 20, 3521);
+    			attr_dev(div1, "class", "legendtextnum svelte-o6haoe");
+    			add_location(div1, file$3, 112, 16, 3405);
+    			set_style(span1, "font-size", "12px");
+    			set_style(span1, "padding-right", "2px");
+    			set_style(span1, "color", "#CCC");
+    			add_location(span1, file$3, 118, 43, 3756);
+    			add_location(i1, file$3, 119, 20, 3845);
+    			attr_dev(div2, "class", "legendtextnum svelte-o6haoe");
+    			add_location(div2, file$3, 118, 16, 3729);
+    			set_style(div3, "padding-top", "3px");
+    			set_style(div3, "padding-bottom", "1px");
+    			add_location(div3, file$3, 111, 12, 3337);
+    			attr_dev(div4, "class", "legend svelte-o6haoe");
+    			set_style(div4, "position", "absolute");
+    			add_location(div4, file$3, 107, 8, 3183);
+    			attr_dev(div5, "class", "legendtext svelte-o6haoe");
+    			set_style(div5, "text-align", "right");
+    			set_style(div5, "width", "105px");
+    			set_style(div5, "left", "-111px");
+    			set_style(div5, "top", "4px");
+    			set_style(div5, "position", "relative");
+    			add_location(div5, file$3, 125, 8, 4038);
+    			set_style(div6, "position", "absolute");
+    			set_style(div6, "left", "0px");
+    			set_style(div6, "top", "" + legendheight*(ctx.i-1) + "px");
+    			set_style(div6, "width", "180px");
+    			set_style(div6, "height", "100px");
+    			add_location(div6, file$3, 104, 4, 2940);
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div6, anchor);
+    			mount_component(arrow, div6, null);
+    			append_dev(div6, t0);
+    			mount_component(checkbox, div6, null);
+    			append_dev(div6, t1);
+    			append_dev(div6, div4);
+    			append_dev(div4, div0);
+    			append_dev(div0, t2);
+    			append_dev(div4, t3);
+    			append_dev(div4, div3);
+    			append_dev(div3, div1);
+    			append_dev(div1, span0);
+    			append_dev(div1, t5);
+    			append_dev(div1, i0);
+    			append_dev(i0, t6);
+    			append_dev(i0, t7);
+    			append_dev(i0, t8);
+    			append_dev(i0, t9);
+    			append_dev(div3, t10);
+    			append_dev(div3, div2);
+    			append_dev(div2, span1);
+    			append_dev(div2, t12);
+    			append_dev(div2, i1);
+    			append_dev(i1, t13);
+    			append_dev(i1, t14);
+    			append_dev(i1, t15);
+    			append_dev(div6, t16);
+    			append_dev(div6, div5);
+    			append_dev(div5, t17);
+    			append_dev(div6, t18);
+    			current = true;
+    		},
+
+    		p: function update(changed, new_ctx) {
+    			ctx = new_ctx;
+    			var checkbox_changes = {};
+    			if (changed.stateMeta) checkbox_changes.color = ctx.state['color'];
+    			if (!updating_checked && changed.stateMeta) {
+    				checkbox_changes.checked = ctx.state['checked'];
+    			}
+    			checkbox.$set(checkbox_changes);
+
+    			if ((!current || changed.stateMeta) && t2_value !== (t2_value = ctx.state["tooltip_title"] + "")) {
+    				set_data_dev(t2, t2_value);
+    			}
+
+    			if ((!current || changed.P_bars || changed.active_ || changed.stateMeta) && t6_value !== (t6_value = formatCount(ctx.P_bars[ctx.active_][ctx.state["key"]]) + "")) {
+    				set_data_dev(t6, t6_value);
+    			}
+
+    			if ((!current || changed.P_bars || changed.active_ || changed.stateMeta || changed.N) && t8_value !== (t8_value = formatPercent(ctx.P_bars[ctx.active_][ctx.state["key"]] / ctx.N) + "")) {
+    				set_data_dev(t8, t8_value);
+    			}
+
+    			if ((!current || changed.stateMeta || changed.active_) && t13_value !== (t13_value = formatDelta(ctx.get_count_delta(ctx.state["key"], ctx.active_)) + "")) {
+    				set_data_dev(t13, t13_value);
+    			}
+
+    			if ((!current || changed.active_) && t15_value !== (t15_value = ctx.getDay(ctx.active_) + "")) {
+    				set_data_dev(t15, t15_value);
+    			}
+
+    			if ((!current || changed.stateMeta) && t17_value !== (t17_value = ctx.state["tooltip_desc"] + "")) {
+    				set_data_dev(t17, t17_value);
+    			}
+    		},
+
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(arrow.$$.fragment, local);
+
+    			transition_in(checkbox.$$.fragment, local);
+
+    			current = true;
+    		},
+
+    		o: function outro(local) {
+    			transition_out(arrow.$$.fragment, local);
+    			transition_out(checkbox.$$.fragment, local);
+    			current = false;
+    		},
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(div6);
+    			}
+
+    			destroy_component(arrow);
+
+    			destroy_component(checkbox);
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block$1.name, type: "if", source: "(104:0) {#if state[\"checkable\"]}", ctx });
+    	return block;
+    }
+
+    // (103:0) {#each stateMeta as state,i}
+    function create_each_block$1(ctx) {
+    	var if_block_anchor, current;
+
+    	var if_block = (ctx.state["checkable"]) && create_if_block$1(ctx);
+
+    	const block = {
+    		c: function create() {
+    			if (if_block) if_block.c();
+    			if_block_anchor = empty();
+    		},
+
+    		m: function mount(target, anchor) {
+    			if (if_block) if_block.m(target, anchor);
+    			insert_dev(target, if_block_anchor, anchor);
+    			current = true;
+    		},
+
+    		p: function update(changed, ctx) {
+    			if (ctx.state["checkable"]) {
+    				if (if_block) {
+    					if_block.p(changed, ctx);
+    					transition_in(if_block, 1);
+    				} else {
+    					if_block = create_if_block$1(ctx);
+    					if_block.c();
+    					transition_in(if_block, 1);
+    					if_block.m(if_block_anchor.parentNode, if_block_anchor);
+    				}
+    			} else if (if_block) {
+    				group_outros();
+    				transition_out(if_block, 1, 1, () => {
+    					if_block = null;
+    				});
+    				check_outros();
+    			}
+    		},
+
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(if_block);
+    			current = true;
+    		},
+
+    		o: function outro(local) {
+    			transition_out(if_block);
+    			current = false;
+    		},
+
+    		d: function destroy(detaching) {
+    			if (if_block) if_block.d(detaching);
+
+    			if (detaching) {
+    				detach_dev(if_block_anchor);
+    			}
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_each_block$1.name, type: "each", source: "(103:0) {#each stateMeta as state,i}", ctx });
+    	return block;
+    }
+
+    function create_fragment$3(ctx) {
+    	var div, b, t1, br0, t2, t3_value = ctx.getDay(ctx.active_) + "", t3, t4, br1, t5_value = ctx.getDate(ctx.active_) + "", t5, t6, each_1_anchor, current;
+
+    	let each_value = ctx.stateMeta;
+
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block$1(get_each_context$1(ctx, each_value, i));
+    	}
+
+    	const out = i => transition_out(each_blocks[i], 1, 1, () => {
+    		each_blocks[i] = null;
+    	});
+
+    	const block = {
+    		c: function create() {
+    			div = element("div");
+    			b = element("b");
+    			b.textContent = "Highlighted day:";
+    			t1 = space();
+    			br0 = element("br");
+    			t2 = text("Day ");
+    			t3 = text(t3_value);
+    			t4 = space();
+    			br1 = element("br");
+    			t5 = text(t5_value);
+    			t6 = space();
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			each_1_anchor = empty();
+    			add_location(b, file$3, 97, 0, 2801);
+    			add_location(br0, file$3, 98, 0, 2825);
+    			add_location(br1, file$3, 99, 0, 2851);
+    			attr_dev(div, "class", "legendtext svelte-o6haoe");
+    			set_style(div, "position", "absolute");
+    			set_style(div, "left", "-70px");
+    			set_style(div, "top", "-50px");
+    			set_style(div, "width", "150px");
+    			set_style(div, "height", "100px");
+    			set_style(div, "font-size", "13px");
+    			set_style(div, "line-height", "16px");
+    			set_style(div, "font-weight", "normal");
+    			set_style(div, "text-align", "center");
+    			add_location(div, file$3, 96, 0, 2623);
+    		},
+
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div, anchor);
+    			append_dev(div, b);
+    			append_dev(div, t1);
+    			append_dev(div, br0);
+    			append_dev(div, t2);
+    			append_dev(div, t3);
+    			append_dev(div, t4);
+    			append_dev(div, br1);
+    			append_dev(div, t5);
+    			insert_dev(target, t6, anchor);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].m(target, anchor);
+    			}
+
+    			insert_dev(target, each_1_anchor, anchor);
+    			current = true;
+    		},
+
+    		p: function update(changed, ctx) {
+    			if ((!current || changed.active_) && t3_value !== (t3_value = ctx.getDay(ctx.active_) + "")) {
+    				set_data_dev(t3, t3_value);
+    			}
+
+    			if ((!current || changed.active_) && t5_value !== (t5_value = ctx.getDate(ctx.active_) + "")) {
+    				set_data_dev(t5, t5_value);
+    			}
+
+    			if (changed.stateMeta || changed.legendheight || changed.getDay || changed.active_ || changed.formatDelta || changed.get_count_delta || changed.formatPercent || changed.P_bars || changed.N || changed.formatCount) {
+    				each_value = ctx.stateMeta;
+
+    				let i;
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context$1(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(changed, child_ctx);
+    						transition_in(each_blocks[i], 1);
+    					} else {
+    						each_blocks[i] = create_each_block$1(child_ctx);
+    						each_blocks[i].c();
+    						transition_in(each_blocks[i], 1);
+    						each_blocks[i].m(each_1_anchor.parentNode, each_1_anchor);
+    					}
+    				}
+
+    				group_outros();
+    				for (i = each_value.length; i < each_blocks.length; i += 1) {
+    					out(i);
+    				}
+    				check_outros();
+    			}
+    		},
+
+    		i: function intro(local) {
+    			if (current) return;
+    			for (let i = 0; i < each_value.length; i += 1) {
+    				transition_in(each_blocks[i]);
+    			}
+
+    			current = true;
+    		},
+
+    		o: function outro(local) {
+    			each_blocks = each_blocks.filter(Boolean);
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				transition_out(each_blocks[i]);
+    			}
+
+    			current = false;
+    		},
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(div);
+    				detach_dev(t6);
+    			}
+
+    			destroy_each(each_blocks, detaching);
+
+    			if (detaching) {
+    				detach_dev(each_1_anchor);
+    			}
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_fragment$3.name, type: "component", source: "", ctx });
+    	return block;
+    }
+
+    const legendheight = 67;
+
+    function formatDate(date) {
+          const year = new Intl.DateTimeFormat('en', { year: 'numeric' }).format(date);
+          const month = new Intl.DateTimeFormat('en', { month: 'numeric' }).format(date);
+          const day = new Intl.DateTimeFormat('en', { day: '2-digit' }).format(date);
+          return `${day}.${month}.${year}`
+      }
+
+    function instance$3($$self, $$props, $$invalidate) {
+    	
+
+        let { N, dt, stateMeta, P_all, P_bars, active_, indexToTime, firstBarDate } = $$props;
+      
+        function get_count_delta(k, bar) {
+            const currCount = P_all[bar*dt][k];
+            const prevCount = (bar > 0 ? P_all[bar*dt-1][k] : currCount);
+            // We need to round intermediate values in order for delta to be consistent with rounded sigma values.
+            // For example, if day1 sigma value is 100.6 and day day2 sigma value is 100.3, the delta needs to be 1,
+            // because the user sees rounded values "101" and "100" and their delta should be 1, not 0.
+            const delta = Math.round(currCount) - Math.round(prevCount);
+            return delta
+        }
+
+        function getDay(bar) {
+            return Math.round(indexToTime(bar))
+        }
+
+        function getDate(bar) {
+            const days = getDay(bar);
+            return formatDate(addDays(firstBarDate, days))
+        }
+
+    	const writable_props = ['N', 'dt', 'stateMeta', 'P_all', 'P_bars', 'active_', 'indexToTime', 'firstBarDate'];
+    	Object.keys($$props).forEach(key => {
+    		if (!writable_props.includes(key) && !key.startsWith('$$')) console.warn(`<ChartCompanion> was created with unknown prop '${key}'`);
+    	});
+
+    	function checkbox_checked_binding(value, { state }) {
+    		state['checked'] = value;
+    		$$invalidate('stateMeta', stateMeta);
+    	}
+
+    	$$self.$set = $$props => {
+    		if ('N' in $$props) $$invalidate('N', N = $$props.N);
+    		if ('dt' in $$props) $$invalidate('dt', dt = $$props.dt);
+    		if ('stateMeta' in $$props) $$invalidate('stateMeta', stateMeta = $$props.stateMeta);
+    		if ('P_all' in $$props) $$invalidate('P_all', P_all = $$props.P_all);
+    		if ('P_bars' in $$props) $$invalidate('P_bars', P_bars = $$props.P_bars);
+    		if ('active_' in $$props) $$invalidate('active_', active_ = $$props.active_);
+    		if ('indexToTime' in $$props) $$invalidate('indexToTime', indexToTime = $$props.indexToTime);
+    		if ('firstBarDate' in $$props) $$invalidate('firstBarDate', firstBarDate = $$props.firstBarDate);
+    	};
+
+    	$$self.$capture_state = () => {
+    		return { N, dt, stateMeta, P_all, P_bars, active_, indexToTime, firstBarDate };
+    	};
+
+    	$$self.$inject_state = $$props => {
+    		if ('N' in $$props) $$invalidate('N', N = $$props.N);
+    		if ('dt' in $$props) $$invalidate('dt', dt = $$props.dt);
+    		if ('stateMeta' in $$props) $$invalidate('stateMeta', stateMeta = $$props.stateMeta);
+    		if ('P_all' in $$props) $$invalidate('P_all', P_all = $$props.P_all);
+    		if ('P_bars' in $$props) $$invalidate('P_bars', P_bars = $$props.P_bars);
+    		if ('active_' in $$props) $$invalidate('active_', active_ = $$props.active_);
+    		if ('indexToTime' in $$props) $$invalidate('indexToTime', indexToTime = $$props.indexToTime);
+    		if ('firstBarDate' in $$props) $$invalidate('firstBarDate', firstBarDate = $$props.firstBarDate);
+    	};
+
+    	return {
+    		N,
+    		dt,
+    		stateMeta,
+    		P_all,
+    		P_bars,
+    		active_,
+    		indexToTime,
+    		firstBarDate,
+    		get_count_delta,
+    		getDay,
+    		getDate,
+    		checkbox_checked_binding
+    	};
+    }
+
+    class ChartCompanion extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+    		init(this, options, instance$3, create_fragment$3, safe_not_equal, ["N", "dt", "stateMeta", "P_all", "P_bars", "active_", "indexToTime", "firstBarDate"]);
+    		dispatch_dev("SvelteRegisterComponent", { component: this, tagName: "ChartCompanion", options, id: create_fragment$3.name });
+
+    		const { ctx } = this.$$;
+    		const props = options.props || {};
+    		if (ctx.N === undefined && !('N' in props)) {
+    			console.warn("<ChartCompanion> was created without expected prop 'N'");
+    		}
+    		if (ctx.dt === undefined && !('dt' in props)) {
+    			console.warn("<ChartCompanion> was created without expected prop 'dt'");
+    		}
+    		if (ctx.stateMeta === undefined && !('stateMeta' in props)) {
+    			console.warn("<ChartCompanion> was created without expected prop 'stateMeta'");
+    		}
+    		if (ctx.P_all === undefined && !('P_all' in props)) {
+    			console.warn("<ChartCompanion> was created without expected prop 'P_all'");
+    		}
+    		if (ctx.P_bars === undefined && !('P_bars' in props)) {
+    			console.warn("<ChartCompanion> was created without expected prop 'P_bars'");
+    		}
+    		if (ctx.active_ === undefined && !('active_' in props)) {
+    			console.warn("<ChartCompanion> was created without expected prop 'active_'");
+    		}
+    		if (ctx.indexToTime === undefined && !('indexToTime' in props)) {
+    			console.warn("<ChartCompanion> was created without expected prop 'indexToTime'");
+    		}
+    		if (ctx.firstBarDate === undefined && !('firstBarDate' in props)) {
+    			console.warn("<ChartCompanion> was created without expected prop 'firstBarDate'");
+    		}
+    	}
+
+    	get N() {
+    		throw new Error("<ChartCompanion>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set N(value) {
+    		throw new Error("<ChartCompanion>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get dt() {
+    		throw new Error("<ChartCompanion>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set dt(value) {
+    		throw new Error("<ChartCompanion>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get stateMeta() {
+    		throw new Error("<ChartCompanion>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set stateMeta(value) {
+    		throw new Error("<ChartCompanion>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get P_all() {
+    		throw new Error("<ChartCompanion>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set P_all(value) {
+    		throw new Error("<ChartCompanion>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get P_bars() {
+    		throw new Error("<ChartCompanion>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set P_bars(value) {
+    		throw new Error("<ChartCompanion>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get active_() {
+    		throw new Error("<ChartCompanion>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set active_(value) {
+    		throw new Error("<ChartCompanion>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get indexToTime() {
+    		throw new Error("<ChartCompanion>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set indexToTime(value) {
+    		throw new Error("<ChartCompanion>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get firstBarDate() {
+    		throw new Error("<ChartCompanion>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set firstBarDate(value) {
+    		throw new Error("<ChartCompanion>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+    }
+
+    var strictUriEncode = str => encodeURIComponent(str).replace(/[!'()*]/g, x => `%${x.charCodeAt(0).toString(16).toUpperCase()}`);
+
+    var token = '%[a-f0-9]{2}';
+    var singleMatcher = new RegExp(token, 'gi');
+    var multiMatcher = new RegExp('(' + token + ')+', 'gi');
+
+    function decodeComponents(components, split) {
+    	try {
+    		// Try to decode the entire string first
+    		return decodeURIComponent(components.join(''));
+    	} catch (err) {
+    		// Do nothing
+    	}
+
+    	if (components.length === 1) {
+    		return components;
+    	}
+
+    	split = split || 1;
+
+    	// Split the array in 2 parts
+    	var left = components.slice(0, split);
+    	var right = components.slice(split);
+
+    	return Array.prototype.concat.call([], decodeComponents(left), decodeComponents(right));
+    }
+
+    function decode(input) {
+    	try {
+    		return decodeURIComponent(input);
+    	} catch (err) {
+    		var tokens = input.match(singleMatcher);
+
+    		for (var i = 1; i < tokens.length; i++) {
+    			input = decodeComponents(tokens, i).join('');
+
+    			tokens = input.match(singleMatcher);
+    		}
+
+    		return input;
+    	}
+    }
+
+    function customDecodeURIComponent(input) {
+    	// Keep track of all the replacements and prefill the map with the `BOM`
+    	var replaceMap = {
+    		'%FE%FF': '\uFFFD\uFFFD',
+    		'%FF%FE': '\uFFFD\uFFFD'
+    	};
+
+    	var match = multiMatcher.exec(input);
+    	while (match) {
+    		try {
+    			// Decode as big chunks as possible
+    			replaceMap[match[0]] = decodeURIComponent(match[0]);
+    		} catch (err) {
+    			var result = decode(match[0]);
+
+    			if (result !== match[0]) {
+    				replaceMap[match[0]] = result;
+    			}
+    		}
+
+    		match = multiMatcher.exec(input);
+    	}
+
+    	// Add `%C2` at the end of the map to make sure it does not replace the combinator before everything else
+    	replaceMap['%C2'] = '\uFFFD';
+
+    	var entries = Object.keys(replaceMap);
+
+    	for (var i = 0; i < entries.length; i++) {
+    		// Replace all decoded components
+    		var key = entries[i];
+    		input = input.replace(new RegExp(key, 'g'), replaceMap[key]);
+    	}
+
+    	return input;
+    }
+
+    var decodeUriComponent = function (encodedURI) {
+    	if (typeof encodedURI !== 'string') {
+    		throw new TypeError('Expected `encodedURI` to be of type `string`, got `' + typeof encodedURI + '`');
+    	}
+
+    	try {
+    		encodedURI = encodedURI.replace(/\+/g, ' ');
+
+    		// Try the built in decoder first
+    		return decodeURIComponent(encodedURI);
+    	} catch (err) {
+    		// Fallback to a more advanced decoder
+    		return customDecodeURIComponent(encodedURI);
+    	}
+    };
+
+    var splitOnFirst = (string, separator) => {
+    	if (!(typeof string === 'string' && typeof separator === 'string')) {
+    		throw new TypeError('Expected the arguments to be of type `string`');
+    	}
+
+    	if (separator === '') {
+    		return [string];
+    	}
+
+    	const separatorIndex = string.indexOf(separator);
+
+    	if (separatorIndex === -1) {
+    		return [string];
+    	}
+
+    	return [
+    		string.slice(0, separatorIndex),
+    		string.slice(separatorIndex + separator.length)
+    	];
+    };
+
+    var queryString = createCommonjsModule(function (module, exports) {
+
+
+
+
+    function encoderForArrayFormat(options) {
+    	switch (options.arrayFormat) {
+    		case 'index':
+    			return key => (result, value) => {
+    				const index = result.length;
+    				if (value === undefined || (options.skipNull && value === null)) {
+    					return result;
+    				}
+
+    				if (value === null) {
+    					return [...result, [encode(key, options), '[', index, ']'].join('')];
+    				}
+
+    				return [
+    					...result,
+    					[encode(key, options), '[', encode(index, options), ']=', encode(value, options)].join('')
+    				];
+    			};
+
+    		case 'bracket':
+    			return key => (result, value) => {
+    				if (value === undefined || (options.skipNull && value === null)) {
+    					return result;
+    				}
+
+    				if (value === null) {
+    					return [...result, [encode(key, options), '[]'].join('')];
+    				}
+
+    				return [...result, [encode(key, options), '[]=', encode(value, options)].join('')];
+    			};
+
+    		case 'comma':
+    		case 'separator':
+    			return key => (result, value) => {
+    				if (value === null || value === undefined || value.length === 0) {
+    					return result;
+    				}
+
+    				if (result.length === 0) {
+    					return [[encode(key, options), '=', encode(value, options)].join('')];
+    				}
+
+    				return [[result, encode(value, options)].join(options.arrayFormatSeparator)];
+    			};
+
+    		default:
+    			return key => (result, value) => {
+    				if (value === undefined || (options.skipNull && value === null)) {
+    					return result;
+    				}
+
+    				if (value === null) {
+    					return [...result, encode(key, options)];
+    				}
+
+    				return [...result, [encode(key, options), '=', encode(value, options)].join('')];
+    			};
+    	}
+    }
+
+    function parserForArrayFormat(options) {
+    	let result;
+
+    	switch (options.arrayFormat) {
+    		case 'index':
+    			return (key, value, accumulator) => {
+    				result = /\[(\d*)\]$/.exec(key);
+
+    				key = key.replace(/\[\d*\]$/, '');
+
+    				if (!result) {
+    					accumulator[key] = value;
+    					return;
+    				}
+
+    				if (accumulator[key] === undefined) {
+    					accumulator[key] = {};
+    				}
+
+    				accumulator[key][result[1]] = value;
+    			};
+
+    		case 'bracket':
+    			return (key, value, accumulator) => {
+    				result = /(\[\])$/.exec(key);
+    				key = key.replace(/\[\]$/, '');
+
+    				if (!result) {
+    					accumulator[key] = value;
+    					return;
+    				}
+
+    				if (accumulator[key] === undefined) {
+    					accumulator[key] = [value];
+    					return;
+    				}
+
+    				accumulator[key] = [].concat(accumulator[key], value);
+    			};
+
+    		case 'comma':
+    		case 'separator':
+    			return (key, value, accumulator) => {
+    				const isArray = typeof value === 'string' && value.split('').indexOf(options.arrayFormatSeparator) > -1;
+    				const newValue = isArray ? value.split(options.arrayFormatSeparator).map(item => decode(item, options)) : value === null ? value : decode(value, options);
+    				accumulator[key] = newValue;
+    			};
+
+    		default:
+    			return (key, value, accumulator) => {
+    				if (accumulator[key] === undefined) {
+    					accumulator[key] = value;
+    					return;
+    				}
+
+    				accumulator[key] = [].concat(accumulator[key], value);
+    			};
+    	}
+    }
+
+    function validateArrayFormatSeparator(value) {
+    	if (typeof value !== 'string' || value.length !== 1) {
+    		throw new TypeError('arrayFormatSeparator must be single character string');
+    	}
+    }
+
+    function encode(value, options) {
+    	if (options.encode) {
+    		return options.strict ? strictUriEncode(value) : encodeURIComponent(value);
+    	}
+
+    	return value;
+    }
+
+    function decode(value, options) {
+    	if (options.decode) {
+    		return decodeUriComponent(value);
+    	}
+
+    	return value;
+    }
+
+    function keysSorter(input) {
+    	if (Array.isArray(input)) {
+    		return input.sort();
+    	}
+
+    	if (typeof input === 'object') {
+    		return keysSorter(Object.keys(input))
+    			.sort((a, b) => Number(a) - Number(b))
+    			.map(key => input[key]);
+    	}
+
+    	return input;
+    }
+
+    function removeHash(input) {
+    	const hashStart = input.indexOf('#');
+    	if (hashStart !== -1) {
+    		input = input.slice(0, hashStart);
+    	}
+
+    	return input;
+    }
+
+    function getHash(url) {
+    	let hash = '';
+    	const hashStart = url.indexOf('#');
+    	if (hashStart !== -1) {
+    		hash = url.slice(hashStart);
+    	}
+
+    	return hash;
+    }
+
+    function extract(input) {
+    	input = removeHash(input);
+    	const queryStart = input.indexOf('?');
+    	if (queryStart === -1) {
+    		return '';
+    	}
+
+    	return input.slice(queryStart + 1);
+    }
+
+    function parseValue(value, options) {
+    	if (options.parseNumbers && !Number.isNaN(Number(value)) && (typeof value === 'string' && value.trim() !== '')) {
+    		value = Number(value);
+    	} else if (options.parseBooleans && value !== null && (value.toLowerCase() === 'true' || value.toLowerCase() === 'false')) {
+    		value = value.toLowerCase() === 'true';
+    	}
+
+    	return value;
+    }
+
+    function parse(input, options) {
+    	options = Object.assign({
+    		decode: true,
+    		sort: true,
+    		arrayFormat: 'none',
+    		arrayFormatSeparator: ',',
+    		parseNumbers: false,
+    		parseBooleans: false
+    	}, options);
+
+    	validateArrayFormatSeparator(options.arrayFormatSeparator);
+
+    	const formatter = parserForArrayFormat(options);
+
+    	// Create an object with no prototype
+    	const ret = Object.create(null);
+
+    	if (typeof input !== 'string') {
+    		return ret;
+    	}
+
+    	input = input.trim().replace(/^[?#&]/, '');
+
+    	if (!input) {
+    		return ret;
+    	}
+
+    	for (const param of input.split('&')) {
+    		let [key, value] = splitOnFirst(options.decode ? param.replace(/\+/g, ' ') : param, '=');
+
+    		// Missing `=` should be `null`:
+    		// http://w3.org/TR/2012/WD-url-20120524/#collect-url-parameters
+    		value = value === undefined ? null : options.arrayFormat === 'comma' ? value : decode(value, options);
+    		formatter(decode(key, options), value, ret);
+    	}
+
+    	for (const key of Object.keys(ret)) {
+    		const value = ret[key];
+    		if (typeof value === 'object' && value !== null) {
+    			for (const k of Object.keys(value)) {
+    				value[k] = parseValue(value[k], options);
+    			}
+    		} else {
+    			ret[key] = parseValue(value, options);
+    		}
+    	}
+
+    	if (options.sort === false) {
+    		return ret;
+    	}
+
+    	return (options.sort === true ? Object.keys(ret).sort() : Object.keys(ret).sort(options.sort)).reduce((result, key) => {
+    		const value = ret[key];
+    		if (Boolean(value) && typeof value === 'object' && !Array.isArray(value)) {
+    			// Sort object keys, not values
+    			result[key] = keysSorter(value);
+    		} else {
+    			result[key] = value;
+    		}
+
+    		return result;
+    	}, Object.create(null));
+    }
+
+    exports.extract = extract;
+    exports.parse = parse;
+
+    exports.stringify = (object, options) => {
+    	if (!object) {
+    		return '';
+    	}
+
+    	options = Object.assign({
+    		encode: true,
+    		strict: true,
+    		arrayFormat: 'none',
+    		arrayFormatSeparator: ','
+    	}, options);
+
+    	validateArrayFormatSeparator(options.arrayFormatSeparator);
+
+    	const formatter = encoderForArrayFormat(options);
+
+    	const objectCopy = Object.assign({}, object);
+    	if (options.skipNull) {
+    		for (const key of Object.keys(objectCopy)) {
+    			if (objectCopy[key] === undefined || objectCopy[key] === null) {
+    				delete objectCopy[key];
+    			}
+    		}
+    	}
+
+    	const keys = Object.keys(objectCopy);
+
+    	if (options.sort !== false) {
+    		keys.sort(options.sort);
+    	}
+
+    	return keys.map(key => {
+    		const value = object[key];
+
+    		if (value === undefined) {
+    			return '';
+    		}
+
+    		if (value === null) {
+    			return encode(key, options);
+    		}
+
+    		if (Array.isArray(value)) {
+    			return value
+    				.reduce(formatter(key), [])
+    				.join('&');
+    		}
+
+    		return encode(key, options) + '=' + encode(value, options);
+    	}).filter(x => x.length > 0).join('&');
+    };
+
+    exports.parseUrl = (input, options) => {
+    	return {
+    		url: removeHash(input).split('?')[0] || '',
+    		query: parse(extract(input), options)
+    	};
+    };
+
+    exports.stringifyUrl = (input, options) => {
+    	const url = removeHash(input.url).split('?')[0] || '';
+    	const queryFromUrl = exports.extract(input.url);
+    	const parsedQueryFromUrl = exports.parse(queryFromUrl);
+    	const hash = getHash(input.url);
+    	const query = Object.assign(parsedQueryFromUrl, input.query);
+    	let queryString = exports.stringify(query, options);
+    	if (queryString) {
+    		queryString = `?${queryString}`;
+    	}
+
+    	return `${url}${queryString}${hash}`;
+    };
+    });
+    var queryString_1 = queryString.extract;
+    var queryString_2 = queryString.parse;
+    var queryString_3 = queryString.stringify;
+    var queryString_4 = queryString.parseUrl;
+    var queryString_5 = queryString.stringifyUrl;
+
+    /* src/components/ActionMarker.svelte generated by Svelte v3.12.1 */
+
+    const file$4 = "src/components/ActionMarker.svelte";
+
+    // (167:8) {#if xScaleTime(InterventionTime) >= 100}
+    function create_if_block$2(ctx) {
+    	var div, span, t, html_tag, raw_value = math_inline("\\mathcal{R}_0=" + (ctx.R0).toFixed(2) ) + "";
+
+    	const block = {
+    		c: function create() {
+    			div = element("div");
+    			span = element("span");
+    			t = text("⟵ ");
+    			html_tag = new HtmlTag(raw_value, null);
+    			set_style(span, "font-size", "13px");
+    			add_location(span, file$4, 168, 16, 5108);
+    			set_style(div, "position", "absolute");
+    			set_style(div, "opacity", "0.5");
+    			set_style(div, "top", "-5px");
+    			set_style(div, "left", "-97px");
+    			set_style(div, "width", "120px");
+    			add_location(div, file$4, 167, 12, 5010);
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div, anchor);
+    			append_dev(div, span);
+    			append_dev(span, t);
+    			html_tag.m(span);
+    		},
+
+    		p: function update(changed, ctx) {
+    			if ((changed.R0) && raw_value !== (raw_value = math_inline("\\mathcal{R}_0=" + (ctx.R0).toFixed(2) ) + "")) {
+    				html_tag.p(raw_value);
+    			}
+    		},
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(div);
+    			}
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block$2.name, type: "if", source: "(167:8) {#if xScaleTime(InterventionTime) >= 100}", ctx });
+    	return block;
+    }
+
+    function create_fragment$4(ctx) {
+    	var div6, div5, div0, span0, raw_value = math_inline("\\mathcal{R}_t=" + (ctx.R0*ctx.InterventionAmt).toFixed(2) ) + "", t0, t1, show_if = ctx.xScaleTime(ctx.InterventionTime) >= 100, t2, div3, div1, t3, t4_value = format("d")(ctx.InterventionTime) + "", t4, t5, span1, t6, div2, t7, div4, t8, div14, div13, div12, div11, div8, div7, t9, br, t10, div10, div9, t11_value = formatDelta(-100*(1-ctx.InterventionAmt)) + "", t11, t12, t13, input, dispose;
+
+    	var if_block = (show_if) && create_if_block$2(ctx);
+
+    	const block = {
+    		c: function create() {
+    			div6 = element("div");
+    			div5 = element("div");
+    			div0 = element("div");
+    			span0 = element("span");
+    			t0 = text(" ⟶");
+    			t1 = space();
+    			if (if_block) if_block.c();
+    			t2 = space();
+    			div3 = element("div");
+    			div1 = element("div");
+    			t3 = text("Action on day ");
+    			t4 = text(t4_value);
+    			t5 = space();
+    			span1 = element("span");
+    			t6 = space();
+    			div2 = element("div");
+    			t7 = space();
+    			div4 = element("div");
+    			t8 = space();
+    			div14 = element("div");
+    			div13 = element("div");
+    			div12 = element("div");
+    			div11 = element("div");
+    			div8 = element("div");
+    			div7 = element("div");
+    			t9 = text("to alter transmission by");
+    			br = element("br");
+    			t10 = space();
+    			div10 = element("div");
+    			div9 = element("div");
+    			t11 = text(t11_value);
+    			t12 = text("%");
+    			t13 = space();
+    			input = element("input");
+    			set_style(span0, "font-size", "13px");
+    			add_location(span0, file$4, 161, 12, 4788);
+    			set_style(div0, "position", "absolute");
+    			set_style(div0, "opacity", "0.5");
+    			set_style(div0, "top", "-5px");
+    			set_style(div0, "left", "10px");
+    			set_style(div0, "width", "120px");
+    			add_location(div0, file$4, 160, 8, 4695);
+    			attr_dev(div1, "class", "paneltitle svelte-1hdcsmx");
+    			set_style(div1, "top", "9px");
+    			set_style(div1, "position", "relative");
+    			set_style(div1, "text-align", "right");
+    			add_location(div1, file$4, 175, 12, 5508);
+    			add_location(span1, file$4, 178, 12, 5681);
+    			set_style(div2, "top", "9px");
+    			set_style(div2, "position", "relative");
+    			set_style(div2, "text-align", "right");
+    			add_location(div2, file$4, 179, 12, 5707);
+    			attr_dev(div3, "id", "interventionDrag");
+    			attr_dev(div3, "class", "legendtext svelte-1hdcsmx");
+    			set_style(div3, "flex", "0 0 160px");
+    			set_style(div3, "width", "120px");
+    			set_style(div3, "position", "relative");
+    			set_style(div3, "top", "-70px");
+    			set_style(div3, "height", "60px");
+    			set_style(div3, "padding-right", "15px");
+    			set_style(div3, "left", "-125px");
+    			set_style(div3, "pointer-events", "all");
+    			set_style(div3, "cursor", "col-resize");
+    			add_location(div3, file$4, 174, 8, 5291);
+    			set_style(div4, "width", "150px");
+    			set_style(div4, "position", "relative");
+    			set_style(div4, "top", "-85px");
+    			set_style(div4, "height", "80px");
+    			set_style(div4, "padding-right", "15px");
+    			set_style(div4, "left", "0px");
+    			set_style(div4, "cursor", "col-resize");
+    			set_style(div4, "background-color", "white");
+    			set_style(div4, "position", "absolute");
+    			add_location(div4, file$4, 183, 8, 5811);
+    			attr_dev(div5, "id", "dottedline");
+    			set_style(div5, "pointer-events", "all");
+    			set_style(div5, "position", "absolute");
+    			set_style(div5, "top", "-38px");
+    			set_style(div5, "left", "" + ctx.xScaleTime(ctx.InterventionTime) + "px");
+    			set_style(div5, "visibility", ((ctx.xScaleTime(ctx.InterventionTime) < (ctx.width - padding.right)) ? 'visible':'hidden'));
+    			set_style(div5, "width", "2px");
+    			set_style(div5, "background-color", "#FFF");
+    			set_style(div5, "border-right", "1px dashed black");
+    			set_style(div5, "pointer-events", "all");
+    			set_style(div5, "cursor", "col-resize");
+    			set_style(div5, "height", "" + (ctx.height+19) + "px");
+    			add_location(div5, file$4, 148, 4, 4025);
+    			set_style(div6, "position", "absolute");
+    			set_style(div6, "width", "" + (ctx.width+15) + "px");
+    			set_style(div6, "height", "" + ctx.height + "px");
+    			set_style(div6, "position", "absolute");
+    			set_style(div6, "top", "100px");
+    			set_style(div6, "left", "10px");
+    			set_style(div6, "pointer-events", "none");
+    			add_location(div6, file$4, 147, 0, 3884);
+    			add_location(br, file$4, 204, 48, 7054);
+    			attr_dev(div7, "class", "paneldesc svelte-1hdcsmx");
+    			add_location(div7, file$4, 203, 20, 6982);
+    			attr_dev(div8, "class", "paneltext svelte-1hdcsmx");
+    			set_style(div8, "height", "20px");
+    			set_style(div8, "text-align", "right");
+    			add_location(div8, file$4, 202, 16, 6899);
+    			attr_dev(div9, "class", "slidertext svelte-1hdcsmx");
+    			add_location(div9, file$4, 208, 20, 7179);
+    			attr_dev(input, "class", "range svelte-1hdcsmx");
+    			attr_dev(input, "type", "range");
+    			attr_dev(input, "min", "-1");
+    			attr_dev(input, "max", "1");
+    			attr_dev(input, "step", "0.01");
+    			add_location(input, file$4, 211, 20, 7342);
+    			set_style(div10, "pointer-events", "all");
+    			add_location(div10, file$4, 207, 16, 7125);
+    			attr_dev(div11, "class", "caption svelte-1hdcsmx");
+    			set_style(div11, "pointer-events", "none");
+    			set_style(div11, "position", "absolute");
+    			set_style(div11, "left", "0");
+    			set_style(div11, "top", "40px");
+    			set_style(div11, "width", "150px");
+    			set_style(div11, "border-left", "2px solid #777");
+    			set_style(div11, "padding", "5px 7px 7px 7px");
+    			add_location(div11, file$4, 201, 12, 6718);
+    			set_style(div12, "flex", "0 0 160px");
+    			set_style(div12, "width", "200px");
+    			set_style(div12, "position", "relative");
+    			set_style(div12, "top", "-125px");
+    			set_style(div12, "left", "1px");
+    			add_location(div12, file$4, 200, 8, 6620);
+    			set_style(div13, "position", "absolute");
+    			set_style(div13, "top", "-38px");
+    			set_style(div13, "left", "" + ctx.xScaleTime(ctx.InterventionTime) + "px");
+    			set_style(div13, "visibility", ((ctx.xScaleTime(ctx.InterventionTime) < (ctx.width - padding.right)) ? 'visible':'hidden'));
+    			set_style(div13, "width", "2px");
+    			set_style(div13, "background-color", "#FFF");
+    			set_style(div13, "border-right", "1px dashed black");
+    			set_style(div13, "cursor", "col-resize");
+    			set_style(div13, "height", "" + ctx.height + "px");
+    			add_location(div13, file$4, 190, 4, 6187);
+    			set_style(div14, "position", "absolute");
+    			set_style(div14, "width", "" + (ctx.width+15) + "px");
+    			set_style(div14, "height", "" + ctx.height + "px");
+    			set_style(div14, "position", "absolute");
+    			set_style(div14, "top", "120px");
+    			set_style(div14, "left", "10px");
+    			set_style(div14, "pointer-events", "none");
+    			add_location(div14, file$4, 189, 0, 6046);
+
+    			dispose = [
+    				listen_dev(div9, "mousedown", ctx.lock_yaxis),
+    				listen_dev(input, "change", ctx.input_change_input_handler),
+    				listen_dev(input, "input", ctx.input_change_input_handler),
+    				listen_dev(input, "mousedown", ctx.lock_yaxis)
+    			];
+    		},
+
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div6, anchor);
+    			append_dev(div6, div5);
+    			append_dev(div5, div0);
+    			append_dev(div0, span0);
+    			span0.innerHTML = raw_value;
+    			append_dev(div0, t0);
+    			append_dev(div5, t1);
+    			if (if_block) if_block.m(div5, null);
+    			append_dev(div5, t2);
+    			append_dev(div5, div3);
+    			append_dev(div3, div1);
+    			append_dev(div1, t3);
+    			append_dev(div1, t4);
+    			append_dev(div3, t5);
+    			append_dev(div3, span1);
+    			append_dev(div3, t6);
+    			append_dev(div3, div2);
+    			append_dev(div5, t7);
+    			append_dev(div5, div4);
+    			insert_dev(target, t8, anchor);
+    			insert_dev(target, div14, anchor);
+    			append_dev(div14, div13);
+    			append_dev(div13, div12);
+    			append_dev(div12, div11);
+    			append_dev(div11, div8);
+    			append_dev(div8, div7);
+    			append_dev(div7, t9);
+    			append_dev(div7, br);
+    			append_dev(div11, t10);
+    			append_dev(div11, div10);
+    			append_dev(div10, div9);
+    			append_dev(div9, t11);
+    			append_dev(div9, t12);
+    			append_dev(div10, t13);
+    			append_dev(div10, input);
+
+    			set_input_value(input, ctx.OMInterventionAmt);
+    		},
+
+    		p: function update(changed, ctx) {
+    			if ((changed.R0 || changed.InterventionAmt) && raw_value !== (raw_value = math_inline("\\mathcal{R}_t=" + (ctx.R0*ctx.InterventionAmt).toFixed(2) ) + "")) {
+    				span0.innerHTML = raw_value;
+    			}
+
+    			if (changed.xScaleTime || changed.InterventionTime) show_if = ctx.xScaleTime(ctx.InterventionTime) >= 100;
+
+    			if (show_if) {
+    				if (if_block) {
+    					if_block.p(changed, ctx);
+    				} else {
+    					if_block = create_if_block$2(ctx);
+    					if_block.c();
+    					if_block.m(div5, t2);
+    				}
+    			} else if (if_block) {
+    				if_block.d(1);
+    				if_block = null;
+    			}
+
+    			if ((changed.InterventionTime) && t4_value !== (t4_value = format("d")(ctx.InterventionTime) + "")) {
+    				set_data_dev(t4, t4_value);
+    			}
+
+    			if (changed.xScaleTime || changed.InterventionTime) {
+    				set_style(div5, "left", "" + ctx.xScaleTime(ctx.InterventionTime) + "px");
+    			}
+
+    			if (changed.xScaleTime || changed.InterventionTime || changed.width) {
+    				set_style(div5, "visibility", ((ctx.xScaleTime(ctx.InterventionTime) < (ctx.width - padding.right)) ? 'visible':'hidden'));
+    			}
+
+    			if (changed.height) {
+    				set_style(div5, "height", "" + (ctx.height+19) + "px");
+    			}
+
+    			if (changed.width) {
+    				set_style(div6, "width", "" + (ctx.width+15) + "px");
+    			}
+
+    			if (changed.height) {
+    				set_style(div6, "height", "" + ctx.height + "px");
+    			}
+
+    			if ((changed.InterventionAmt) && t11_value !== (t11_value = formatDelta(-100*(1-ctx.InterventionAmt)) + "")) {
+    				set_data_dev(t11, t11_value);
+    			}
+
+    			if (changed.OMInterventionAmt) set_input_value(input, ctx.OMInterventionAmt);
+
+    			if (changed.xScaleTime || changed.InterventionTime) {
+    				set_style(div13, "left", "" + ctx.xScaleTime(ctx.InterventionTime) + "px");
+    			}
+
+    			if (changed.xScaleTime || changed.InterventionTime || changed.width) {
+    				set_style(div13, "visibility", ((ctx.xScaleTime(ctx.InterventionTime) < (ctx.width - padding.right)) ? 'visible':'hidden'));
+    			}
+
+    			if (changed.height) {
+    				set_style(div13, "height", "" + ctx.height + "px");
+    			}
+
+    			if (changed.width) {
+    				set_style(div14, "width", "" + (ctx.width+15) + "px");
+    			}
+
+    			if (changed.height) {
+    				set_style(div14, "height", "" + ctx.height + "px");
+    			}
+    		},
+
+    		i: noop,
+    		o: noop,
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(div6);
+    			}
+
+    			if (if_block) if_block.d();
+
+    			if (detaching) {
+    				detach_dev(t8);
+    				detach_dev(div14);
+    			}
+
+    			run_all(dispose);
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_fragment$4.name, type: "component", source: "", ctx });
+    	return block;
+    }
+
+    function instance$4($$self, $$props, $$invalidate) {
+    	
+
+        let { width, height, R0, Pmax, tmax, InterventionTime, InterventionAmt, OMInterventionAmt, Plock, lock, lock_yaxis, P_all_historical, demo_mode } = $$props;
+
+        var drag_intervention = function (){
+            var dragstarty = 0;
+            var InterventionTimeStart = 0;
+
+            var dragstarted = function (d) {
+                dragstarty = event.x;  
+                InterventionTimeStart = InterventionTime;
+                $$invalidate('Plock', Plock = Pmax);
+                $$invalidate('lock', lock = true);
+            };
+
+            var dragged = function (d) {
+                // InterventionTime = Math.max( (*(1 + (event.x - dragstarty)/500)), 10)
+                // console.log(event.x)
+                const minX = (demo_mode === SHOW_FUTURE ? 0 : P_all_historical.length);
+                $$invalidate('InterventionTime', InterventionTime = Math.min(tmax-1, Math.max(minX, InterventionTimeStart + xScaleTimeInv(event.x - dragstarty))));
+            };
+
+            var dragend = function (d) {
+                $$invalidate('lock', lock = false);
+            };
+
+            return drag().on("drag", dragged).on("start", dragstarted).on("end", dragend)
+        };
+
+        var drag_intervention_end = function (){
+            var dragstarty = 0;
+            var durationStart = 0;
+
+            var dragstarted = function (d) {
+                dragstarty = event.x;  
+                durationStart = duration;
+                $$invalidate('Plock', Plock = Pmax);
+                $$invalidate('lock', lock = true);
+            };
+
+            var dragged = function (d) {
+                // InterventionTime = Math.max( (*(1 + (event.x - dragstarty)/500)), 10)
+                // console.log(event.x)
+                const minX = (demo_mode === SHOW_FUTURE ? 0 : P_all_historical.length);
+                duration = Math.min(tmax-1, Math.max(minX, durationStart + xScaleTimeInv(event.x - dragstarty)));
+            };
+
+            var dragend = function (d) {
+                $$invalidate('lock', lock = false);
+            };
+
+            return drag().on("drag", dragged).on("start", dragstarted).on("end", dragend)
+        };
+
+        onMount(async () => {
+            var drag_callback_intervention = drag_intervention();
+            drag_callback_intervention(selectAll("#dottedline"));
+        });
+
+    	const writable_props = ['width', 'height', 'R0', 'Pmax', 'tmax', 'InterventionTime', 'InterventionAmt', 'OMInterventionAmt', 'Plock', 'lock', 'lock_yaxis', 'P_all_historical', 'demo_mode'];
+    	Object.keys($$props).forEach(key => {
+    		if (!writable_props.includes(key) && !key.startsWith('$$')) console.warn(`<ActionMarker> was created with unknown prop '${key}'`);
+    	});
+
+    	function input_change_input_handler() {
+    		OMInterventionAmt = to_number(this.value);
+    		$$invalidate('OMInterventionAmt', OMInterventionAmt);
+    	}
+
+    	$$self.$set = $$props => {
+    		if ('width' in $$props) $$invalidate('width', width = $$props.width);
+    		if ('height' in $$props) $$invalidate('height', height = $$props.height);
+    		if ('R0' in $$props) $$invalidate('R0', R0 = $$props.R0);
+    		if ('Pmax' in $$props) $$invalidate('Pmax', Pmax = $$props.Pmax);
+    		if ('tmax' in $$props) $$invalidate('tmax', tmax = $$props.tmax);
+    		if ('InterventionTime' in $$props) $$invalidate('InterventionTime', InterventionTime = $$props.InterventionTime);
+    		if ('InterventionAmt' in $$props) $$invalidate('InterventionAmt', InterventionAmt = $$props.InterventionAmt);
+    		if ('OMInterventionAmt' in $$props) $$invalidate('OMInterventionAmt', OMInterventionAmt = $$props.OMInterventionAmt);
+    		if ('Plock' in $$props) $$invalidate('Plock', Plock = $$props.Plock);
+    		if ('lock' in $$props) $$invalidate('lock', lock = $$props.lock);
+    		if ('lock_yaxis' in $$props) $$invalidate('lock_yaxis', lock_yaxis = $$props.lock_yaxis);
+    		if ('P_all_historical' in $$props) $$invalidate('P_all_historical', P_all_historical = $$props.P_all_historical);
+    		if ('demo_mode' in $$props) $$invalidate('demo_mode', demo_mode = $$props.demo_mode);
+    	};
+
+    	$$self.$capture_state = () => {
+    		return { width, height, R0, Pmax, tmax, InterventionTime, InterventionAmt, OMInterventionAmt, Plock, lock, lock_yaxis, P_all_historical, demo_mode, drag_intervention, drag_intervention_end, xScaleTime, xScaleTimeInv };
+    	};
+
+    	$$self.$inject_state = $$props => {
+    		if ('width' in $$props) $$invalidate('width', width = $$props.width);
+    		if ('height' in $$props) $$invalidate('height', height = $$props.height);
+    		if ('R0' in $$props) $$invalidate('R0', R0 = $$props.R0);
+    		if ('Pmax' in $$props) $$invalidate('Pmax', Pmax = $$props.Pmax);
+    		if ('tmax' in $$props) $$invalidate('tmax', tmax = $$props.tmax);
+    		if ('InterventionTime' in $$props) $$invalidate('InterventionTime', InterventionTime = $$props.InterventionTime);
+    		if ('InterventionAmt' in $$props) $$invalidate('InterventionAmt', InterventionAmt = $$props.InterventionAmt);
+    		if ('OMInterventionAmt' in $$props) $$invalidate('OMInterventionAmt', OMInterventionAmt = $$props.OMInterventionAmt);
+    		if ('Plock' in $$props) $$invalidate('Plock', Plock = $$props.Plock);
+    		if ('lock' in $$props) $$invalidate('lock', lock = $$props.lock);
+    		if ('lock_yaxis' in $$props) $$invalidate('lock_yaxis', lock_yaxis = $$props.lock_yaxis);
+    		if ('P_all_historical' in $$props) $$invalidate('P_all_historical', P_all_historical = $$props.P_all_historical);
+    		if ('demo_mode' in $$props) $$invalidate('demo_mode', demo_mode = $$props.demo_mode);
+    		if ('drag_intervention' in $$props) drag_intervention = $$props.drag_intervention;
+    		if ('drag_intervention_end' in $$props) drag_intervention_end = $$props.drag_intervention_end;
+    		if ('xScaleTime' in $$props) $$invalidate('xScaleTime', xScaleTime = $$props.xScaleTime);
+    		if ('xScaleTimeInv' in $$props) xScaleTimeInv = $$props.xScaleTimeInv;
+    	};
+
+    	let xScaleTime, xScaleTimeInv;
+
+    	$$self.$$.update = ($$dirty = { tmax: 1, width: 1 }) => {
+    		if ($$dirty.tmax || $$dirty.width) { $$invalidate('xScaleTime', xScaleTime = linear$1()
+                                    .domain([0, tmax])
+                                    .range([padding.left, width - padding.right])); }
+    		if ($$dirty.width || $$dirty.tmax) { xScaleTimeInv = linear$1()
+                                    .domain([0, width])
+                                    .range([0, tmax]); }
+    	};
+
+    	return {
+    		width,
+    		height,
+    		R0,
+    		Pmax,
+    		tmax,
+    		InterventionTime,
+    		InterventionAmt,
+    		OMInterventionAmt,
+    		Plock,
+    		lock,
+    		lock_yaxis,
+    		P_all_historical,
+    		demo_mode,
+    		xScaleTime,
+    		input_change_input_handler
+    	};
+    }
+
+    class ActionMarker extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+    		init(this, options, instance$4, create_fragment$4, safe_not_equal, ["width", "height", "R0", "Pmax", "tmax", "InterventionTime", "InterventionAmt", "OMInterventionAmt", "Plock", "lock", "lock_yaxis", "P_all_historical", "demo_mode"]);
+    		dispatch_dev("SvelteRegisterComponent", { component: this, tagName: "ActionMarker", options, id: create_fragment$4.name });
+
+    		const { ctx } = this.$$;
+    		const props = options.props || {};
+    		if (ctx.width === undefined && !('width' in props)) {
+    			console.warn("<ActionMarker> was created without expected prop 'width'");
+    		}
+    		if (ctx.height === undefined && !('height' in props)) {
+    			console.warn("<ActionMarker> was created without expected prop 'height'");
+    		}
+    		if (ctx.R0 === undefined && !('R0' in props)) {
+    			console.warn("<ActionMarker> was created without expected prop 'R0'");
+    		}
+    		if (ctx.Pmax === undefined && !('Pmax' in props)) {
+    			console.warn("<ActionMarker> was created without expected prop 'Pmax'");
+    		}
+    		if (ctx.tmax === undefined && !('tmax' in props)) {
+    			console.warn("<ActionMarker> was created without expected prop 'tmax'");
+    		}
+    		if (ctx.InterventionTime === undefined && !('InterventionTime' in props)) {
+    			console.warn("<ActionMarker> was created without expected prop 'InterventionTime'");
+    		}
+    		if (ctx.InterventionAmt === undefined && !('InterventionAmt' in props)) {
+    			console.warn("<ActionMarker> was created without expected prop 'InterventionAmt'");
+    		}
+    		if (ctx.OMInterventionAmt === undefined && !('OMInterventionAmt' in props)) {
+    			console.warn("<ActionMarker> was created without expected prop 'OMInterventionAmt'");
+    		}
+    		if (ctx.Plock === undefined && !('Plock' in props)) {
+    			console.warn("<ActionMarker> was created without expected prop 'Plock'");
+    		}
+    		if (ctx.lock === undefined && !('lock' in props)) {
+    			console.warn("<ActionMarker> was created without expected prop 'lock'");
+    		}
+    		if (ctx.lock_yaxis === undefined && !('lock_yaxis' in props)) {
+    			console.warn("<ActionMarker> was created without expected prop 'lock_yaxis'");
+    		}
+    		if (ctx.P_all_historical === undefined && !('P_all_historical' in props)) {
+    			console.warn("<ActionMarker> was created without expected prop 'P_all_historical'");
+    		}
+    		if (ctx.demo_mode === undefined && !('demo_mode' in props)) {
+    			console.warn("<ActionMarker> was created without expected prop 'demo_mode'");
+    		}
+    	}
+
+    	get width() {
+    		throw new Error("<ActionMarker>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set width(value) {
+    		throw new Error("<ActionMarker>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get height() {
+    		throw new Error("<ActionMarker>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set height(value) {
+    		throw new Error("<ActionMarker>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get R0() {
+    		throw new Error("<ActionMarker>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set R0(value) {
+    		throw new Error("<ActionMarker>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get Pmax() {
+    		throw new Error("<ActionMarker>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set Pmax(value) {
+    		throw new Error("<ActionMarker>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get tmax() {
+    		throw new Error("<ActionMarker>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set tmax(value) {
+    		throw new Error("<ActionMarker>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get InterventionTime() {
+    		throw new Error("<ActionMarker>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set InterventionTime(value) {
+    		throw new Error("<ActionMarker>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get InterventionAmt() {
+    		throw new Error("<ActionMarker>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set InterventionAmt(value) {
+    		throw new Error("<ActionMarker>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get OMInterventionAmt() {
+    		throw new Error("<ActionMarker>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set OMInterventionAmt(value) {
+    		throw new Error("<ActionMarker>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get Plock() {
+    		throw new Error("<ActionMarker>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set Plock(value) {
+    		throw new Error("<ActionMarker>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get lock() {
+    		throw new Error("<ActionMarker>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set lock(value) {
+    		throw new Error("<ActionMarker>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get lock_yaxis() {
+    		throw new Error("<ActionMarker>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set lock_yaxis(value) {
+    		throw new Error("<ActionMarker>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get P_all_historical() {
+    		throw new Error("<ActionMarker>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set P_all_historical(value) {
+    		throw new Error("<ActionMarker>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get demo_mode() {
+    		throw new Error("<ActionMarker>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set demo_mode(value) {
+    		throw new Error("<ActionMarker>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+    }
+
+    /* node_modules/svelte-awesome/components/svg/Path.svelte generated by Svelte v3.12.1 */
+
+    const file$5 = "node_modules/svelte-awesome/components/svg/Path.svelte";
+
+    function create_fragment$5(ctx) {
+    	var path;
+
+    	var path_levels = [
+    		{ key: "path-" + ctx.id },
+    		ctx.data
+    	];
+
+    	var path_data = {};
+    	for (var i = 0; i < path_levels.length; i += 1) {
+    		path_data = assign(path_data, path_levels[i]);
+    	}
+
+    	const block = {
+    		c: function create() {
+    			path = svg_element("path");
+    			set_svg_attributes(path, path_data);
+    			add_location(path, file$5, 0, 0, 0);
+    		},
+
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, path, anchor);
+    		},
+
+    		p: function update(changed, ctx) {
+    			set_svg_attributes(path, get_spread_update(path_levels, [
+    				(changed.id) && { key: "path-" + ctx.id },
+    				(changed.data) && ctx.data
+    			]));
+    		},
+
+    		i: noop,
+    		o: noop,
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(path);
+    			}
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_fragment$5.name, type: "component", source: "", ctx });
+    	return block;
+    }
+
+    function instance$5($$self, $$props, $$invalidate) {
+    	let { id = '', data = {} } = $$props;
+
+    	const writable_props = ['id', 'data'];
+    	Object.keys($$props).forEach(key => {
+    		if (!writable_props.includes(key) && !key.startsWith('$$')) console.warn(`<Path> was created with unknown prop '${key}'`);
+    	});
+
+    	$$self.$set = $$props => {
+    		if ('id' in $$props) $$invalidate('id', id = $$props.id);
+    		if ('data' in $$props) $$invalidate('data', data = $$props.data);
+    	};
+
+    	$$self.$capture_state = () => {
+    		return { id, data };
+    	};
+
+    	$$self.$inject_state = $$props => {
+    		if ('id' in $$props) $$invalidate('id', id = $$props.id);
+    		if ('data' in $$props) $$invalidate('data', data = $$props.data);
+    	};
+
+    	return { id, data };
+    }
+
+    class Path extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+    		init(this, options, instance$5, create_fragment$5, safe_not_equal, ["id", "data"]);
+    		dispatch_dev("SvelteRegisterComponent", { component: this, tagName: "Path", options, id: create_fragment$5.name });
+    	}
+
+    	get id() {
+    		throw new Error("<Path>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set id(value) {
+    		throw new Error("<Path>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get data() {
+    		throw new Error("<Path>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set data(value) {
+    		throw new Error("<Path>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+    }
+
+    /* node_modules/svelte-awesome/components/svg/Polygon.svelte generated by Svelte v3.12.1 */
+
+    const file$6 = "node_modules/svelte-awesome/components/svg/Polygon.svelte";
+
+    function create_fragment$6(ctx) {
+    	var polygon;
+
+    	var polygon_levels = [
+    		{ key: "polygon-" + ctx.id },
+    		ctx.data
+    	];
+
+    	var polygon_data = {};
+    	for (var i = 0; i < polygon_levels.length; i += 1) {
+    		polygon_data = assign(polygon_data, polygon_levels[i]);
+    	}
+
+    	const block = {
+    		c: function create() {
+    			polygon = svg_element("polygon");
+    			set_svg_attributes(polygon, polygon_data);
+    			add_location(polygon, file$6, 0, 0, 0);
+    		},
+
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, polygon, anchor);
+    		},
+
+    		p: function update(changed, ctx) {
+    			set_svg_attributes(polygon, get_spread_update(polygon_levels, [
+    				(changed.id) && { key: "polygon-" + ctx.id },
+    				(changed.data) && ctx.data
+    			]));
+    		},
+
+    		i: noop,
+    		o: noop,
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(polygon);
+    			}
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_fragment$6.name, type: "component", source: "", ctx });
+    	return block;
+    }
+
+    function instance$6($$self, $$props, $$invalidate) {
+    	let { id = '', data = {} } = $$props;
+
+    	const writable_props = ['id', 'data'];
+    	Object.keys($$props).forEach(key => {
+    		if (!writable_props.includes(key) && !key.startsWith('$$')) console.warn(`<Polygon> was created with unknown prop '${key}'`);
+    	});
+
+    	$$self.$set = $$props => {
+    		if ('id' in $$props) $$invalidate('id', id = $$props.id);
+    		if ('data' in $$props) $$invalidate('data', data = $$props.data);
+    	};
+
+    	$$self.$capture_state = () => {
+    		return { id, data };
+    	};
+
+    	$$self.$inject_state = $$props => {
+    		if ('id' in $$props) $$invalidate('id', id = $$props.id);
+    		if ('data' in $$props) $$invalidate('data', data = $$props.data);
+    	};
+
+    	return { id, data };
+    }
+
+    class Polygon extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+    		init(this, options, instance$6, create_fragment$6, safe_not_equal, ["id", "data"]);
+    		dispatch_dev("SvelteRegisterComponent", { component: this, tagName: "Polygon", options, id: create_fragment$6.name });
+    	}
+
+    	get id() {
+    		throw new Error("<Polygon>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set id(value) {
+    		throw new Error("<Polygon>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get data() {
+    		throw new Error("<Polygon>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set data(value) {
+    		throw new Error("<Polygon>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+    }
+
+    /* node_modules/svelte-awesome/components/svg/Raw.svelte generated by Svelte v3.12.1 */
+
+    const file$7 = "node_modules/svelte-awesome/components/svg/Raw.svelte";
+
+    function create_fragment$7(ctx) {
+    	var g;
+
+    	const block = {
+    		c: function create() {
+    			g = svg_element("g");
+    			add_location(g, file$7, 0, 0, 0);
+    		},
+
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, g, anchor);
+    			g.innerHTML = ctx.raw;
+    		},
+
+    		p: function update(changed, ctx) {
+    			if (changed.raw) {
+    				g.innerHTML = ctx.raw;
+    			}
+    		},
+
+    		i: noop,
+    		o: noop,
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(g);
+    			}
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_fragment$7.name, type: "component", source: "", ctx });
+    	return block;
+    }
+
+    function instance$7($$self, $$props, $$invalidate) {
+    	/* eslint-disable no-unused-vars, import/prefer-default-export */
+      let cursor = 0xd4937;
+      function getId() {
+        cursor += 1;
+        return `fa-${cursor.toString(16)}`;
+      }
+
+      let raw;
+
+      let { data } = $$props;
+
+      function getRaw(data) {
+        if (!data || !data.raw) {
+          return null;
+        }
+        let rawData = data.raw;
+        const ids = {};
+        rawData = rawData.replace(/\s(?:xml:)?id=["']?([^"')\s]+)/g, (match, id) => {
+          const uniqueId = getId();
+          ids[id] = uniqueId;
+          return ` id="${uniqueId}"`;
+        });
+
+        rawData = rawData.replace(/#(?:([^'")\s]+)|xpointer\(id\((['"]?)([^')]+)\2\)\))/g, (match, rawId, _, pointerId) => {
+          const id = rawId || pointerId;
+          if (!id || !ids[id]) {
+            return match;
+          }
+          return `#${ids[id]}`;
+        });
+        return rawData;
+      }
+
+    	const writable_props = ['data'];
+    	Object.keys($$props).forEach(key => {
+    		if (!writable_props.includes(key) && !key.startsWith('$$')) console.warn(`<Raw> was created with unknown prop '${key}'`);
+    	});
+
+    	$$self.$set = $$props => {
+    		if ('data' in $$props) $$invalidate('data', data = $$props.data);
+    	};
+
+    	$$self.$capture_state = () => {
+    		return { cursor, raw, data };
+    	};
+
+    	$$self.$inject_state = $$props => {
+    		if ('cursor' in $$props) cursor = $$props.cursor;
+    		if ('raw' in $$props) $$invalidate('raw', raw = $$props.raw);
+    		if ('data' in $$props) $$invalidate('data', data = $$props.data);
+    	};
+
+    	$$self.$$.update = ($$dirty = { data: 1 }) => {
+    		if ($$dirty.data) { $$invalidate('raw', raw = getRaw(data)); }
+    	};
+
+    	return { raw, data };
+    }
+
+    class Raw extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+    		init(this, options, instance$7, create_fragment$7, safe_not_equal, ["data"]);
+    		dispatch_dev("SvelteRegisterComponent", { component: this, tagName: "Raw", options, id: create_fragment$7.name });
+
+    		const { ctx } = this.$$;
+    		const props = options.props || {};
+    		if (ctx.data === undefined && !('data' in props)) {
+    			console.warn("<Raw> was created without expected prop 'data'");
+    		}
+    	}
+
+    	get data() {
+    		throw new Error("<Raw>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set data(value) {
+    		throw new Error("<Raw>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+    }
+
+    /* node_modules/svelte-awesome/components/svg/Svg.svelte generated by Svelte v3.12.1 */
+
+    const file$8 = "node_modules/svelte-awesome/components/svg/Svg.svelte";
+
+    function create_fragment$8(ctx) {
+    	var svg, svg_class_value, svg_role_value, current;
+
+    	const default_slot_template = ctx.$$slots.default;
+    	const default_slot = create_slot(default_slot_template, ctx, null);
+
+    	const block = {
+    		c: function create() {
+    			svg = svg_element("svg");
+
+    			if (default_slot) default_slot.c();
+
+    			attr_dev(svg, "version", "1.1");
+    			attr_dev(svg, "class", svg_class_value = "fa-icon " + ctx.className + " svelte-1dof0an");
+    			attr_dev(svg, "x", ctx.x);
+    			attr_dev(svg, "y", ctx.y);
+    			attr_dev(svg, "width", ctx.width);
+    			attr_dev(svg, "height", ctx.height);
+    			attr_dev(svg, "aria-label", ctx.label);
+    			attr_dev(svg, "role", svg_role_value = ctx.label ? 'img' : 'presentation');
+    			attr_dev(svg, "viewBox", ctx.box);
+    			attr_dev(svg, "style", ctx.style);
+    			toggle_class(svg, "fa-spin", ctx.spin);
+    			toggle_class(svg, "fa-pulse", ctx.pulse);
+    			toggle_class(svg, "fa-inverse", ctx.inverse);
+    			toggle_class(svg, "fa-flip-horizontal", ctx.flip === 'horizontal');
+    			toggle_class(svg, "fa-flip-vertical", ctx.flip === 'vertical');
+    			add_location(svg, file$8, 0, 0, 0);
+    		},
+
+    		l: function claim(nodes) {
+    			if (default_slot) default_slot.l(svg_nodes);
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, svg, anchor);
+
+    			if (default_slot) {
+    				default_slot.m(svg, null);
+    			}
+
+    			current = true;
+    		},
+
+    		p: function update(changed, ctx) {
+    			if (default_slot && default_slot.p && changed.$$scope) {
+    				default_slot.p(
+    					get_slot_changes(default_slot_template, ctx, changed, null),
+    					get_slot_context(default_slot_template, ctx, null)
+    				);
+    			}
+
+    			if ((!current || changed.className) && svg_class_value !== (svg_class_value = "fa-icon " + ctx.className + " svelte-1dof0an")) {
+    				attr_dev(svg, "class", svg_class_value);
+    			}
+
+    			if (!current || changed.x) {
+    				attr_dev(svg, "x", ctx.x);
+    			}
+
+    			if (!current || changed.y) {
+    				attr_dev(svg, "y", ctx.y);
+    			}
+
+    			if (!current || changed.width) {
+    				attr_dev(svg, "width", ctx.width);
+    			}
+
+    			if (!current || changed.height) {
+    				attr_dev(svg, "height", ctx.height);
+    			}
+
+    			if (!current || changed.label) {
+    				attr_dev(svg, "aria-label", ctx.label);
+    			}
+
+    			if ((!current || changed.label) && svg_role_value !== (svg_role_value = ctx.label ? 'img' : 'presentation')) {
+    				attr_dev(svg, "role", svg_role_value);
+    			}
+
+    			if (!current || changed.box) {
+    				attr_dev(svg, "viewBox", ctx.box);
+    			}
+
+    			if (!current || changed.style) {
+    				attr_dev(svg, "style", ctx.style);
+    			}
+
+    			if ((changed.className || changed.spin)) {
+    				toggle_class(svg, "fa-spin", ctx.spin);
+    			}
+
+    			if ((changed.className || changed.pulse)) {
+    				toggle_class(svg, "fa-pulse", ctx.pulse);
+    			}
+
+    			if ((changed.className || changed.inverse)) {
+    				toggle_class(svg, "fa-inverse", ctx.inverse);
+    			}
+
+    			if ((changed.className || changed.flip)) {
+    				toggle_class(svg, "fa-flip-horizontal", ctx.flip === 'horizontal');
+    				toggle_class(svg, "fa-flip-vertical", ctx.flip === 'vertical');
+    			}
+    		},
+
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(default_slot, local);
+    			current = true;
+    		},
+
+    		o: function outro(local) {
+    			transition_out(default_slot, local);
+    			current = false;
+    		},
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(svg);
+    			}
+
+    			if (default_slot) default_slot.d(detaching);
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_fragment$8.name, type: "component", source: "", ctx });
+    	return block;
+    }
+
+    function instance$8($$self, $$props, $$invalidate) {
+    	let { class: className, width, height, box, spin = false, inverse = false, pulse = false, flip = null, x = undefined, y = undefined, style = undefined, label = undefined } = $$props;
+
+    	const writable_props = ['class', 'width', 'height', 'box', 'spin', 'inverse', 'pulse', 'flip', 'x', 'y', 'style', 'label'];
+    	Object.keys($$props).forEach(key => {
+    		if (!writable_props.includes(key) && !key.startsWith('$$')) console.warn(`<Svg> was created with unknown prop '${key}'`);
+    	});
+
+    	let { $$slots = {}, $$scope } = $$props;
+
+    	$$self.$set = $$props => {
+    		if ('class' in $$props) $$invalidate('className', className = $$props.class);
+    		if ('width' in $$props) $$invalidate('width', width = $$props.width);
+    		if ('height' in $$props) $$invalidate('height', height = $$props.height);
+    		if ('box' in $$props) $$invalidate('box', box = $$props.box);
+    		if ('spin' in $$props) $$invalidate('spin', spin = $$props.spin);
+    		if ('inverse' in $$props) $$invalidate('inverse', inverse = $$props.inverse);
+    		if ('pulse' in $$props) $$invalidate('pulse', pulse = $$props.pulse);
+    		if ('flip' in $$props) $$invalidate('flip', flip = $$props.flip);
+    		if ('x' in $$props) $$invalidate('x', x = $$props.x);
+    		if ('y' in $$props) $$invalidate('y', y = $$props.y);
+    		if ('style' in $$props) $$invalidate('style', style = $$props.style);
+    		if ('label' in $$props) $$invalidate('label', label = $$props.label);
+    		if ('$$scope' in $$props) $$invalidate('$$scope', $$scope = $$props.$$scope);
+    	};
+
+    	$$self.$capture_state = () => {
+    		return { className, width, height, box, spin, inverse, pulse, flip, x, y, style, label };
+    	};
+
+    	$$self.$inject_state = $$props => {
+    		if ('className' in $$props) $$invalidate('className', className = $$props.className);
+    		if ('width' in $$props) $$invalidate('width', width = $$props.width);
+    		if ('height' in $$props) $$invalidate('height', height = $$props.height);
+    		if ('box' in $$props) $$invalidate('box', box = $$props.box);
+    		if ('spin' in $$props) $$invalidate('spin', spin = $$props.spin);
+    		if ('inverse' in $$props) $$invalidate('inverse', inverse = $$props.inverse);
+    		if ('pulse' in $$props) $$invalidate('pulse', pulse = $$props.pulse);
+    		if ('flip' in $$props) $$invalidate('flip', flip = $$props.flip);
+    		if ('x' in $$props) $$invalidate('x', x = $$props.x);
+    		if ('y' in $$props) $$invalidate('y', y = $$props.y);
+    		if ('style' in $$props) $$invalidate('style', style = $$props.style);
+    		if ('label' in $$props) $$invalidate('label', label = $$props.label);
+    	};
+
+    	return {
+    		className,
+    		width,
+    		height,
+    		box,
+    		spin,
+    		inverse,
+    		pulse,
+    		flip,
+    		x,
+    		y,
+    		style,
+    		label,
+    		$$slots,
+    		$$scope
+    	};
+    }
+
+    class Svg extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+    		init(this, options, instance$8, create_fragment$8, safe_not_equal, ["class", "width", "height", "box", "spin", "inverse", "pulse", "flip", "x", "y", "style", "label"]);
+    		dispatch_dev("SvelteRegisterComponent", { component: this, tagName: "Svg", options, id: create_fragment$8.name });
+
+    		const { ctx } = this.$$;
+    		const props = options.props || {};
+    		if (ctx.className === undefined && !('class' in props)) {
+    			console.warn("<Svg> was created without expected prop 'class'");
+    		}
+    		if (ctx.width === undefined && !('width' in props)) {
+    			console.warn("<Svg> was created without expected prop 'width'");
+    		}
+    		if (ctx.height === undefined && !('height' in props)) {
+    			console.warn("<Svg> was created without expected prop 'height'");
+    		}
+    		if (ctx.box === undefined && !('box' in props)) {
+    			console.warn("<Svg> was created without expected prop 'box'");
+    		}
+    	}
+
+    	get class() {
+    		throw new Error("<Svg>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set class(value) {
+    		throw new Error("<Svg>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get width() {
+    		throw new Error("<Svg>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set width(value) {
+    		throw new Error("<Svg>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get height() {
+    		throw new Error("<Svg>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set height(value) {
+    		throw new Error("<Svg>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get box() {
+    		throw new Error("<Svg>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set box(value) {
+    		throw new Error("<Svg>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get spin() {
+    		throw new Error("<Svg>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set spin(value) {
+    		throw new Error("<Svg>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get inverse() {
+    		throw new Error("<Svg>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set inverse(value) {
+    		throw new Error("<Svg>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get pulse() {
+    		throw new Error("<Svg>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set pulse(value) {
+    		throw new Error("<Svg>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get flip() {
+    		throw new Error("<Svg>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set flip(value) {
+    		throw new Error("<Svg>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get x() {
+    		throw new Error("<Svg>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set x(value) {
+    		throw new Error("<Svg>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get y() {
+    		throw new Error("<Svg>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set y(value) {
+    		throw new Error("<Svg>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get style() {
+    		throw new Error("<Svg>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set style(value) {
+    		throw new Error("<Svg>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get label() {
+    		throw new Error("<Svg>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set label(value) {
+    		throw new Error("<Svg>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+    }
+
+    /* node_modules/svelte-awesome/components/Icon.svelte generated by Svelte v3.12.1 */
+    const { Object: Object_1, console: console_1 } = globals;
+
+    function get_each_context$2(ctx, list, i) {
+    	const child_ctx = Object_1.create(ctx);
+    	child_ctx.polygon = list[i];
+    	child_ctx.i = i;
+    	return child_ctx;
+    }
+
+    function get_each_context_1$1(ctx, list, i) {
+    	const child_ctx = Object_1.create(ctx);
+    	child_ctx.path = list[i];
+    	child_ctx.i = i;
+    	return child_ctx;
+    }
+
+    // (4:4) {#if self}
+    function create_if_block$3(ctx) {
+    	var t0, t1, if_block2_anchor, current;
+
+    	var if_block0 = (ctx.self.paths) && create_if_block_3$1(ctx);
+
+    	var if_block1 = (ctx.self.polygons) && create_if_block_2$1(ctx);
+
+    	var if_block2 = (ctx.self.raw) && create_if_block_1$1(ctx);
+
+    	const block = {
+    		c: function create() {
+    			if (if_block0) if_block0.c();
+    			t0 = space();
+    			if (if_block1) if_block1.c();
+    			t1 = space();
+    			if (if_block2) if_block2.c();
+    			if_block2_anchor = empty();
+    		},
+
+    		m: function mount(target, anchor) {
+    			if (if_block0) if_block0.m(target, anchor);
+    			insert_dev(target, t0, anchor);
+    			if (if_block1) if_block1.m(target, anchor);
+    			insert_dev(target, t1, anchor);
+    			if (if_block2) if_block2.m(target, anchor);
+    			insert_dev(target, if_block2_anchor, anchor);
+    			current = true;
+    		},
+
+    		p: function update(changed, ctx) {
+    			if (ctx.self.paths) {
+    				if (if_block0) {
+    					if_block0.p(changed, ctx);
+    					transition_in(if_block0, 1);
+    				} else {
+    					if_block0 = create_if_block_3$1(ctx);
+    					if_block0.c();
+    					transition_in(if_block0, 1);
+    					if_block0.m(t0.parentNode, t0);
+    				}
+    			} else if (if_block0) {
+    				group_outros();
+    				transition_out(if_block0, 1, 1, () => {
+    					if_block0 = null;
+    				});
+    				check_outros();
+    			}
+
+    			if (ctx.self.polygons) {
+    				if (if_block1) {
+    					if_block1.p(changed, ctx);
+    					transition_in(if_block1, 1);
+    				} else {
+    					if_block1 = create_if_block_2$1(ctx);
+    					if_block1.c();
+    					transition_in(if_block1, 1);
+    					if_block1.m(t1.parentNode, t1);
+    				}
+    			} else if (if_block1) {
+    				group_outros();
+    				transition_out(if_block1, 1, 1, () => {
+    					if_block1 = null;
+    				});
+    				check_outros();
+    			}
+
+    			if (ctx.self.raw) {
+    				if (if_block2) {
+    					if_block2.p(changed, ctx);
+    					transition_in(if_block2, 1);
+    				} else {
+    					if_block2 = create_if_block_1$1(ctx);
+    					if_block2.c();
+    					transition_in(if_block2, 1);
+    					if_block2.m(if_block2_anchor.parentNode, if_block2_anchor);
+    				}
+    			} else if (if_block2) {
+    				group_outros();
+    				transition_out(if_block2, 1, 1, () => {
+    					if_block2 = null;
+    				});
+    				check_outros();
+    			}
+    		},
+
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(if_block0);
+    			transition_in(if_block1);
+    			transition_in(if_block2);
+    			current = true;
+    		},
+
+    		o: function outro(local) {
+    			transition_out(if_block0);
+    			transition_out(if_block1);
+    			transition_out(if_block2);
+    			current = false;
+    		},
+
+    		d: function destroy(detaching) {
+    			if (if_block0) if_block0.d(detaching);
+
+    			if (detaching) {
+    				detach_dev(t0);
+    			}
+
+    			if (if_block1) if_block1.d(detaching);
+
+    			if (detaching) {
+    				detach_dev(t1);
+    			}
+
+    			if (if_block2) if_block2.d(detaching);
+
+    			if (detaching) {
+    				detach_dev(if_block2_anchor);
+    			}
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block$3.name, type: "if", source: "(4:4) {#if self}", ctx });
+    	return block;
+    }
+
+    // (5:6) {#if self.paths}
+    function create_if_block_3$1(ctx) {
+    	var each_1_anchor, current;
+
+    	let each_value_1 = ctx.self.paths;
+
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value_1.length; i += 1) {
+    		each_blocks[i] = create_each_block_1$1(get_each_context_1$1(ctx, each_value_1, i));
+    	}
+
+    	const out = i => transition_out(each_blocks[i], 1, 1, () => {
+    		each_blocks[i] = null;
+    	});
+
+    	const block = {
+    		c: function create() {
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			each_1_anchor = empty();
+    		},
+
+    		m: function mount(target, anchor) {
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].m(target, anchor);
+    			}
+
+    			insert_dev(target, each_1_anchor, anchor);
+    			current = true;
+    		},
+
+    		p: function update(changed, ctx) {
+    			if (changed.self) {
+    				each_value_1 = ctx.self.paths;
+
+    				let i;
+    				for (i = 0; i < each_value_1.length; i += 1) {
+    					const child_ctx = get_each_context_1$1(ctx, each_value_1, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(changed, child_ctx);
+    						transition_in(each_blocks[i], 1);
+    					} else {
+    						each_blocks[i] = create_each_block_1$1(child_ctx);
+    						each_blocks[i].c();
+    						transition_in(each_blocks[i], 1);
+    						each_blocks[i].m(each_1_anchor.parentNode, each_1_anchor);
+    					}
+    				}
+
+    				group_outros();
+    				for (i = each_value_1.length; i < each_blocks.length; i += 1) {
+    					out(i);
+    				}
+    				check_outros();
+    			}
+    		},
+
+    		i: function intro(local) {
+    			if (current) return;
+    			for (let i = 0; i < each_value_1.length; i += 1) {
+    				transition_in(each_blocks[i]);
+    			}
+
+    			current = true;
+    		},
+
+    		o: function outro(local) {
+    			each_blocks = each_blocks.filter(Boolean);
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				transition_out(each_blocks[i]);
+    			}
+
+    			current = false;
+    		},
+
+    		d: function destroy(detaching) {
+    			destroy_each(each_blocks, detaching);
+
+    			if (detaching) {
+    				detach_dev(each_1_anchor);
+    			}
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block_3$1.name, type: "if", source: "(5:6) {#if self.paths}", ctx });
+    	return block;
+    }
+
+    // (6:8) {#each self.paths as path, i}
+    function create_each_block_1$1(ctx) {
+    	var current;
+
+    	var path = new Path({
+    		props: { id: ctx.i, data: ctx.path },
+    		$$inline: true
+    	});
+
+    	const block = {
+    		c: function create() {
+    			path.$$.fragment.c();
+    		},
+
+    		m: function mount(target, anchor) {
+    			mount_component(path, target, anchor);
+    			current = true;
+    		},
+
+    		p: function update(changed, ctx) {
+    			var path_changes = {};
+    			if (changed.self) path_changes.data = ctx.path;
+    			path.$set(path_changes);
+    		},
+
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(path.$$.fragment, local);
+
+    			current = true;
+    		},
+
+    		o: function outro(local) {
+    			transition_out(path.$$.fragment, local);
+    			current = false;
+    		},
+
+    		d: function destroy(detaching) {
+    			destroy_component(path, detaching);
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_each_block_1$1.name, type: "each", source: "(6:8) {#each self.paths as path, i}", ctx });
+    	return block;
+    }
+
+    // (10:6) {#if self.polygons}
+    function create_if_block_2$1(ctx) {
+    	var each_1_anchor, current;
+
+    	let each_value = ctx.self.polygons;
+
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block$2(get_each_context$2(ctx, each_value, i));
+    	}
+
+    	const out = i => transition_out(each_blocks[i], 1, 1, () => {
+    		each_blocks[i] = null;
+    	});
+
+    	const block = {
+    		c: function create() {
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			each_1_anchor = empty();
+    		},
+
+    		m: function mount(target, anchor) {
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].m(target, anchor);
+    			}
+
+    			insert_dev(target, each_1_anchor, anchor);
+    			current = true;
+    		},
+
+    		p: function update(changed, ctx) {
+    			if (changed.self) {
+    				each_value = ctx.self.polygons;
+
+    				let i;
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context$2(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(changed, child_ctx);
+    						transition_in(each_blocks[i], 1);
+    					} else {
+    						each_blocks[i] = create_each_block$2(child_ctx);
+    						each_blocks[i].c();
+    						transition_in(each_blocks[i], 1);
+    						each_blocks[i].m(each_1_anchor.parentNode, each_1_anchor);
+    					}
+    				}
+
+    				group_outros();
+    				for (i = each_value.length; i < each_blocks.length; i += 1) {
+    					out(i);
+    				}
+    				check_outros();
+    			}
+    		},
+
+    		i: function intro(local) {
+    			if (current) return;
+    			for (let i = 0; i < each_value.length; i += 1) {
+    				transition_in(each_blocks[i]);
+    			}
+
+    			current = true;
+    		},
+
+    		o: function outro(local) {
+    			each_blocks = each_blocks.filter(Boolean);
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				transition_out(each_blocks[i]);
+    			}
+
+    			current = false;
+    		},
+
+    		d: function destroy(detaching) {
+    			destroy_each(each_blocks, detaching);
+
+    			if (detaching) {
+    				detach_dev(each_1_anchor);
+    			}
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block_2$1.name, type: "if", source: "(10:6) {#if self.polygons}", ctx });
+    	return block;
+    }
+
+    // (11:8) {#each self.polygons as polygon, i}
+    function create_each_block$2(ctx) {
+    	var current;
+
+    	var polygon = new Polygon({
+    		props: { id: ctx.i, data: ctx.polygon },
+    		$$inline: true
+    	});
+
+    	const block = {
+    		c: function create() {
+    			polygon.$$.fragment.c();
+    		},
+
+    		m: function mount(target, anchor) {
+    			mount_component(polygon, target, anchor);
+    			current = true;
+    		},
+
+    		p: function update(changed, ctx) {
+    			var polygon_changes = {};
+    			if (changed.self) polygon_changes.data = ctx.polygon;
+    			polygon.$set(polygon_changes);
+    		},
+
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(polygon.$$.fragment, local);
+
+    			current = true;
+    		},
+
+    		o: function outro(local) {
+    			transition_out(polygon.$$.fragment, local);
+    			current = false;
+    		},
+
+    		d: function destroy(detaching) {
+    			destroy_component(polygon, detaching);
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_each_block$2.name, type: "each", source: "(11:8) {#each self.polygons as polygon, i}", ctx });
+    	return block;
+    }
+
+    // (15:6) {#if self.raw}
+    function create_if_block_1$1(ctx) {
+    	var updating_data, current;
+
+    	function raw_data_binding(value) {
+    		ctx.raw_data_binding.call(null, value);
+    		updating_data = true;
+    		add_flush_callback(() => updating_data = false);
+    	}
+
+    	let raw_props = {};
+    	if (ctx.self !== void 0) {
+    		raw_props.data = ctx.self;
+    	}
+    	var raw = new Raw({ props: raw_props, $$inline: true });
+
+    	binding_callbacks.push(() => bind(raw, 'data', raw_data_binding));
+
+    	const block = {
+    		c: function create() {
+    			raw.$$.fragment.c();
+    		},
+
+    		m: function mount(target, anchor) {
+    			mount_component(raw, target, anchor);
+    			current = true;
+    		},
+
+    		p: function update(changed, ctx) {
+    			var raw_changes = {};
+    			if (!updating_data && changed.self) {
+    				raw_changes.data = ctx.self;
+    			}
+    			raw.$set(raw_changes);
+    		},
+
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(raw.$$.fragment, local);
+
+    			current = true;
+    		},
+
+    		o: function outro(local) {
+    			transition_out(raw.$$.fragment, local);
+    			current = false;
+    		},
+
+    		d: function destroy(detaching) {
+    			destroy_component(raw, detaching);
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block_1$1.name, type: "if", source: "(15:6) {#if self.raw}", ctx });
+    	return block;
+    }
+
+    // (1:0) <Svg label={label} width={width} height={height} box={box} style={combinedStyle}   spin={spin} flip={flip} inverse={inverse} pulse={pulse} class={className}>
+    function create_default_slot(ctx) {
+    	var if_block_anchor, current;
+
+    	const default_slot_template = ctx.$$slots.default;
+    	const default_slot = create_slot(default_slot_template, ctx, null);
+
+    	var if_block = (ctx.self) && create_if_block$3(ctx);
+
+    	const block = {
+    		c: function create() {
+    			if (!default_slot) {
+    				if (if_block) if_block.c();
+    				if_block_anchor = empty();
+    			}
+
+    			if (default_slot) default_slot.c();
+    		},
+
+    		l: function claim(nodes) {
+    			if (default_slot) default_slot.l(nodes);
+    		},
+
+    		m: function mount(target, anchor) {
+    			if (!default_slot) {
+    				if (if_block) if_block.m(target, anchor);
+    				insert_dev(target, if_block_anchor, anchor);
+    			}
+
+    			else {
+    				default_slot.m(target, anchor);
+    			}
+
+    			current = true;
+    		},
+
+    		p: function update(changed, ctx) {
+    			if (!default_slot) {
+    				if (ctx.self) {
+    					if (if_block) {
+    						if_block.p(changed, ctx);
+    						transition_in(if_block, 1);
+    					} else {
+    						if_block = create_if_block$3(ctx);
+    						if_block.c();
+    						transition_in(if_block, 1);
+    						if_block.m(if_block_anchor.parentNode, if_block_anchor);
+    					}
+    				} else if (if_block) {
+    					group_outros();
+    					transition_out(if_block, 1, 1, () => {
+    						if_block = null;
+    					});
+    					check_outros();
+    				}
+    			}
+
+    			if (default_slot && default_slot.p && changed.$$scope) {
+    				default_slot.p(
+    					get_slot_changes(default_slot_template, ctx, changed, null),
+    					get_slot_context(default_slot_template, ctx, null)
+    				);
+    			}
+    		},
+
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(if_block);
+    			transition_in(default_slot, local);
+    			current = true;
+    		},
+
+    		o: function outro(local) {
+    			transition_out(if_block);
+    			transition_out(default_slot, local);
+    			current = false;
+    		},
+
+    		d: function destroy(detaching) {
+    			if (!default_slot) {
+    				if (if_block) if_block.d(detaching);
+
+    				if (detaching) {
+    					detach_dev(if_block_anchor);
+    				}
+    			}
+
+    			if (default_slot) default_slot.d(detaching);
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_default_slot.name, type: "slot", source: "(1:0) <Svg label={label} width={width} height={height} box={box} style={combinedStyle}   spin={spin} flip={flip} inverse={inverse} pulse={pulse} class={className}>", ctx });
+    	return block;
+    }
+
+    function create_fragment$9(ctx) {
+    	var current;
+
+    	var svg = new Svg({
+    		props: {
+    		label: ctx.label,
+    		width: ctx.width,
+    		height: ctx.height,
+    		box: ctx.box,
+    		style: ctx.combinedStyle,
+    		spin: ctx.spin,
+    		flip: ctx.flip,
+    		inverse: ctx.inverse,
+    		pulse: ctx.pulse,
+    		class: ctx.className,
+    		$$slots: { default: [create_default_slot] },
+    		$$scope: { ctx }
+    	},
+    		$$inline: true
+    	});
+
+    	const block = {
+    		c: function create() {
+    			svg.$$.fragment.c();
+    		},
+
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+
+    		m: function mount(target, anchor) {
+    			mount_component(svg, target, anchor);
+    			current = true;
+    		},
+
+    		p: function update(changed, ctx) {
+    			var svg_changes = {};
+    			if (changed.label) svg_changes.label = ctx.label;
+    			if (changed.width) svg_changes.width = ctx.width;
+    			if (changed.height) svg_changes.height = ctx.height;
+    			if (changed.box) svg_changes.box = ctx.box;
+    			if (changed.combinedStyle) svg_changes.style = ctx.combinedStyle;
+    			if (changed.spin) svg_changes.spin = ctx.spin;
+    			if (changed.flip) svg_changes.flip = ctx.flip;
+    			if (changed.inverse) svg_changes.inverse = ctx.inverse;
+    			if (changed.pulse) svg_changes.pulse = ctx.pulse;
+    			if (changed.className) svg_changes.class = ctx.className;
+    			if (changed.$$scope || changed.self) svg_changes.$$scope = { changed, ctx };
+    			svg.$set(svg_changes);
+    		},
+
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(svg.$$.fragment, local);
+
+    			current = true;
+    		},
+
+    		o: function outro(local) {
+    			transition_out(svg.$$.fragment, local);
+    			current = false;
+    		},
+
+    		d: function destroy(detaching) {
+    			destroy_component(svg, detaching);
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_fragment$9.name, type: "component", source: "", ctx });
+    	return block;
+    }
+
+    let x = 0;
+
+    let y = 0;
+
+    let childrenHeight = 0;
+
+    let childrenWidth = 0;
+
+    let outerScale = 1;
+
+    function normaliseData(data) {
+      if ('iconName' in data && 'icon' in data) {
+        let normalisedData = {};
+        let faIcon = data.icon;
+        let name = data.iconName;
+        let width = faIcon[0];
+        let height = faIcon[1];
+        let paths = faIcon[4];
+        let iconData = {
+          width,
+          height,
+          paths: [{
+            d: paths
+          }]
+        };
+        normalisedData[name] = iconData;
+        return normalisedData;
+      }
+      return data;
+    }
+
+    function instance$9($$self, $$props, $$invalidate) {
+    	
+
+      let { class: className = "", data, scale = 1, spin = false, inverse = false, pulse = false, flip = null, label = null, self = null, style = null } = $$props;
+
+      let width;
+      let height;
+      let combinedStyle;
+      let box;
+
+      function init() {
+        if (typeof data === 'undefined') {
+          return;
+        }
+        const normalisedData = normaliseData(data);
+        const [name] = Object.keys(normalisedData);
+        const icon = normalisedData[name];
+        if (!icon.paths) {
+          icon.paths = [];
+        }
+        if (icon.d) {
+          icon.paths.push({
+            d: icon.d,
+          });
+        }
+        if (!icon.polygons) {
+          icon.polygons = [];
+        }
+        if (icon.points) {
+          icon.polygons.push({
+            points: icon.points,
+          });
+        }
+        $$invalidate('self', self = icon);
+      }
+
+      function normalisedScale() {
+        let numScale = 1;
+        if (typeof scale !== 'undefined') {
+          numScale = Number(scale);
+        }
+        if (isNaN(numScale) || numScale <= 0) { // eslint-disable-line no-restricted-globals
+          console.warn('Invalid prop: prop "scale" should be a number over 0.'); // eslint-disable-line no-console
+          return outerScale;
+        }
+        return numScale * outerScale;
+      }
+
+      function calculateBox() {
+        if (self) {
+          return `0 0 ${self.width} ${self.height}`;
+        }
+        return `0 0 ${width} ${height}`;
+      }
+
+      function calculateRatio() {
+        if (!self) {
+          return 1;
+        }
+        return Math.max(self.width, self.height) / 16;
+      }
+
+      function calculateWidth() {
+        if (childrenWidth) {
+          return childrenWidth;
+        }
+        if (self) {
+          return (self.width / calculateRatio()) * normalisedScale();
+        }
+        return 0;
+      }
+
+      function calculateHeight() {
+        if (childrenHeight) {
+          return childrenHeight;
+        }
+        if (self) {
+          return (self.height / calculateRatio()) * normalisedScale();
+        }
+        return 0;
+      }
+
+      function calculateStyle() {
+        let combined = "";
+        if (style !== null) {
+          combined += style;
+        }
+        let size = normalisedScale();
+        if (size === 1) {
+          return combined;
+        }
+        if (combined !== "" && !combined.endsWith(';')) {
+          combined += '; ';
+        }
+        return `${combined}font-size: ${size}em`;
+      }
+
+    	const writable_props = ['class', 'data', 'scale', 'spin', 'inverse', 'pulse', 'flip', 'label', 'self', 'style'];
+    	Object_1.keys($$props).forEach(key => {
+    		if (!writable_props.includes(key) && !key.startsWith('$$')) console_1.warn(`<Icon> was created with unknown prop '${key}'`);
+    	});
+
+    	let { $$slots = {}, $$scope } = $$props;
+
+    	function raw_data_binding(value) {
+    		self = value;
+    		$$invalidate('self', self);
+    	}
+
+    	$$self.$set = $$props => {
+    		if ('class' in $$props) $$invalidate('className', className = $$props.class);
+    		if ('data' in $$props) $$invalidate('data', data = $$props.data);
+    		if ('scale' in $$props) $$invalidate('scale', scale = $$props.scale);
+    		if ('spin' in $$props) $$invalidate('spin', spin = $$props.spin);
+    		if ('inverse' in $$props) $$invalidate('inverse', inverse = $$props.inverse);
+    		if ('pulse' in $$props) $$invalidate('pulse', pulse = $$props.pulse);
+    		if ('flip' in $$props) $$invalidate('flip', flip = $$props.flip);
+    		if ('label' in $$props) $$invalidate('label', label = $$props.label);
+    		if ('self' in $$props) $$invalidate('self', self = $$props.self);
+    		if ('style' in $$props) $$invalidate('style', style = $$props.style);
+    		if ('$$scope' in $$props) $$invalidate('$$scope', $$scope = $$props.$$scope);
+    	};
+
+    	$$self.$capture_state = () => {
+    		return { className, data, scale, spin, inverse, pulse, flip, label, self, style, x, y, childrenHeight, childrenWidth, outerScale, width, height, combinedStyle, box };
+    	};
+
+    	$$self.$inject_state = $$props => {
+    		if ('className' in $$props) $$invalidate('className', className = $$props.className);
+    		if ('data' in $$props) $$invalidate('data', data = $$props.data);
+    		if ('scale' in $$props) $$invalidate('scale', scale = $$props.scale);
+    		if ('spin' in $$props) $$invalidate('spin', spin = $$props.spin);
+    		if ('inverse' in $$props) $$invalidate('inverse', inverse = $$props.inverse);
+    		if ('pulse' in $$props) $$invalidate('pulse', pulse = $$props.pulse);
+    		if ('flip' in $$props) $$invalidate('flip', flip = $$props.flip);
+    		if ('label' in $$props) $$invalidate('label', label = $$props.label);
+    		if ('self' in $$props) $$invalidate('self', self = $$props.self);
+    		if ('style' in $$props) $$invalidate('style', style = $$props.style);
+    		if ('x' in $$props) x = $$props.x;
+    		if ('y' in $$props) y = $$props.y;
+    		if ('childrenHeight' in $$props) childrenHeight = $$props.childrenHeight;
+    		if ('childrenWidth' in $$props) childrenWidth = $$props.childrenWidth;
+    		if ('outerScale' in $$props) outerScale = $$props.outerScale;
+    		if ('width' in $$props) $$invalidate('width', width = $$props.width);
+    		if ('height' in $$props) $$invalidate('height', height = $$props.height);
+    		if ('combinedStyle' in $$props) $$invalidate('combinedStyle', combinedStyle = $$props.combinedStyle);
+    		if ('box' in $$props) $$invalidate('box', box = $$props.box);
+    	};
+
+    	$$self.$$.update = ($$dirty = { data: 1 }) => {
+    		if ($$dirty.data) { {
+            init();
+            $$invalidate('width', width = calculateWidth());
+            $$invalidate('height', height = calculateHeight());
+            $$invalidate('combinedStyle', combinedStyle = calculateStyle());
+            $$invalidate('box', box = calculateBox());
+          } }
+    	};
+
+    	return {
+    		className,
+    		data,
+    		scale,
+    		spin,
+    		inverse,
+    		pulse,
+    		flip,
+    		label,
+    		self,
+    		style,
+    		width,
+    		height,
+    		combinedStyle,
+    		box,
+    		raw_data_binding,
+    		$$slots,
+    		$$scope
+    	};
+    }
+
+    class Icon extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+    		init(this, options, instance$9, create_fragment$9, safe_not_equal, ["class", "data", "scale", "spin", "inverse", "pulse", "flip", "label", "self", "style"]);
+    		dispatch_dev("SvelteRegisterComponent", { component: this, tagName: "Icon", options, id: create_fragment$9.name });
+
+    		const { ctx } = this.$$;
+    		const props = options.props || {};
+    		if (ctx.data === undefined && !('data' in props)) {
+    			console_1.warn("<Icon> was created without expected prop 'data'");
+    		}
+    	}
+
+    	get class() {
+    		throw new Error("<Icon>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set class(value) {
+    		throw new Error("<Icon>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get data() {
+    		throw new Error("<Icon>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set data(value) {
+    		throw new Error("<Icon>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get scale() {
+    		throw new Error("<Icon>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set scale(value) {
+    		throw new Error("<Icon>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get spin() {
+    		throw new Error("<Icon>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set spin(value) {
+    		throw new Error("<Icon>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get inverse() {
+    		throw new Error("<Icon>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set inverse(value) {
+    		throw new Error("<Icon>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get pulse() {
+    		throw new Error("<Icon>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set pulse(value) {
+    		throw new Error("<Icon>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get flip() {
+    		throw new Error("<Icon>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set flip(value) {
+    		throw new Error("<Icon>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get label() {
+    		throw new Error("<Icon>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set label(value) {
+    		throw new Error("<Icon>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get self() {
+    		throw new Error("<Icon>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set self(value) {
+    		throw new Error("<Icon>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get style() {
+    		throw new Error("<Icon>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set style(value) {
+    		throw new Error("<Icon>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+    }
+
+    var search = { search: { width: 1664, height: 1792, paths: [{ d: 'M1152 832q0-185-131.5-316.5t-316.5-131.5-316.5 131.5-131.5 316.5 131.5 316.5 316.5 131.5 316.5-131.5 131.5-316.5zM1664 1664q0 52-38 90t-90 38q-54 0-90-38l-343-342q-179 124-399 124-143 0-273.5-55.5t-225-150-150-225-55.5-273.5 55.5-273.5 150-225 225-150 273.5-55.5 273.5 55.5 225 150 150 225 55.5 273.5q0 220-124 399l343 343q37 37 37 90z' }] } };
+
+    var defaultParameters = {
+        days_from_incubation_to_death: 18, // From Mikko Viikari.
+        initial_population_count: 5538328, // 2020 Finnish population count.
+        R0: 1.05,
+        days_from_incubation_to_infectious: 5.2,     
+        days_from_infectious_to_not_infectious: 2.9,
+        days_in_mild_recovering_state: 11.1,
+        days_in_hospital: 13, // From Mikko Viikari. For comparison, THL's estimate was 8 days (published ~end of march)
+        days_in_severe_recovering_state_before_hospital: 11, // From Mikko Viikari. For comparison, THL's estimate was 10 days.
+        fatality_rate: 0.006, // From https://www.thelancet.com/journals/laninf/article/PIIS1473-3099%2820%2930243-7/fulltext
+        hospitalization_rate: 0.028, // Hospitalization rate. From Mikko Viikari.
+        icu_rate_from_hospitalized: 0.3, // THL 25.3.2020
+        icu_capacity: 700, // Estimate from Heikki. Means maximum number of patients simultaneously in ICU.
+
+        InterventionTime: 60, // this is just where the intervention slider is at initially
+        OMInterventionAmt: -1/2, // intervention slider default position
+    };
+
+    class UFState {
+      constructor(susceptible, inf, hospitalized, icu, recovered, fatalities) {
+        this['susceptible'] = susceptible;
+        this['infected'] = inf;
+        this['hospitalized'] = hospitalized;
+        this['icu'] = icu;
+        this['recovered'] = recovered;
+        this['fatalities'] = fatalities;
+      }
+    }
+
+    function getDefaultStateMeta() {
+        return [
+            {
+            'key': 'susceptible',
+            'tooltip_title': 'Susceptible',
+            'tooltip_desc': 'Population not immune to the disease',
+            'checkable': false,
+            'checked': false,
+            'color': '#c8ffba',
+            },
+            {
+            'key': 'infected',
+            'tooltip_title': 'Infected',
+            'tooltip_desc': 'Active infections (incl. incubating, undiagnosed) (excl. hosp, icu)',
+            'checkable': true,
+            'checked': true,
+            'color': '#f0027f',
+            },
+            {
+            'key': 'hospitalized',
+            'tooltip_title': 'Hospitalized',
+            'tooltip_desc': 'Active hospitalizations (excluding ICU)',
+            'checkable': true,
+            'checked': true,
+            'color': '#8da0cb'
+            },
+            {
+            'key': 'icu',
+            'tooltip_title': 'ICU',
+            'tooltip_desc': 'Patients in intensive care, active',
+            'checkable': true,
+            'checked': true,
+            'color': '#386cb0',
+            },
+            {
+            'key': 'recovered',
+            'tooltip_title': 'Recovered',
+            'tooltip_desc': 'Number of full recoveries, cumulative',
+            'checkable': true,
+            'checked': false,
+            'color': '#4daf4a',
+            },
+            {
+            'key': 'fatalities',
+            'tooltip_title': 'Fatalities',
+            'tooltip_desc': 'Number of deaths, cumulative',
+            'checkable': true,
+            'checked': true,
+            'color': "#000000",
+            },
+        ]
+    }
+
+    const AM_DAY = 'day';
+    const AM_NAME = 'name';
+    const AM_EFFECT = 'effect';
+
+    class ActionMarkerData {
+
+        constructor(day, name, effect) {
+            this[AM_DAY] = day;
+            this[AM_NAME] = name || 'Action';
+            this[AM_EFFECT] = effect || undefined;
+        }
+
+        // ActionMarker is configurable if it has an effect.
+        // Otherwise it's just a visual marker (e.g. to show where an action was taken in precomputed results).
+        isConfigurable() {
+            return typeof this[AM_EFFECT] !== 'undefined'
+        }
+    }
+
+    var Integrators = {
+        Euler    : [[1]],
+        Midpoint : [[.5,.5],[0, 1]],
+        Heun     : [[1, 1],[.5,.5]],
+        Ralston  : [[2/3,2/3],[.25,.75]],
+        K3       : [[.5,.5],[1,-1,2],[1/6,2/3,1/6]],
+        SSP33    : [[1,1],[.5,.25,.25],[1/6,1/6,2/3]],
+        SSP43    : [[.5,.5],[1,.5,.5],[.5,1/6,1/6,1/6],[1/6,1/6,1/6,1/2]],
+        RK4      : [[.5,.5],[.5,0,.5],[1,0,0,1],[1/6,1/3,1/3,1/6]],
+        RK38     : [[1/3,1/3],[2/3,-1/3,1],[1,1,-1,1],[1/8,3/8,3/8,1/8]]
+    };
+
+    // f is a func of time t and state y
+    // y is the initial state, t is the time, h is the timestep
+    // updated y is returned.
+    var integrate=(m,f,y,t,h)=>{
+        for (var k=[],ki=0; ki<m.length; ki++) {
+            var _y=y.slice(), dt=ki?((m[ki-1][0])*h):0;
+            for (var l=0; l<_y.length; l++) for (var j=1; j<=ki; j++) _y[l]=_y[l]+h*(m[ki-1][j])*(k[ki-1][l]);
+            k[ki]=f(t+dt,_y,dt); 
+        }
+        for (var r=y.slice(),l=0; l<_y.length; l++) for (var j=0; j<k.length; j++) r[l]=r[l]+h*(k[j][l])*(m[ki-1][j]);
+        return r;
+    };
+
+    // P_prior, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration
+    function get_solution_from_gohs_seir_ode(demo_mode, historical_goh_states, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration) {
+
+        var interpolation_steps = 40;
+        var steps = 101*interpolation_steps*real_dt;
+        var dt = 1/interpolation_steps;
+        var sample_step = interpolation_steps;
+
+        var method = Integrators["RK4"];
+        function f(t, x){
+
+            // SEIR ODE
+
+            const adjustedInterventionTime =
+                demo_mode !== SHOW_FUTURE ?
+                InterventionTime - historical_goh_states.length :
+                InterventionTime;
+            
+            if (t > adjustedInterventionTime && t < adjustedInterventionTime + duration){
+                var beta = (InterventionAmt)*R0/(D_infectious);
+            } else if (t > adjustedInterventionTime + duration) {
+                var beta = 0.5*R0/(D_infectious);        
+            } else {
+                var beta = R0/(D_infectious);
+            }
+
+            var a        = 1/D_incbation;
+            var gamma    = 1/D_infectious;
+            
+            var S        = x[0]; // Susceptible
+            var E        = x[1]; // Exposed
+            var I        = x[2]; // Infectious 
+            var Mild     = x[3]; // Recovering (Mild)     
+            var Severe   = x[4]; // Recovering (Severe at home)
+            var Severe_H = x[5]; // Recovering (Severe in hospital)
+            var Fatal    = x[6]; // Recovering (Fatal)
+            var R_Mild   = x[7]; // Recovered
+            var R_Severe = x[8]; // Recovered
+            var R_Fatal  = x[9]; // Dead
+
+            var p_severe = P_SEVERE;
+            var p_fatal  = CFR;
+            var p_mild   = 1 - P_SEVERE - CFR;
+
+            var dS        = -beta*I*S;
+            var dE        =  beta*I*S - a*E;
+            var dI        =  a*E - gamma*I;
+            var dMild     =  p_mild*gamma*I   - (1/D_recovery_mild)*Mild;
+            var dSevere   =  p_severe*gamma*I - (1/D_hospital_lag)*Severe;
+            var dSevere_H =  (1/D_hospital_lag)*Severe - (1/D_recovery_severe)*Severe_H;
+            var dFatal    =  p_fatal*gamma*I  - (1/D_death)*Fatal;
+            var dR_Mild   =  (1/D_recovery_mild)*Mild;
+            var dR_Severe =  (1/D_recovery_severe)*Severe_H;
+            var dR_Fatal  =  (1/D_death)*Fatal;
+
+            //      0   1   2   3      4        5          6       7        8          9
+            return [dS, dE, dI, dMild, dSevere, dSevere_H, dFatal, dR_Mild, dR_Severe, dR_Fatal]
+        }
+
+        // If historical data is available, we take the last historical state as our start state.
+        var v =
+            historical_goh_states ?
+            v = historical_goh_states[historical_goh_states.length - 1] :
+            [1 - I0/N, 0, I0/N, 0, 0, 0, 0, 0, 0, 0];
+
+        var t = 0;
+        var goh_states = [];
+        while (steps--) { 
+            if ((steps+1) % (sample_step) == 0) {
+                goh_states.push(v.slice());
+            }
+            v =integrate(method,f,v,t,dt); 
+            t+=dt;
+        }
+
+        return map_goh_states_into_UFStates(goh_states, N, P_ICU)
+    }
+
+    /** Map Goh model's internal states into states represented by our chart. */
+    function map_goh_states_into_UFStates(goh_states, N, P_ICU) {
+        return goh_states.map(v => {
+            // First, just for readability, we name the states in the array
+            const susceptible = v[0];
+            const exposed = v[1];
+            const infectious = v[2];
+            const recovering_mild = v[3];
+            const recovering_severe_home = v[4];
+            const hospitalized_will_recover = v[5];
+            const hospitalized_will_die = v[6];
+            const recovered_mild = v[7];
+            const recovered_severe = v[8];
+            const dead = v[9];
+
+            // Then, compute ChartV2 states.
+            const suscep = Math.round(susceptible * N);
+            const infected = Math.round((exposed + infectious + recovering_mild + recovering_severe_home) * N);
+            const hospitalized_and_icu = Math.round((hospitalized_will_recover + hospitalized_will_die) * N);
+            const hospitalized = Math.round((1 - P_ICU) * hospitalized_and_icu);
+            const icu = Math.round(P_ICU * hospitalized_and_icu);
+            const recovered = Math.round((recovered_mild + recovered_severe) * N);
+            const fatalities = Math.round(dead * N);
+
+            return new UFState(
+                suscep,
+                infected,
+                hospitalized,
+                icu,
+                recovered,
+                fatalities
+            )
+        })
+    }
+
+    function goh_default_action_markers() {
+        return [
+            new ActionMarkerData(70, "Open uusimaa", 0.3),
+            //new ActionMarkerData(90, "Medical intervention", -0.1)
+        ]
+    }
+
+    /** Map Berkeley model's internal states into states represented by our chart. */
+    function map_berkeley_states_into_UFStates(berkeley_states, N) {
+        const susceptible = 'S';
+        const incubating = 'E';
+        const asymptomatic = 'A';
+        const asymptomatic_non_severe = 'X1';
+        const symptomatic_non_hospitalized_non_severe = 'X2';
+        const asymptomatic_severe_will_survive = 'C1';
+        const symptomatic_non_hospitalized_severe_will_survive = 'C2';
+        const hospitalized_severe_will_survive = 'C3';
+        const asymptomatic_severe_will_die = 'D1';
+        const symptomatic_severe_will_die = 'D2';
+        const hospitalized_severe_will_die = 'D3';
+        const asymptomatic_non_critical_will_survive = 'HR1';
+        const symptomatic_non_critical_will_survive = 'HR2';
+        const hospitalized_non_critical_will_survive = 'HR3';
+        const asymptomatic_non_critical_will_die = 'HM1';
+        const symptomatic_non_critical_will_die = 'HM2';
+        const hospitalized_non_critical_will_die = 'HM3';
+        const recovered = 'R';
+        const dead = 'M';
+
+        // TODO figure out what are "RP" and "mc"
+
+        // TODO this / 4486 * N thing should be done in R
+
+        // group 1
+        function h(v) {
+            return Math.round(v / 4486 * N)
+        }
+
+        // TODO verify that states sum up to one for every day
+
+        return berkeley_states.map(b => {
+
+            const suscep =
+                    b[susceptible];
+
+            const infected =
+                    b[incubating]
+                + b[asymptomatic]
+                + b[asymptomatic_non_severe]
+                + b[symptomatic_non_hospitalized_non_severe]
+                + b[asymptomatic_severe_will_survive]
+                + b[symptomatic_non_hospitalized_severe_will_survive]
+                + b[asymptomatic_severe_will_die]
+                + b[symptomatic_severe_will_die]
+                + b[asymptomatic_non_critical_will_survive]
+                + b[symptomatic_non_critical_will_survive]
+                + b[hospitalized_non_critical_will_survive]
+                + b[asymptomatic_non_critical_will_die]
+                + b[symptomatic_non_critical_will_die]
+                + b[hospitalized_non_critical_will_die];
+
+            const hospitalized =
+                    b[hospitalized_severe_will_survive]
+                + b[hospitalized_severe_will_die];
+
+            const icu =
+                    b[hospitalized_severe_will_survive]
+                + b[hospitalized_severe_will_die];
+
+            const recov =
+                    b[recovered];
+
+            const fatalities =
+                    b[dead];
+
+            return new UFState(
+                h(suscep),
+                h(infected),
+                h(hospitalized),
+                h(icu),
+                h(recov),
+                h(fatalities)
+            )
+        }
+    )}
+
+    function isValidDate(d) {
+        return d instanceof Date && !isNaN(d);
+    }
+
+    function loadFinnishHistoricalEstimates(fin, N) {
+        // This function returns these 2.
+        var first_date = new Date();
+        var goh_states = [];
+
+        var prevRowValid = false;
+        for (var i=0; i<fin.length; i++) {
+            const row = fin[i];
+            const date = new Date(row['Date']);
+
+            // Csv rows come in the following format: first garbage, then data, then more garbage.
+            // Rows which have valid date are considered to be non-garbage.
+            if (!isValidDate(date)) {
+                if (!prevRowValid) {
+                    continue
+                }
+                break
+            }
+            if (isValidDate(date) && !prevRowValid) {
+                first_date = date;
+                prevRowValid = true;
+            }
+            
+
+            function h(col) {
+                return parseInt(row[col])
+            }
+
+            const susceptible =
+                N
+                - h('Exposed')
+                - h('Infectious')
+                - h('Mild')
+                - h('SevereHome')
+                - h('HospitalWillRecover')
+                - h('HospitalFatal')
+                - h('RecoveredMild')
+                - h('RecoveredSevere')
+                - h('Fatal');
+
+            goh_states.push([
+                susceptible / N,
+                h('Exposed') / N,
+                h('Infectious') / N,
+                h('Mild') / N,
+                h('SevereHome') / N,
+                h('HospitalWillRecover') / N,
+                h('HospitalFatal') / N,
+                h('RecoveredMild') / N,
+                h('RecoveredSevere') / N,
+                h('Fatal') / N,
+            ]);
+        }
+
+        return [first_date, goh_states]
+    }
+
     var berkeley_states = [
     	{
     		time: 1,
@@ -27831,7 +30198,7 @@
     	}
     ];
 
-    var finnishHistoricalEstimates = [ { Date:"",
+    var finnishHistoricalEstimates = [ { Date:"Be careful not to change the structure of this spreadsheet, because it needs to be parsed by our app.",
         "Confirmed new cases":"",
         "New deaths":"",
         "New incubations":"",
@@ -27847,7 +30214,7 @@
         RecoveredSevere:"Number of people who have recovered, cumulative, after being in a Severe state.",
         "Recovered total":"",
         Fatal:"Number of people who have died, cumulative." },
-      { Date:"Be careful not to change the structure of this spreadsheet, because it needs to be parsed by our app.",
+      { Date:"Also note that everything you write in this spreadsheet will be published openly on the internet!",
         "Confirmed new cases":"From HS API",
         "New deaths":"From HS API",
         "New incubations":"From Mikko, missing values extrapolated",
@@ -27855,7 +30222,7 @@
         "New infectious":"Inferred assuming 5-day incubation period",
         Infectious:"Inferred assuming 5-day incubation period and 3-day infectious period",
         Mild:"After infectious period: 4-6d from infection (ok?)",
-        SevereHome:"Esim. seuraavan 2 (?) päivän aikana sairaalaan joutuvat?",
+        SevereHome:"Esim. seuraavan 2 (?) päivän aikana sairaalaan joutuvat? (väärin!!)",
         "At hospital":"From Mikko, missing values extrapolated",
         HospitalWillRecover:"total in hospital - hospitalFatal",
         HospitalFatal:"inferred from later fatalities, missing values extrapolated",
@@ -28091,7 +30458,7 @@
         "Confirmed new cases":"3",
         "New deaths":"0",
         "New incubations":"108",
-        Exposed:"593",
+        Exposed:"643",
         "New infectious":"2",
         Infectious:"33",
         Mild:"0",
@@ -28107,7 +30474,7 @@
         "Confirmed new cases":"4",
         "New deaths":"0",
         "New incubations":"150",
-        Exposed:"715",
+        Exposed:"790",
         "New infectious":"10",
         Infectious:"35",
         Mild:"0",
@@ -28122,8 +30489,8 @@
       { Date:"2020-03-07",
         "Confirmed new cases":"5",
         "New deaths":"0",
-        "New incubations":"285",
-        Exposed:"813",
+        "New incubations":"335",
+        Exposed:"911",
         "New infectious":"14",
         Infectious:"22",
         Mild:"19",
@@ -28138,8 +30505,8 @@
       { Date:"2020-03-08",
         "Confirmed new cases":"9",
         "New deaths":"0",
-        "New incubations":"140",
-        Exposed:"940",
+        "New incubations":"165",
+        Exposed:"1079",
         "New infectious":"18",
         Infectious:"26",
         Mild:"28",
@@ -28154,8 +30521,8 @@
       { Date:"2020-03-09",
         "Confirmed new cases":"7",
         "New deaths":"0",
-        "New incubations":"130",
-        Exposed:"1015",
+        "New incubations":"153",
+        Exposed:"1194",
         "New infectious":"32",
         Infectious:"42",
         Mild:"28",
@@ -28170,8 +30537,8 @@
       { Date:"2020-03-10",
         "Confirmed new cases":"25",
         "New deaths":"0",
-        "New incubations":"235",
-        Exposed:"930",
+        "New incubations":"276",
+        Exposed:"1100",
         "New infectious":"108",
         Infectious:"64",
         Mild:"13",
@@ -28186,8 +30553,8 @@
       { Date:"2020-03-11",
         "Confirmed new cases":"46",
         "New deaths":"0",
-        "New incubations":"225",
-        Exposed:"1205",
+        "New incubations":"265",
+        Exposed:"1441",
         "New infectious":"150",
         Infectious:"158",
         Mild:"15",
@@ -28202,9 +30569,9 @@
       { Date:"2020-03-12",
         "Confirmed new cases":"46",
         "New deaths":"0",
-        "New incubations":"200",
-        Exposed:"1500",
-        "New infectious":"285",
+        "New incubations":"241",
+        Exposed:"1829",
+        "New infectious":"335",
         Infectious:"290",
         Mild:"29",
         SevereHome:"13",
@@ -28218,10 +30585,10 @@
       { Date:"2020-03-13",
         "Confirmed new cases":"70",
         "New deaths":"0",
-        "New incubations":"415",
-        Exposed:"1630",
-        "New infectious":"140",
-        Infectious:"543",
+        "New incubations":"506",
+        Exposed:"2029",
+        "New infectious":"165",
+        Infectious:"593",
         Mild:"46",
         SevereHome:"18",
         "At hospital":"6",
@@ -28234,10 +30601,10 @@
       { Date:"2020-03-14",
         "Confirmed new cases":"16",
         "New deaths":"0",
-        "New incubations":"425",
-        Exposed:"1790",
-        "New infectious":"130",
-        Infectious:"575",
+        "New incubations":"541",
+        Exposed:"2246",
+        "New infectious":"153",
+        Infectious:"650",
         Mild:"132",
         SevereHome:"26",
         "At hospital":"7",
@@ -28250,10 +30617,10 @@
       { Date:"2020-03-15",
         "Confirmed new cases":"32",
         "New deaths":"0",
-        "New incubations":"365",
-        Exposed:"1970",
-        "New infectious":"235",
-        Infectious:"555",
+        "New incubations":"476",
+        Exposed:"2458",
+        "New infectious":"276",
+        Infectious:"653",
         Mild:"255",
         SevereHome:"35",
         "At hospital":"11",
@@ -28266,11 +30633,11 @@
       { Date:"2020-03-16",
         "Confirmed new cases":"40",
         "New deaths":"0",
-        "New incubations":"385",
-        Exposed:"1960",
-        "New infectious":"225",
-        Infectious:"505",
-        Mild:"501",
+        "New incubations":"482",
+        Exposed:"2434",
+        "New infectious":"265",
+        Infectious:"594",
+        Mild:"551",
         SevereHome:"42",
         "At hospital":"15",
         HospitalWillRecover:"12",
@@ -28282,11 +30649,11 @@
       { Date:"2020-03-17",
         "Confirmed new cases":"42",
         "New deaths":"0",
-        "New incubations":"380",
-        Exposed:"2010",
-        "New infectious":"200",
-        Infectious:"590",
-        Mild:"528",
+        "New incubations":"453",
+        Exposed:"2469",
+        "New infectious":"241",
+        Infectious:"694",
+        Mild:"603",
         SevereHome:"47",
         "At hospital":"20",
         HospitalWillRecover:"16",
@@ -28298,11 +30665,11 @@
       { Date:"2020-03-18",
         "Confirmed new cases":"41",
         "New deaths":"0",
-        "New incubations":"405",
-        Exposed:"2100",
-        "New infectious":"415",
-        Infectious:"660",
-        Mild:"500",
+        "New incubations":"482",
+        Exposed:"2575",
+        "New infectious":"506",
+        Infectious:"782",
+        Mild:"598",
         SevereHome:"55",
         "At hospital":"22",
         HospitalWillRecover:"18",
@@ -28314,11 +30681,11 @@
       { Date:"2020-03-19",
         "Confirmed new cases":"50",
         "New deaths":"1",
-        "New incubations":"475",
-        Exposed:"2220",
-        "New infectious":"425",
-        Infectious:"840",
-        Mild:"442",
+        "New incubations":"576",
+        Exposed:"2711",
+        "New infectious":"541",
+        Infectious:"1012",
+        Mild:"531",
         SevereHome:"63",
         "At hospital":"25",
         HospitalWillRecover:"20",
@@ -28330,11 +30697,11 @@
       { Date:"2020-03-20",
         "Confirmed new cases":"73",
         "New deaths":"0",
-        "New incubations":"455",
-        Exposed:"1840",
-        "New infectious":"365",
-        Infectious:"1040",
-        Mild:"514",
+        "New incubations":"582",
+        Exposed:"2258",
+        "New infectious":"476",
+        Infectious:"1288",
+        Mild:"618",
         SevereHome:"76",
         "At hospital":"30",
         HospitalWillRecover:"24",
@@ -28346,212 +30713,324 @@
       { Date:"2020-03-21",
         "Confirmed new cases":"105",
         "New deaths":"0",
-        "New incubations":"505",
-        Exposed:"1435",
-        "New infectious":"385",
-        Infectious:"1205",
-        Mild:"567",
+        "New incubations":"618",
+        Exposed:"1776",
+        "New infectious":"482",
+        Infectious:"1523",
+        Mild:"689",
         SevereHome:"93",
         "At hospital":"33",
         HospitalWillRecover:"26",
         HospitalFatal:"17",
-        RecoveredMild:"355",
+        RecoveredMild:"372",
         RecoveredSevere:"0",
-        "Recovered total":"355",
+        "Recovered total":"372",
         Fatal:"1" },
       { Date:"2020-03-22",
         "Confirmed new cases":"74",
         "New deaths":"0",
-        "New incubations":"420",
-        Exposed:"1380",
-        "New infectious":"380",
-        Infectious:"1175",
-        Mild:"717",
+        "New incubations":"529",
+        Exposed:"1729",
+        "New infectious":"453",
+        Infectious:"1499",
+        Mild:"889",
         SevereHome:"123",
         "At hospital":"43",
         HospitalWillRecover:"34",
-        HospitalFatal:"9",
-        RecoveredMild:"531",
+        HospitalFatal:"17",
+        RecoveredMild:"573",
         RecoveredSevere:"0",
-        "Recovered total":"532",
+        "Recovered total":"573",
         Fatal:"1" },
       { Date:"2020-03-23",
         "Confirmed new cases":"92",
         "New deaths":"0",
-        "New incubations":"420",
-        Exposed:"1345",
-        "New infectious":"405",
-        Infectious:"1130",
-        Mild:"885",
+        "New incubations":"418",
+        Exposed:"1565",
+        "New infectious":"482",
+        Infectious:"1411",
+        Mild:"1133",
         SevereHome:"155",
         "At hospital":"50",
         HospitalWillRecover:"40",
-        HospitalFatal:"10",
-        RecoveredMild:"698",
+        HospitalFatal:"19",
+        RecoveredMild:"772",
         RecoveredSevere:"0",
-        "Recovered total":"698",
+        "Recovered total":"773",
         Fatal:"1" },
       { Date:"2020-03-24",
         "Confirmed new cases":"88",
         "New deaths":"2",
-        "New incubations":"420",
-        Exposed:"1260",
-        "New infectious":"475",
-        Infectious:"1170",
-        Mild:"1027",
+        "New incubations":"529",
+        Exposed:"1476",
+        "New infectious":"576",
+        Infectious:"1417",
+        Mild:"1345",
         SevereHome:"178",
         "At hospital":"73",
         HospitalWillRecover:"58",
-        HospitalFatal:"15",
-        RecoveredMild:"845",
+        HospitalFatal:"20",
+        RecoveredMild:"949",
         RecoveredSevere:"1",
-        "Recovered total":"846",
+        "Recovered total":"950",
         Fatal:"3" },
       { Date:"2020-03-25",
         "Confirmed new cases":"78",
         "New deaths":"2",
-        "New incubations":"420",
-        Exposed:"1680",
-        "New infectious":"455",
-        Infectious:"1260",
-        Mild:"971",
+        "New incubations":"671",
+        Exposed:"2147",
+        "New infectious":"582",
+        Infectious:"1511",
+        Mild:"1295",
         SevereHome:"204",
         "At hospital":"82",
         HospitalWillRecover:"66",
-        HospitalFatal:"16",
-        RecoveredMild:"1017",
+        HospitalFatal:"25",
+        RecoveredMild:"1155",
         RecoveredSevere:"1",
-        "Recovered total":"1018",
+        "Recovered total":"1156",
         Fatal:"5" },
       { Date:"2020-03-26",
         "Confirmed new cases":"100",
         "New deaths":"2",
-        "New incubations":"420",
-        Exposed:"2100",
-        "New infectious":"505",
-        Infectious:"1335",
-        Mild:"910",
+        "New incubations":"659",
+        Exposed:"2806",
+        "New infectious":"618",
+        Infectious:"1640",
+        Mild:"1191",
         SevereHome:"220",
         "At hospital":"96",
         HospitalWillRecover:"77",
-        HospitalFatal:"19",
-        RecoveredMild:"1206",
+        HospitalFatal:"27",
+        RecoveredMild:"1385",
         RecoveredSevere:"1",
-        "Recovered total":"1207",
+        "Recovered total":"1386",
         Fatal:"7" },
       { Date:"2020-03-27",
         "Confirmed new cases":"109",
         "New deaths":"2",
-        "New incubations":"420",
-        Exposed:"2100",
-        "New infectious":"420",
-        Infectious:"1435",
-        Mild:"924",
+        "New incubations":"718",
+        Exposed:"2995",
+        "New infectious":"529",
+        Infectious:"1776",
+        Mild:"1171",
         SevereHome:"246",
         "At hospital":"108",
         HospitalWillRecover:"86",
-        HospitalFatal:"22",
-        RecoveredMild:"1445",
+        HospitalFatal:"27",
+        RecoveredMild:"1681",
         RecoveredSevere:"2",
-        "Recovered total":"1446",
+        "Recovered total":"1683",
         Fatal:"9" },
       { Date:"2020-03-28",
         "Confirmed new cases":"77",
         "New deaths":"2",
-        "New incubations":"420",
-        Exposed:"2100",
-        "New infectious":"420",
-        Infectious:"1380",
-        Mild:"983",
+        "New incubations":"794",
+        Exposed:"3371",
+        "New infectious":"418",
+        Infectious:"1729",
+        Mild:"1234",
         SevereHome:"277",
         "At hospital":"112",
         HospitalWillRecover:"90",
         HospitalFatal:"22",
-        RecoveredMild:"1740",
+        RecoveredMild:"2059",
         RecoveredSevere:"2",
-        "Recovered total":"1742",
+        "Recovered total":"2061",
         Fatal:"11" },
       { Date:"2020-03-29",
         "Confirmed new cases":"111",
         "New deaths":"2",
-        "New incubations":"420",
-        Exposed:"2100",
-        "New infectious":"420",
-        Infectious:"1345",
-        Mild:"1055",
+        "New incubations":"1035",
+        Exposed:"3877",
+        "New infectious":"529",
+        Infectious:"1565",
+        Mild:"1360",
         SevereHome:"280",
         "At hospital":"134",
         HospitalWillRecover:"107",
         HospitalFatal:"27",
-        RecoveredMild:"2082",
+        RecoveredMild:"2507",
         RecoveredSevere:"3",
-        "Recovered total":"2085",
+        "Recovered total":"2510",
         Fatal:"13" },
       { Date:"2020-03-30",
         "Confirmed new cases":"71",
         "New deaths":"4",
-        "New incubations":"420",
-        Exposed:"2100",
-        "New infectious":"420",
-        Infectious:"1260",
-        Mild:"1139",
+        "New incubations":"800",
+        Exposed:"4006",
+        "New infectious":"671",
+        Infectious:"1476",
+        Mild:"1480",
         SevereHome:"296",
         "At hospital":"143",
         HospitalWillRecover:"114",
         HospitalFatal:"29",
-        RecoveredMild:"2406",
+        RecoveredMild:"2939",
         RecoveredSevere:"4",
-        "Recovered total":"2410",
+        "Recovered total":"2943",
         Fatal:"17" },
       { Date:"2020-03-31",
-        "Confirmed new cases":"",
+        "Confirmed new cases":"62",
         "New deaths":"0",
-        "New incubations":"420",
-        Exposed:"2100",
-        "New infectious":"420",
-        Infectious:"1260",
-        Mild:"1061",
+        "New incubations":"800",
+        Exposed:"4147",
+        "New infectious":"659",
+        Infectious:"1618",
+        Mild:"1410",
         SevereHome:"319",
         "At hospital":"137",
         HospitalWillRecover:"110",
         HospitalFatal:"27",
-        RecoveredMild:"2709",
+        RecoveredMild:"3336",
         RecoveredSevere:"6",
-        "Recovered total":"2715",
+        "Recovered total":"3342",
         Fatal:"17" },
       { Date:"2020-04-01",
-        "Confirmed new cases":"",
+        "Confirmed new cases":"72",
         "New deaths":"2",
-        "New incubations":"420",
-        Exposed:"2100",
-        "New infectious":"420",
-        Infectious:"1260",
-        Mild:"1025",
-        SevereHome:"320",
+        "New incubations":"800",
+        Exposed:"4229",
+        "New infectious":"718",
+        Infectious:"1859",
+        Mild:"1225",
+        SevereHome:"340",
         "At hospital":"159",
         HospitalWillRecover:"127",
         HospitalFatal:"32",
-        RecoveredMild:"3017",
+        RecoveredMild:"3726",
         RecoveredSevere:"7",
-        "Recovered total":"3024",
+        "Recovered total":"3734",
         Fatal:"19" },
       { Date:"2020-04-02",
-        "Confirmed new cases":"",
-        "New deaths":"",
-        "New incubations":"420",
-        Exposed:"2100",
-        "New infectious":"420",
-        Infectious:"1260",
-        Mild:"940",
-        SevereHome:"320",
+        "Confirmed new cases":"97",
+        "New deaths":"1",
+        "New incubations":"800",
+        Exposed:"4235",
+        "New infectious":"794",
+        Infectious:"2048",
+        Mild:"1109",
+        SevereHome:"367",
         "At hospital":"160",
         HospitalWillRecover:"128",
         HospitalFatal:"32",
-        RecoveredMild:"3345",
+        RecoveredMild:"4138",
         RecoveredSevere:"9",
-        "Recovered total":"3354",
-        Fatal:"19" },
+        "Recovered total":"4147",
+        Fatal:"20" },
+      { Date:"2020-04-03",
+        "Confirmed new cases":"219",
+        "New deaths":"5",
+        "New incubations":"800",
+        Exposed:"4000",
+        "New infectious":"1035",
+        Infectious:"2171",
+        Mild:"1222",
+        SevereHome:"396",
+        "At hospital":"180",
+        HospitalWillRecover:"144",
+        HospitalFatal:"36",
+        RecoveredMild:"4591",
+        RecoveredSevere:"11",
+        "Recovered total":"4602",
+        Fatal:"25" },
+      { Date:"2020-04-04",
+        "Confirmed new cases":"45",
+        "New deaths":"2",
+        "New incubations":"800",
+        Exposed:"4000",
+        "New infectious":"800",
+        Infectious:"2547",
+        Mild:"1422",
+        SevereHome:"437",
+        "At hospital":"187",
+        HospitalWillRecover:"150",
+        HospitalFatal:"37",
+        RecoveredMild:"5084",
+        RecoveredSevere:"14",
+        "Recovered total":"5098",
+        Fatal:"27" },
+      { Date:"2020-04-05",
+        "Confirmed new cases":"249",
+        "New deaths":"0",
+        "New incubations":"800",
+        Exposed:"4000",
+        "New infectious":"800",
+        Infectious:"2629",
+        Mild:"1589",
+        SevereHome:"459",
+        "At hospital":"209",
+        HospitalWillRecover:"167",
+        HospitalFatal:"42",
+        RecoveredMild:"5554",
+        RecoveredSevere:"17",
+        "Recovered total":"5571",
+        Fatal:"27" },
+      { Date:"2020-04-06",
+        "Confirmed new cases":"132",
+        "New deaths":"7",
+        "New incubations":"800",
+        Exposed:"4000",
+        "New infectious":"800",
+        Infectious:"2635",
+        Mild:"1731",
+        SevereHome:"440",
+        "At hospital":"228",
+        HospitalWillRecover:"182",
+        HospitalFatal:"46",
+        RecoveredMild:"5963",
+        RecoveredSevere:"20",
+        "Recovered total":"5983",
+        Fatal:"34" },
+      { Date:"2020-04-07",
+        "Confirmed new cases":"80",
+        "New deaths":"6",
+        "New incubations":"800",
+        Exposed:"4000",
+        "New infectious":"800",
+        Infectious:"2400",
+        Mild:"2107",
+        SevereHome:"440",
+        "At hospital":"231",
+        HospitalWillRecover:"185",
+        HospitalFatal:"46",
+        RecoveredMild:"6332",
+        RecoveredSevere:"26",
+        "Recovered total":"6358",
+        Fatal:"40" },
       { Date:"It is safe to add anything after this line. Parsing ends when the first invalid date (this text) is encountered. Do not add date lines unless they have all the yellow values!",
+        "Confirmed new cases":"",
+        "New deaths":"",
+        "New incubations":"",
+        Exposed:"",
+        "New infectious":"",
+        Infectious:"",
+        Mild:"",
+        SevereHome:"",
+        "At hospital":"",
+        HospitalWillRecover:"",
+        HospitalFatal:"",
+        RecoveredMild:"",
+        RecoveredSevere:"",
+        "Recovered total":"",
+        Fatal:"" },
+      { Date:"",
+        "Confirmed new cases":"",
+        "New deaths":"",
+        "New incubations":"",
+        Exposed:"",
+        "New infectious":"",
+        Infectious:"",
+        Mild:"",
+        SevereHome:"",
+        "At hospital":"",
+        HospitalWillRecover:"",
+        HospitalFatal:"",
+        RecoveredMild:"",
+        RecoveredSevere:"",
+        "Recovered total":"",
+        Fatal:"" },
+      { Date:"≤",
         "Confirmed new cases":"",
         "New deaths":"",
         "New incubations":"",
@@ -28570,35 +31049,31 @@
 
     /* src/App.svelte generated by Svelte v3.12.1 */
 
-    const file$4 = "src/App.svelte";
+    const file$9 = "src/App.svelte";
 
-    function get_each_context$2(ctx, list, i) {
+    function get_each_context$3(ctx, list, i) {
     	const child_ctx = Object.create(ctx);
     	child_ctx.milestone = list[i];
     	return child_ctx;
     }
 
-    // (666:6) {#if allow_x_axis_resizing}
-    function create_if_block_1$1(ctx) {
-    	var div, div_style_value;
+    // (618:6) {#if allow_x_axis_resizing}
+    function create_if_block_2$2(ctx) {
+    	var div;
 
     	const block = {
     		c: function create() {
     			div = element("div");
     			attr_dev(div, "id", "xAxisDrag");
-    			attr_dev(div, "style", div_style_value = "" + (ctx.allow_x_axis_resizing ? "cursor:col-resize;" : "") + "\n                  pointer-events: all;\n                  position: absolute;\n                  top:" + (height$1+80) + "px;\n                  left:" + 0 + "px;\n                  width:" + 780 + "px;\n                  background-color:#222;\n                  opacity: 0;\n                  height:25px;");
-    			add_location(div, file$4, 666, 8, 20407);
+    			attr_dev(div, "style", "" + (allow_x_axis_resizing ? "cursor:col-resize;" : "") + "\n                  pointer-events: all;\n                  position: absolute;\n                  top:" + (height$1+80) + "px;\n                  left:" + 0 + "px;\n                  width:" + 780 + "px;\n                  background-color:#222;\n                  opacity: 0;\n                  height:25px;");
+    			add_location(div, file$9, 618, 8, 19368);
     		},
 
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
     		},
 
-    		p: function update(changed, ctx) {
-    			if ((changed.allow_x_axis_resizing) && div_style_value !== (div_style_value = "" + (ctx.allow_x_axis_resizing ? "cursor:col-resize;" : "") + "\n                  pointer-events: all;\n                  position: absolute;\n                  top:" + (height$1+80) + "px;\n                  left:" + 0 + "px;\n                  width:" + 780 + "px;\n                  background-color:#222;\n                  opacity: 0;\n                  height:25px;")) {
-    				attr_dev(div, "style", div_style_value);
-    			}
-    		},
+    		p: noop,
 
     		d: function destroy(detaching) {
     			if (detaching) {
@@ -28606,55 +31081,149 @@
     			}
     		}
     	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block_1$1.name, type: "if", source: "(666:6) {#if allow_x_axis_resizing}", ctx });
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block_2$2.name, type: "if", source: "(618:6) {#if allow_x_axis_resizing}", ctx });
     	return block;
     }
 
-    // (710:8) {#if xScaleTime(InterventionTime) >= 100}
-    function create_if_block$2(ctx) {
-    	var div, span, t, html_tag, raw_value = math_inline("\\mathcal{R}_0=" + (ctx.R0).toFixed(2) ) + "";
+    // (644:6) {#if selected_model === MODEL_GOH}
+    function create_if_block_1$2(ctx) {
+    	var updating_InterventionTime, updating_InterventionAmt, updating_OMInterventionAmt, updating_Plock, updating_lock, updating_lock_yaxis, current;
+
+    	function actionmarker_InterventionTime_binding(value) {
+    		ctx.actionmarker_InterventionTime_binding.call(null, value);
+    		updating_InterventionTime = true;
+    		add_flush_callback(() => updating_InterventionTime = false);
+    	}
+
+    	function actionmarker_InterventionAmt_binding(value_1) {
+    		ctx.actionmarker_InterventionAmt_binding.call(null, value_1);
+    		updating_InterventionAmt = true;
+    		add_flush_callback(() => updating_InterventionAmt = false);
+    	}
+
+    	function actionmarker_OMInterventionAmt_binding(value_2) {
+    		ctx.actionmarker_OMInterventionAmt_binding.call(null, value_2);
+    		updating_OMInterventionAmt = true;
+    		add_flush_callback(() => updating_OMInterventionAmt = false);
+    	}
+
+    	function actionmarker_Plock_binding(value_3) {
+    		ctx.actionmarker_Plock_binding.call(null, value_3);
+    		updating_Plock = true;
+    		add_flush_callback(() => updating_Plock = false);
+    	}
+
+    	function actionmarker_lock_binding(value_4) {
+    		ctx.actionmarker_lock_binding.call(null, value_4);
+    		updating_lock = true;
+    		add_flush_callback(() => updating_lock = false);
+    	}
+
+    	function actionmarker_lock_yaxis_binding(value_5) {
+    		ctx.actionmarker_lock_yaxis_binding.call(null, value_5);
+    		updating_lock_yaxis = true;
+    		add_flush_callback(() => updating_lock_yaxis = false);
+    	}
+
+    	let actionmarker_props = {
+    		width: width$1,
+    		height: height$1,
+    		R0: ctx.R0,
+    		tmax: ctx.tmax,
+    		Pmax: ctx.Pmax,
+    		P_all_historical: ctx.P_all_historical,
+    		demo_mode: ctx.demo_mode
+    	};
+    	if (ctx.InterventionTime !== void 0) {
+    		actionmarker_props.InterventionTime = ctx.InterventionTime;
+    	}
+    	if (ctx.InterventionAmt !== void 0) {
+    		actionmarker_props.InterventionAmt = ctx.InterventionAmt;
+    	}
+    	if (ctx.OMInterventionAmt !== void 0) {
+    		actionmarker_props.OMInterventionAmt = ctx.OMInterventionAmt;
+    	}
+    	if (ctx.Plock !== void 0) {
+    		actionmarker_props.Plock = ctx.Plock;
+    	}
+    	if (ctx.lock !== void 0) {
+    		actionmarker_props.lock = ctx.lock;
+    	}
+    	if (ctx.lock_yaxis !== void 0) {
+    		actionmarker_props.lock_yaxis = ctx.lock_yaxis;
+    	}
+    	var actionmarker = new ActionMarker({
+    		props: actionmarker_props,
+    		$$inline: true
+    	});
+
+    	binding_callbacks.push(() => bind(actionmarker, 'InterventionTime', actionmarker_InterventionTime_binding));
+    	binding_callbacks.push(() => bind(actionmarker, 'InterventionAmt', actionmarker_InterventionAmt_binding));
+    	binding_callbacks.push(() => bind(actionmarker, 'OMInterventionAmt', actionmarker_OMInterventionAmt_binding));
+    	binding_callbacks.push(() => bind(actionmarker, 'Plock', actionmarker_Plock_binding));
+    	binding_callbacks.push(() => bind(actionmarker, 'lock', actionmarker_lock_binding));
+    	binding_callbacks.push(() => bind(actionmarker, 'lock_yaxis', actionmarker_lock_yaxis_binding));
 
     	const block = {
     		c: function create() {
-    			div = element("div");
-    			span = element("span");
-    			t = text("⟵ ");
-    			html_tag = new HtmlTag(raw_value, null);
-    			set_style(span, "font-size", "13px");
-    			add_location(span, file$4, 711, 10, 22263);
-    			set_style(div, "position", "absolute");
-    			set_style(div, "opacity", "0.5");
-    			set_style(div, "top", "-5px");
-    			set_style(div, "left", "-97px");
-    			set_style(div, "width", "120px");
-    			add_location(div, file$4, 710, 10, 22171);
+    			actionmarker.$$.fragment.c();
     		},
 
     		m: function mount(target, anchor) {
-    			insert_dev(target, div, anchor);
-    			append_dev(div, span);
-    			append_dev(span, t);
-    			html_tag.m(span);
+    			mount_component(actionmarker, target, anchor);
+    			current = true;
     		},
 
     		p: function update(changed, ctx) {
-    			if ((changed.R0) && raw_value !== (raw_value = math_inline("\\mathcal{R}_0=" + (ctx.R0).toFixed(2) ) + "")) {
-    				html_tag.p(raw_value);
+    			var actionmarker_changes = {};
+    			if (changed.R0) actionmarker_changes.R0 = ctx.R0;
+    			if (changed.tmax) actionmarker_changes.tmax = ctx.tmax;
+    			if (changed.Pmax) actionmarker_changes.Pmax = ctx.Pmax;
+    			if (changed.P_all_historical) actionmarker_changes.P_all_historical = ctx.P_all_historical;
+    			if (changed.demo_mode) actionmarker_changes.demo_mode = ctx.demo_mode;
+    			if (!updating_InterventionTime && changed.InterventionTime) {
+    				actionmarker_changes.InterventionTime = ctx.InterventionTime;
     			}
+    			if (!updating_InterventionAmt && changed.InterventionAmt) {
+    				actionmarker_changes.InterventionAmt = ctx.InterventionAmt;
+    			}
+    			if (!updating_OMInterventionAmt && changed.OMInterventionAmt) {
+    				actionmarker_changes.OMInterventionAmt = ctx.OMInterventionAmt;
+    			}
+    			if (!updating_Plock && changed.Plock) {
+    				actionmarker_changes.Plock = ctx.Plock;
+    			}
+    			if (!updating_lock && changed.lock) {
+    				actionmarker_changes.lock = ctx.lock;
+    			}
+    			if (!updating_lock_yaxis && changed.lock_yaxis) {
+    				actionmarker_changes.lock_yaxis = ctx.lock_yaxis;
+    			}
+    			actionmarker.$set(actionmarker_changes);
+    		},
+
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(actionmarker.$$.fragment, local);
+
+    			current = true;
+    		},
+
+    		o: function outro(local) {
+    			transition_out(actionmarker.$$.fragment, local);
+    			current = false;
     		},
 
     		d: function destroy(detaching) {
-    			if (detaching) {
-    				detach_dev(div);
-    			}
+    			destroy_component(actionmarker, detaching);
     		}
     	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block$2.name, type: "if", source: "(710:8) {#if xScaleTime(InterventionTime) >= 100}", ctx });
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block_1$2.name, type: "if", source: "(644:6) {#if selected_model === MODEL_GOH}", ctx });
     	return block;
     }
 
-    // (776:12) {#each milestones as milestone}
-    function create_each_block$2(ctx) {
+    // (671:12) {#each milestones as milestone}
+    function create_each_block$3(ctx) {
     	var div1, span, t0, div0, raw_value = ctx.milestone[1] + "", t1, current;
 
     	var arrow = new Arrow({
@@ -28675,8 +31244,8 @@
     			div0 = element("div");
     			t1 = space();
     			set_style(span, "opacity", "0.3");
-    			add_location(span, file$4, 777, 16, 25403);
-    			attr_dev(div0, "class", "tick svelte-1t7tm9c");
+    			add_location(span, file$9, 672, 16, 21131);
+    			attr_dev(div0, "class", "tick svelte-15r2nza");
     			set_style(div0, "position", "relative");
     			set_style(div0, "left", "0px");
     			set_style(div0, "top", "35px");
@@ -28685,11 +31254,11 @@
     			set_style(div0, "background-color", "white");
     			set_style(div0, "padding-left", "4px");
     			set_style(div0, "padding-right", "4px");
-    			add_location(div0, file$4, 778, 18, 25512);
+    			add_location(div0, file$9, 673, 18, 21240);
     			set_style(div1, "position", "absolute");
     			set_style(div1, "left", "" + (ctx.xScaleTime(ctx.milestone[0])+8) + "px");
     			set_style(div1, "top", "-30px");
-    			add_location(div1, file$4, 776, 14, 25304);
+    			add_location(div1, file$9, 671, 14, 21032);
     		},
 
     		m: function mount(target, anchor) {
@@ -28733,12 +31302,623 @@
     			destroy_component(arrow);
     		}
     	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_each_block$2.name, type: "each", source: "(776:12) {#each milestones as milestone}", ctx });
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_each_block$3.name, type: "each", source: "(671:12) {#each milestones as milestone}", ctx });
     	return block;
     }
 
-    function create_fragment$4(ctx) {
-    	var link, t0, h2, t2, h5, t4, div26, div6, div4, div0, t6, select, option0, option1, option2, t10, div3, div2, updating_checked, div1, t12, div5, updating_stateMeta, t13, div25, div7, updating_active, t14, t15, div8, t16, div15, div14, div9, span0, raw0_value = math_inline("\\mathcal{R}_t=" + (ctx.R0*ctx.InterventionAmt).toFixed(2) ) + "", t17, t18, show_if = ctx.xScaleTime(ctx.InterventionTime) >= 100, t19, div12, div10, t20, t21_value = format("d")(ctx.InterventionTime) + "", t21, t22, span1, div11, t23, div13, t24, div23, div22, div21, div20, div17, div16, t25, br0, t26, div19, div18, t27_value = formatDelta(-100*(1-ctx.InterventionAmt)) + "", t27, t28, t29, input0, t30, div24, t31, div68, div30, div27, t33, div28, t34, div29, t36, div67, div36, div31, t38, div32, t39, br1, t40, div33, t41, t42, t43, input1, t44, div34, t45, br2, t46, div35, t47_value = ctx.icuCapacity === 0 ? 'Hidden' : ctx.icuCapacity + "", t47, t48, input2, t49, div41, div39, div37, t50, html_tag, raw1_value = math_inline("\\mathcal{R}_0") + "", t51, div38, t52, br3, t53, div40, t54, t55, input3, t56, div47, div42, t58, div43, t59, html_tag_1, raw2_value = math_inline("T_{\\text{inc}}") + "", t60, br4, t61, div44, t62_value = (ctx.D_incbation).toFixed(2) + "", t62, t63, t64, input4, t65, div45, t66, html_tag_2, raw3_value = math_inline("T_{\\text{inf}}") + "", t67, br5, t68, div46, t69, t70, t71, input5, t72, div48, t73, div54, div49, t75, div50, t76, br6, t77, div51, t78_value = (ctx.CFR*100).toFixed(2) + "", t78, t79, t80, input6, t81, div52, t82, br7, t83, div53, t84, t85, t86, input7, input7_min_value, t87, div60, div55, t89, div56, t90, br8, t91, div57, t92, t93, t94, input8, t95, div58, t96, br9, t97, div59, t98, t99, t100, input9, t101, div66, div61, t103, div62, t104, br10, t105, div63, t106_value = (ctx.P_SEVERE*100).toFixed(2) + "", t106, t107, t108, input10, t109, div64, t110, br11, t111, div65, t112, t113, t114, input11, t115, div69, current, dispose;
+    // (690:4) {#if selected_model === MODEL_GOH}
+    function create_if_block$4(ctx) {
+    	var div4, div2, div0, t0, html_tag, raw0_value = math_inline("\\mathcal{R}_0") + "", t1, div1, t2, br0, t3, div3, t4, t5, input0, t6, div10, div5, t8, div6, t9, html_tag_1, raw1_value = math_inline("T_{\\text{inc}}") + "", t10, br1, t11, div7, t12_value = (ctx.D_incbation).toFixed(2) + "", t12, t13, t14, input1, t15, div8, t16, html_tag_2, raw2_value = math_inline("T_{\\text{inf}}") + "", t17, br2, t18, div9, t19, t20, t21, input2, t22, div11, t23, div17, div12, t25, div13, t26, br3, t27, div14, t28_value = (ctx.CFR*100).toFixed(2) + "", t28, t29, t30, input3, t31, div15, t32, br4, t33, div16, t34, t35, t36, input4, input4_min_value, t37, div23, div18, t39, div19, t40, br5, t41, div20, t42, t43, t44, input5, t45, div21, t46, br6, t47, div22, t48, t49, t50, input6, t51, div29, div24, t53, div25, t54, br7, t55, div26, t56_value = (ctx.P_SEVERE*100).toFixed(2) + "", t56, t57, t58, input7, t59, div27, t60, br8, t61, div28, t62, t63, t64, input8, t65, div35, div30, t67, div31, t68, br9, t69, div32, t70, t71, input9, t72, div33, t73, br10, t74, div34, t75_value = ctx.icuCapacity === 0 ? 'Hidden' : ctx.icuCapacity + "", t75, t76, input10, dispose;
+
+    	const block = {
+    		c: function create() {
+    			div4 = element("div");
+    			div2 = element("div");
+    			div0 = element("div");
+    			t0 = text("Basic Reproduction Number ");
+    			t1 = space();
+    			div1 = element("div");
+    			t2 = text("Measure of contagiousness: the number of secondary infections each infected individual produces. ");
+    			br0 = element("br");
+    			t3 = space();
+    			div3 = element("div");
+    			t4 = text(ctx.R0);
+    			t5 = space();
+    			input0 = element("input");
+    			t6 = space();
+    			div10 = element("div");
+    			div5 = element("div");
+    			div5.textContent = "Transmission Times";
+    			t8 = space();
+    			div6 = element("div");
+    			t9 = text("Length of incubation period, ");
+    			t10 = text(".");
+    			br1 = element("br");
+    			t11 = space();
+    			div7 = element("div");
+    			t12 = text(t12_value);
+    			t13 = text(" days");
+    			t14 = space();
+    			input1 = element("input");
+    			t15 = space();
+    			div8 = element("div");
+    			t16 = text("Duration patient is infectious, ");
+    			t17 = text(".");
+    			br2 = element("br");
+    			t18 = space();
+    			div9 = element("div");
+    			t19 = text(ctx.D_infectious);
+    			t20 = text(" Days");
+    			t21 = space();
+    			input2 = element("input");
+    			t22 = space();
+    			div11 = element("div");
+    			t23 = space();
+    			div17 = element("div");
+    			div12 = element("div");
+    			div12.textContent = "Mortality Statistics";
+    			t25 = space();
+    			div13 = element("div");
+    			t26 = text("Case fatality rate.");
+    			br3 = element("br");
+    			t27 = space();
+    			div14 = element("div");
+    			t28 = text(t28_value);
+    			t29 = text(" %");
+    			t30 = space();
+    			input3 = element("input");
+    			t31 = space();
+    			div15 = element("div");
+    			t32 = text("Time from end of incubation to death.");
+    			br4 = element("br");
+    			t33 = space();
+    			div16 = element("div");
+    			t34 = text(ctx.Time_to_death);
+    			t35 = text(" Days");
+    			t36 = space();
+    			input4 = element("input");
+    			t37 = space();
+    			div23 = element("div");
+    			div18 = element("div");
+    			div18.textContent = "Recovery Times";
+    			t39 = space();
+    			div19 = element("div");
+    			t40 = text("Length of hospital stay");
+    			br5 = element("br");
+    			t41 = space();
+    			div20 = element("div");
+    			t42 = text(ctx.D_recovery_severe);
+    			t43 = text(" Days");
+    			t44 = space();
+    			input5 = element("input");
+    			t45 = space();
+    			div21 = element("div");
+    			t46 = text("Recovery time for mild cases");
+    			br6 = element("br");
+    			t47 = space();
+    			div22 = element("div");
+    			t48 = text(ctx.D_recovery_mild);
+    			t49 = text(" Days");
+    			t50 = space();
+    			input6 = element("input");
+    			t51 = space();
+    			div29 = element("div");
+    			div24 = element("div");
+    			div24.textContent = "Care statistics";
+    			t53 = space();
+    			div25 = element("div");
+    			t54 = text("Hospitalization rate.");
+    			br7 = element("br");
+    			t55 = space();
+    			div26 = element("div");
+    			t56 = text(t56_value);
+    			t57 = text(" %");
+    			t58 = space();
+    			input7 = element("input");
+    			t59 = space();
+    			div27 = element("div");
+    			t60 = text("Time to hospitalization.");
+    			br8 = element("br");
+    			t61 = space();
+    			div28 = element("div");
+    			t62 = text(ctx.D_hospital_lag);
+    			t63 = text(" Days");
+    			t64 = space();
+    			input8 = element("input");
+    			t65 = space();
+    			div35 = element("div");
+    			div30 = element("div");
+    			div30.textContent = "ICU visualization";
+    			t67 = space();
+    			div31 = element("div");
+    			t68 = text("ICU rate");
+    			br9 = element("br");
+    			t69 = space();
+    			div32 = element("div");
+    			t70 = text(ctx.P_ICU);
+    			t71 = space();
+    			input9 = element("input");
+    			t72 = space();
+    			div33 = element("div");
+    			t73 = text("ICU capacity");
+    			br10 = element("br");
+    			t74 = space();
+    			div34 = element("div");
+    			t75 = text(t75_value);
+    			t76 = space();
+    			input10 = element("input");
+    			html_tag = new HtmlTag(raw0_value, null);
+    			attr_dev(div0, "class", "paneltitle svelte-15r2nza");
+    			add_location(div0, file$9, 693, 8, 21822);
+    			add_location(br0, file$9, 694, 128, 22045);
+    			attr_dev(div1, "class", "paneldesc svelte-15r2nza");
+    			add_location(div1, file$9, 694, 8, 21925);
+    			attr_dev(div2, "class", "paneltext svelte-15r2nza");
+    			add_location(div2, file$9, 692, 8, 21790);
+    			attr_dev(div3, "class", "slidertext svelte-15r2nza");
+    			add_location(div3, file$9, 696, 8, 22079);
+    			attr_dev(input0, "class", "range svelte-15r2nza");
+    			attr_dev(input0, "type", "range");
+    			attr_dev(input0, "min", "0.01");
+    			attr_dev(input0, "max", "10");
+    			attr_dev(input0, "step", "0.01");
+    			add_location(input0, file$9, 697, 8, 22122);
+    			attr_dev(div4, "class", "column svelte-15r2nza");
+    			add_location(div4, file$9, 691, 6, 21761);
+    			attr_dev(div5, "class", "paneltitle svelte-15r2nza");
+    			add_location(div5, file$9, 701, 8, 22248);
+    			html_tag_1 = new HtmlTag(raw1_value, t10);
+    			add_location(br1, file$9, 702, 119, 22416);
+    			attr_dev(div6, "class", "paneldesc svelte-15r2nza");
+    			set_style(div6, "height", "30px");
+    			add_location(div6, file$9, 702, 8, 22305);
+    			attr_dev(div7, "class", "slidertext svelte-15r2nza");
+    			add_location(div7, file$9, 703, 8, 22435);
+    			attr_dev(input1, "class", "range svelte-15r2nza");
+    			set_style(input1, "margin-bottom", "8px");
+    			attr_dev(input1, "type", "range");
+    			attr_dev(input1, "min", 0.15);
+    			attr_dev(input1, "max", "24");
+    			attr_dev(input1, "step", "0.0001");
+    			add_location(input1, file$9, 704, 8, 22505);
+    			html_tag_2 = new HtmlTag(raw2_value, t17);
+    			add_location(br2, file$9, 705, 169, 22788);
+    			attr_dev(div8, "class", "paneldesc svelte-15r2nza");
+    			set_style(div8, "height", "29px");
+    			set_style(div8, "border-top", "1px solid #EEE");
+    			set_style(div8, "padding-top", "10px");
+    			add_location(div8, file$9, 705, 8, 22627);
+    			attr_dev(div9, "class", "slidertext svelte-15r2nza");
+    			add_location(div9, file$9, 706, 8, 22807);
+    			attr_dev(input2, "class", "range svelte-15r2nza");
+    			attr_dev(input2, "type", "range");
+    			attr_dev(input2, "min", 0);
+    			attr_dev(input2, "max", "24");
+    			attr_dev(input2, "step", "0.01");
+    			add_location(input2, file$9, 707, 8, 22865);
+    			attr_dev(div10, "class", "column svelte-15r2nza");
+    			add_location(div10, file$9, 700, 6, 22219);
+    			set_style(div11, "flex", "0 0 20");
+    			set_style(div11, "width", "20px");
+    			add_location(div11, file$9, 710, 6, 22969);
+    			attr_dev(div12, "class", "paneltitle svelte-15r2nza");
+    			add_location(div12, file$9, 713, 8, 23050);
+    			add_location(br3, file$9, 714, 70, 23171);
+    			attr_dev(div13, "class", "paneldesc svelte-15r2nza");
+    			set_style(div13, "height", "30px");
+    			add_location(div13, file$9, 714, 8, 23109);
+    			attr_dev(div14, "class", "slidertext svelte-15r2nza");
+    			add_location(div14, file$9, 715, 8, 23190);
+    			attr_dev(input3, "class", "range svelte-15r2nza");
+    			set_style(input3, "margin-bottom", "8px");
+    			attr_dev(input3, "type", "range");
+    			attr_dev(input3, "min", 0);
+    			attr_dev(input3, "max", "1");
+    			attr_dev(input3, "step", "0.0001");
+    			add_location(input3, file$9, 716, 8, 23253);
+    			add_location(br4, file$9, 717, 135, 23491);
+    			attr_dev(div15, "class", "paneldesc svelte-15r2nza");
+    			set_style(div15, "height", "29px");
+    			set_style(div15, "border-top", "1px solid #EEE");
+    			set_style(div15, "padding-top", "10px");
+    			add_location(div15, file$9, 717, 8, 23364);
+    			attr_dev(div16, "class", "slidertext svelte-15r2nza");
+    			add_location(div16, file$9, 718, 8, 23510);
+    			attr_dev(input4, "class", "range svelte-15r2nza");
+    			attr_dev(input4, "type", "range");
+    			attr_dev(input4, "min", input4_min_value = (ctx.D_infectious)+0.1);
+    			attr_dev(input4, "max", "100");
+    			attr_dev(input4, "step", "0.01");
+    			add_location(input4, file$9, 719, 8, 23569);
+    			attr_dev(div17, "class", "column svelte-15r2nza");
+    			add_location(div17, file$9, 712, 6, 23021);
+    			attr_dev(div18, "class", "paneltitle svelte-15r2nza");
+    			add_location(div18, file$9, 723, 8, 23721);
+    			add_location(br5, file$9, 724, 74, 23840);
+    			attr_dev(div19, "class", "paneldesc svelte-15r2nza");
+    			set_style(div19, "height", "30px");
+    			add_location(div19, file$9, 724, 8, 23774);
+    			attr_dev(div20, "class", "slidertext svelte-15r2nza");
+    			add_location(div20, file$9, 725, 8, 23859);
+    			attr_dev(input5, "class", "range svelte-15r2nza");
+    			set_style(input5, "margin-bottom", "8px");
+    			attr_dev(input5, "type", "range");
+    			attr_dev(input5, "min", 0.1);
+    			attr_dev(input5, "max", "100");
+    			attr_dev(input5, "step", "0.01");
+    			add_location(input5, file$9, 726, 8, 23922);
+    			add_location(br6, file$9, 727, 126, 24167);
+    			attr_dev(div21, "class", "paneldesc svelte-15r2nza");
+    			set_style(div21, "height", "29px");
+    			set_style(div21, "border-top", "1px solid #EEE");
+    			set_style(div21, "padding-top", "10px");
+    			add_location(div21, file$9, 727, 8, 24049);
+    			attr_dev(div22, "class", "slidertext svelte-15r2nza");
+    			add_location(div22, file$9, 728, 8, 24186);
+    			attr_dev(input6, "class", "range svelte-15r2nza");
+    			attr_dev(input6, "type", "range");
+    			attr_dev(input6, "min", 0.5);
+    			attr_dev(input6, "max", "100");
+    			attr_dev(input6, "step", "0.01");
+    			add_location(input6, file$9, 729, 8, 24247);
+    			attr_dev(div23, "class", "column svelte-15r2nza");
+    			add_location(div23, file$9, 722, 6, 23692);
+    			attr_dev(div24, "class", "paneltitle svelte-15r2nza");
+    			add_location(div24, file$9, 733, 8, 24386);
+    			add_location(br7, file$9, 734, 72, 24504);
+    			attr_dev(div25, "class", "paneldesc svelte-15r2nza");
+    			set_style(div25, "height", "30px");
+    			add_location(div25, file$9, 734, 8, 24440);
+    			attr_dev(div26, "class", "slidertext svelte-15r2nza");
+    			add_location(div26, file$9, 735, 8, 24523);
+    			attr_dev(input7, "class", "range svelte-15r2nza");
+    			set_style(input7, "margin-bottom", "8px");
+    			attr_dev(input7, "type", "range");
+    			attr_dev(input7, "min", 0);
+    			attr_dev(input7, "max", "1");
+    			attr_dev(input7, "step", "0.0001");
+    			add_location(input7, file$9, 736, 8, 24591);
+    			add_location(br8, file$9, 737, 122, 24827);
+    			attr_dev(div27, "class", "paneldesc svelte-15r2nza");
+    			set_style(div27, "height", "29px");
+    			set_style(div27, "border-top", "1px solid #EEE");
+    			set_style(div27, "padding-top", "10px");
+    			add_location(div27, file$9, 737, 8, 24713);
+    			attr_dev(div28, "class", "slidertext svelte-15r2nza");
+    			add_location(div28, file$9, 738, 8, 24846);
+    			attr_dev(input8, "class", "range svelte-15r2nza");
+    			attr_dev(input8, "type", "range");
+    			attr_dev(input8, "min", 0.5);
+    			attr_dev(input8, "max", "100");
+    			attr_dev(input8, "step", "0.01");
+    			add_location(input8, file$9, 739, 8, 24906);
+    			attr_dev(div29, "class", "column svelte-15r2nza");
+    			add_location(div29, file$9, 732, 6, 24357);
+    			attr_dev(div30, "class", "paneltitle svelte-15r2nza");
+    			add_location(div30, file$9, 743, 8, 25044);
+    			add_location(br9, file$9, 745, 88, 25181);
+    			attr_dev(div31, "class", "paneldesc svelte-15r2nza");
+    			set_style(div31, "height", "30px");
+    			set_style(div31, "border-top", "0px solid #EEE");
+    			add_location(div31, file$9, 745, 8, 25101);
+    			attr_dev(div32, "class", "slidertext svelte-15r2nza");
+    			add_location(div32, file$9, 746, 8, 25201);
+    			attr_dev(input9, "class", "range svelte-15r2nza");
+    			set_style(input9, "margin-bottom", "8px");
+    			attr_dev(input9, "type", "range");
+    			attr_dev(input9, "min", "0");
+    			attr_dev(input9, "max", "1");
+    			attr_dev(input9, "step", "0.01");
+    			add_location(input9, file$9, 747, 8, 25247);
+    			add_location(br10, file$9, 749, 110, 25459);
+    			attr_dev(div33, "class", "paneldesc svelte-15r2nza");
+    			set_style(div33, "height", "29px");
+    			set_style(div33, "border-top", "1px solid #EEE");
+    			set_style(div33, "padding-top", "10px");
+    			add_location(div33, file$9, 749, 8, 25357);
+    			attr_dev(div34, "class", "slidertext svelte-15r2nza");
+    			add_location(div34, file$9, 750, 8, 25479);
+    			attr_dev(input10, "class", "range svelte-15r2nza");
+    			attr_dev(input10, "type", "range");
+    			attr_dev(input10, "min", "0");
+    			attr_dev(input10, "max", "10000");
+    			attr_dev(input10, "step", "10");
+    			add_location(input10, file$9, 751, 8, 25562);
+    			attr_dev(div35, "class", "column svelte-15r2nza");
+    			add_location(div35, file$9, 742, 6, 25015);
+
+    			dispose = [
+    				listen_dev(input0, "change", ctx.input0_change_input_handler),
+    				listen_dev(input0, "input", ctx.input0_change_input_handler),
+    				listen_dev(input1, "change", ctx.input1_change_input_handler),
+    				listen_dev(input1, "input", ctx.input1_change_input_handler),
+    				listen_dev(input2, "change", ctx.input2_change_input_handler),
+    				listen_dev(input2, "input", ctx.input2_change_input_handler),
+    				listen_dev(input3, "change", ctx.input3_change_input_handler),
+    				listen_dev(input3, "input", ctx.input3_change_input_handler),
+    				listen_dev(input4, "change", ctx.input4_change_input_handler),
+    				listen_dev(input4, "input", ctx.input4_change_input_handler),
+    				listen_dev(input5, "change", ctx.input5_change_input_handler),
+    				listen_dev(input5, "input", ctx.input5_change_input_handler),
+    				listen_dev(input6, "change", ctx.input6_change_input_handler),
+    				listen_dev(input6, "input", ctx.input6_change_input_handler),
+    				listen_dev(input7, "change", ctx.input7_change_input_handler),
+    				listen_dev(input7, "input", ctx.input7_change_input_handler),
+    				listen_dev(input8, "change", ctx.input8_change_input_handler),
+    				listen_dev(input8, "input", ctx.input8_change_input_handler),
+    				listen_dev(input9, "change", ctx.input9_change_input_handler),
+    				listen_dev(input9, "input", ctx.input9_change_input_handler),
+    				listen_dev(input10, "change", ctx.input10_change_input_handler),
+    				listen_dev(input10, "input", ctx.input10_change_input_handler)
+    			];
+    		},
+
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div4, anchor);
+    			append_dev(div4, div2);
+    			append_dev(div2, div0);
+    			append_dev(div0, t0);
+    			html_tag.m(div0);
+    			append_dev(div2, t1);
+    			append_dev(div2, div1);
+    			append_dev(div1, t2);
+    			append_dev(div1, br0);
+    			append_dev(div4, t3);
+    			append_dev(div4, div3);
+    			append_dev(div3, t4);
+    			append_dev(div4, t5);
+    			append_dev(div4, input0);
+
+    			set_input_value(input0, ctx.R0);
+
+    			insert_dev(target, t6, anchor);
+    			insert_dev(target, div10, anchor);
+    			append_dev(div10, div5);
+    			append_dev(div10, t8);
+    			append_dev(div10, div6);
+    			append_dev(div6, t9);
+    			html_tag_1.m(div6);
+    			append_dev(div6, t10);
+    			append_dev(div6, br1);
+    			append_dev(div10, t11);
+    			append_dev(div10, div7);
+    			append_dev(div7, t12);
+    			append_dev(div7, t13);
+    			append_dev(div10, t14);
+    			append_dev(div10, input1);
+
+    			set_input_value(input1, ctx.D_incbation);
+
+    			append_dev(div10, t15);
+    			append_dev(div10, div8);
+    			append_dev(div8, t16);
+    			html_tag_2.m(div8);
+    			append_dev(div8, t17);
+    			append_dev(div8, br2);
+    			append_dev(div10, t18);
+    			append_dev(div10, div9);
+    			append_dev(div9, t19);
+    			append_dev(div9, t20);
+    			append_dev(div10, t21);
+    			append_dev(div10, input2);
+
+    			set_input_value(input2, ctx.D_infectious);
+
+    			insert_dev(target, t22, anchor);
+    			insert_dev(target, div11, anchor);
+    			insert_dev(target, t23, anchor);
+    			insert_dev(target, div17, anchor);
+    			append_dev(div17, div12);
+    			append_dev(div17, t25);
+    			append_dev(div17, div13);
+    			append_dev(div13, t26);
+    			append_dev(div13, br3);
+    			append_dev(div17, t27);
+    			append_dev(div17, div14);
+    			append_dev(div14, t28);
+    			append_dev(div14, t29);
+    			append_dev(div17, t30);
+    			append_dev(div17, input3);
+
+    			set_input_value(input3, ctx.CFR);
+
+    			append_dev(div17, t31);
+    			append_dev(div17, div15);
+    			append_dev(div15, t32);
+    			append_dev(div15, br4);
+    			append_dev(div17, t33);
+    			append_dev(div17, div16);
+    			append_dev(div16, t34);
+    			append_dev(div16, t35);
+    			append_dev(div17, t36);
+    			append_dev(div17, input4);
+
+    			set_input_value(input4, ctx.Time_to_death);
+
+    			insert_dev(target, t37, anchor);
+    			insert_dev(target, div23, anchor);
+    			append_dev(div23, div18);
+    			append_dev(div23, t39);
+    			append_dev(div23, div19);
+    			append_dev(div19, t40);
+    			append_dev(div19, br5);
+    			append_dev(div23, t41);
+    			append_dev(div23, div20);
+    			append_dev(div20, t42);
+    			append_dev(div20, t43);
+    			append_dev(div23, t44);
+    			append_dev(div23, input5);
+
+    			set_input_value(input5, ctx.D_recovery_severe);
+
+    			append_dev(div23, t45);
+    			append_dev(div23, div21);
+    			append_dev(div21, t46);
+    			append_dev(div21, br6);
+    			append_dev(div23, t47);
+    			append_dev(div23, div22);
+    			append_dev(div22, t48);
+    			append_dev(div22, t49);
+    			append_dev(div23, t50);
+    			append_dev(div23, input6);
+
+    			set_input_value(input6, ctx.D_recovery_mild);
+
+    			insert_dev(target, t51, anchor);
+    			insert_dev(target, div29, anchor);
+    			append_dev(div29, div24);
+    			append_dev(div29, t53);
+    			append_dev(div29, div25);
+    			append_dev(div25, t54);
+    			append_dev(div25, br7);
+    			append_dev(div29, t55);
+    			append_dev(div29, div26);
+    			append_dev(div26, t56);
+    			append_dev(div26, t57);
+    			append_dev(div29, t58);
+    			append_dev(div29, input7);
+
+    			set_input_value(input7, ctx.P_SEVERE);
+
+    			append_dev(div29, t59);
+    			append_dev(div29, div27);
+    			append_dev(div27, t60);
+    			append_dev(div27, br8);
+    			append_dev(div29, t61);
+    			append_dev(div29, div28);
+    			append_dev(div28, t62);
+    			append_dev(div28, t63);
+    			append_dev(div29, t64);
+    			append_dev(div29, input8);
+
+    			set_input_value(input8, ctx.D_hospital_lag);
+
+    			insert_dev(target, t65, anchor);
+    			insert_dev(target, div35, anchor);
+    			append_dev(div35, div30);
+    			append_dev(div35, t67);
+    			append_dev(div35, div31);
+    			append_dev(div31, t68);
+    			append_dev(div31, br9);
+    			append_dev(div35, t69);
+    			append_dev(div35, div32);
+    			append_dev(div32, t70);
+    			append_dev(div35, t71);
+    			append_dev(div35, input9);
+
+    			set_input_value(input9, ctx.P_ICU);
+
+    			append_dev(div35, t72);
+    			append_dev(div35, div33);
+    			append_dev(div33, t73);
+    			append_dev(div33, br10);
+    			append_dev(div35, t74);
+    			append_dev(div35, div34);
+    			append_dev(div34, t75);
+    			append_dev(div35, t76);
+    			append_dev(div35, input10);
+
+    			set_input_value(input10, ctx.icuCapacity);
+    		},
+
+    		p: function update(changed, ctx) {
+    			if (changed.R0) {
+    				set_data_dev(t4, ctx.R0);
+    			}
+
+    			if (changed.R0) set_input_value(input0, ctx.R0);
+
+    			if ((changed.D_incbation) && t12_value !== (t12_value = (ctx.D_incbation).toFixed(2) + "")) {
+    				set_data_dev(t12, t12_value);
+    			}
+
+    			if (changed.D_incbation) set_input_value(input1, ctx.D_incbation);
+
+    			if (changed.D_infectious) {
+    				set_data_dev(t19, ctx.D_infectious);
+    			}
+
+    			if (changed.D_infectious) set_input_value(input2, ctx.D_infectious);
+
+    			if ((changed.CFR) && t28_value !== (t28_value = (ctx.CFR*100).toFixed(2) + "")) {
+    				set_data_dev(t28, t28_value);
+    			}
+
+    			if (changed.CFR) set_input_value(input3, ctx.CFR);
+
+    			if (changed.Time_to_death) {
+    				set_data_dev(t34, ctx.Time_to_death);
+    			}
+
+    			if (changed.Time_to_death) set_input_value(input4, ctx.Time_to_death);
+
+    			if ((changed.D_infectious) && input4_min_value !== (input4_min_value = (ctx.D_infectious)+0.1)) {
+    				attr_dev(input4, "min", input4_min_value);
+    			}
+
+    			if (changed.D_recovery_severe) {
+    				set_data_dev(t42, ctx.D_recovery_severe);
+    			}
+
+    			if (changed.D_recovery_severe) set_input_value(input5, ctx.D_recovery_severe);
+
+    			if (changed.D_recovery_mild) {
+    				set_data_dev(t48, ctx.D_recovery_mild);
+    			}
+
+    			if (changed.D_recovery_mild) set_input_value(input6, ctx.D_recovery_mild);
+
+    			if ((changed.P_SEVERE) && t56_value !== (t56_value = (ctx.P_SEVERE*100).toFixed(2) + "")) {
+    				set_data_dev(t56, t56_value);
+    			}
+
+    			if (changed.P_SEVERE) set_input_value(input7, ctx.P_SEVERE);
+
+    			if (changed.D_hospital_lag) {
+    				set_data_dev(t62, ctx.D_hospital_lag);
+    			}
+
+    			if (changed.D_hospital_lag) set_input_value(input8, ctx.D_hospital_lag);
+
+    			if (changed.P_ICU) {
+    				set_data_dev(t70, ctx.P_ICU);
+    			}
+
+    			if (changed.P_ICU) set_input_value(input9, ctx.P_ICU);
+
+    			if ((changed.icuCapacity) && t75_value !== (t75_value = ctx.icuCapacity === 0 ? 'Hidden' : ctx.icuCapacity + "")) {
+    				set_data_dev(t75, t75_value);
+    			}
+
+    			if (changed.icuCapacity) set_input_value(input10, ctx.icuCapacity);
+    		},
+
+    		d: function destroy(detaching) {
+    			if (detaching) {
+    				detach_dev(div4);
+    				detach_dev(t6);
+    				detach_dev(div10);
+    				detach_dev(t22);
+    				detach_dev(div11);
+    				detach_dev(t23);
+    				detach_dev(div17);
+    				detach_dev(t37);
+    				detach_dev(div23);
+    				detach_dev(t51);
+    				detach_dev(div29);
+    				detach_dev(t65);
+    				detach_dev(div35);
+    			}
+
+    			run_all(dispose);
+    		}
+    	};
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_if_block$4.name, type: "if", source: "(690:4) {#if selected_model === MODEL_GOH}", ctx });
+    	return block;
+    }
+
+    function create_fragment$a(ctx) {
+    	var link, t0, h2, t2, h5, t4, div13, div6, div4, div0, t6, select, option0, t7, option1, t8, option2, t9, t10, div3, div2, updating_checked, div1, t12, div5, updating_stateMeta, t13, div12, div9, updating_active, t14, div8, div7, t15, t16, div10, t17, t18, div11, t19, div17, div15, div14, t21, div16, t22, div18, current, dispose;
 
     	function checkbox_checked_binding(value) {
     		ctx.checkbox_checked_binding.call(null, value);
@@ -28767,7 +31947,7 @@
     		P_bars: ctx.P_bars,
     		active_: ctx.active_,
     		indexToTime: ctx.indexToTime,
-    		first_date: ctx.first_date
+    		firstBarDate: ctx.firstBarDate
     	};
     	if (ctx.stateMeta !== void 0) {
     		chartcompanion_props.stateMeta = ctx.stateMeta;
@@ -28805,21 +31985,33 @@
 
     	binding_callbacks.push(() => bind(chart, 'active', chart_active_binding));
 
-    	var if_block0 = (ctx.allow_x_axis_resizing) && create_if_block_1$1(ctx);
+    	var icon = new Icon({
+    		props: {
+    		data: search,
+    		scale: "2.5",
+    		class: "magnifyingGlass",
+    		style: "color: #CCC; position: absolute; right: 70px; bottom: 0px; cursor: hand;"
+    	},
+    		$$inline: true
+    	});
 
-    	var if_block1 = (show_if) && create_if_block$2(ctx);
+    	var if_block0 = (allow_x_axis_resizing) && create_if_block_2$2(ctx);
+
+    	var if_block1 = (ctx.selected_model === MODEL_GOH) && create_if_block_1$2(ctx);
 
     	let each_value = ctx.milestones;
 
     	let each_blocks = [];
 
     	for (let i = 0; i < each_value.length; i += 1) {
-    		each_blocks[i] = create_each_block$2(get_each_context$2(ctx, each_value, i));
+    		each_blocks[i] = create_each_block$3(get_each_context$3(ctx, each_value, i));
     	}
 
     	const out = i => transition_out(each_blocks[i], 1, 1, () => {
     		each_blocks[i] = null;
     	});
+
+    	var if_block2 = (ctx.selected_model === MODEL_GOH) && create_if_block$4(ctx);
 
     	const block = {
     		c: function create() {
@@ -28831,7 +32023,7 @@
     			h5 = element("h5");
     			h5.textContent = "Historical Estimates & Future Predictions — Modelling COVID-19 in Finland";
     			t4 = space();
-    			div26 = element("div");
+    			div13 = element("div");
     			div6 = element("div");
     			div4 = element("div");
     			div0 = element("div");
@@ -28839,11 +32031,11 @@
     			t6 = space();
     			select = element("select");
     			option0 = element("option");
-    			option0.textContent = "Finland | Goh's SEIR ODE (live)";
+    			t7 = text("Finland | Goh's SEIR ODE (live)");
     			option1 = element("option");
-    			option1.textContent = "Finland | Berkeley ABM (precomputed)";
+    			t8 = text("Finland | Berkeley ABM (precomputed)");
     			option2 = element("option");
-    			option2.textContent = "Uusimaa | REINA ABM (precomputed)";
+    			t9 = text("Uusimaa | REINA ABM (precomputed)");
     			t10 = space();
     			div3 = element("div");
     			div2 = element("div");
@@ -28854,626 +32046,141 @@
     			div5 = element("div");
     			chartcompanion.$$.fragment.c();
     			t13 = space();
-    			div25 = element("div");
-    			div7 = element("div");
+    			div12 = element("div");
+    			div9 = element("div");
     			chart.$$.fragment.c();
     			t14 = space();
-    			if (if_block0) if_block0.c();
-    			t15 = space();
     			div8 = element("div");
+    			div7 = element("div");
+    			icon.$$.fragment.c();
+    			t15 = space();
+    			if (if_block0) if_block0.c();
     			t16 = space();
-    			div15 = element("div");
-    			div14 = element("div");
-    			div9 = element("div");
-    			span0 = element("span");
-    			t17 = text(" ⟶");
-    			t18 = space();
-    			if (if_block1) if_block1.c();
-    			t19 = space();
-    			div12 = element("div");
     			div10 = element("div");
-    			t20 = text("Action on day ");
-    			t21 = text(t21_value);
-    			t22 = space();
-    			span1 = element("span");
+    			t17 = space();
+    			if (if_block1) if_block1.c();
+    			t18 = space();
     			div11 = element("div");
-    			t23 = space();
-    			div13 = element("div");
-    			t24 = space();
-    			div23 = element("div");
-    			div22 = element("div");
-    			div21 = element("div");
-    			div20 = element("div");
-    			div17 = element("div");
-    			div16 = element("div");
-    			t25 = text("to alter transmission by");
-    			br0 = element("br");
-    			t26 = space();
-    			div19 = element("div");
-    			div18 = element("div");
-    			t27 = text(t27_value);
-    			t28 = text("%");
-    			t29 = space();
-    			input0 = element("input");
-    			t30 = space();
-    			div24 = element("div");
 
     			for (let i = 0; i < each_blocks.length; i += 1) {
     				each_blocks[i].c();
     			}
 
-    			t31 = space();
-    			div68 = element("div");
-    			div30 = element("div");
-    			div27 = element("div");
-    			div27.textContent = "Transmission Dynamics";
-    			t33 = space();
-    			div28 = element("div");
-    			t34 = space();
-    			div29 = element("div");
-    			div29.textContent = "Clinical Dynamics";
-    			t36 = space();
-    			div67 = element("div");
-    			div36 = element("div");
-    			div31 = element("div");
-    			div31.textContent = "Proto Config";
-    			t38 = space();
-    			div32 = element("div");
-    			t39 = text("Zoom x-axis");
-    			br1 = element("br");
-    			t40 = space();
-    			div33 = element("div");
-    			t41 = text("1/");
-    			t42 = text(ctx.dt);
-    			t43 = space();
-    			input1 = element("input");
-    			t44 = space();
-    			div34 = element("div");
-    			t45 = text("ICU capacity");
-    			br2 = element("br");
-    			t46 = space();
-    			div35 = element("div");
-    			t47 = text(t47_value);
-    			t48 = space();
-    			input2 = element("input");
-    			t49 = space();
-    			div41 = element("div");
-    			div39 = element("div");
-    			div37 = element("div");
-    			t50 = text("Basic Reproduction Number ");
-    			t51 = space();
-    			div38 = element("div");
-    			t52 = text("Measure of contagiousness: the number of secondary infections each infected individual produces. ");
-    			br3 = element("br");
-    			t53 = space();
-    			div40 = element("div");
-    			t54 = text(ctx.R0);
-    			t55 = space();
-    			input3 = element("input");
-    			t56 = space();
-    			div47 = element("div");
-    			div42 = element("div");
-    			div42.textContent = "Transmission Times";
-    			t58 = space();
-    			div43 = element("div");
-    			t59 = text("Length of incubation period, ");
-    			t60 = text(".");
-    			br4 = element("br");
-    			t61 = space();
-    			div44 = element("div");
-    			t62 = text(t62_value);
-    			t63 = text(" days");
-    			t64 = space();
-    			input4 = element("input");
-    			t65 = space();
-    			div45 = element("div");
-    			t66 = text("Duration patient is infectious, ");
-    			t67 = text(".");
-    			br5 = element("br");
-    			t68 = space();
-    			div46 = element("div");
-    			t69 = text(ctx.D_infectious);
-    			t70 = text(" Days");
-    			t71 = space();
-    			input5 = element("input");
-    			t72 = space();
-    			div48 = element("div");
-    			t73 = space();
-    			div54 = element("div");
-    			div49 = element("div");
-    			div49.textContent = "Mortality Statistics";
-    			t75 = space();
-    			div50 = element("div");
-    			t76 = text("Case fatality rate.");
-    			br6 = element("br");
-    			t77 = space();
-    			div51 = element("div");
-    			t78 = text(t78_value);
-    			t79 = text(" %");
-    			t80 = space();
-    			input6 = element("input");
-    			t81 = space();
-    			div52 = element("div");
-    			t82 = text("Time from end of incubation to death.");
-    			br7 = element("br");
-    			t83 = space();
-    			div53 = element("div");
-    			t84 = text(ctx.Time_to_death);
-    			t85 = text(" Days");
-    			t86 = space();
-    			input7 = element("input");
-    			t87 = space();
-    			div60 = element("div");
-    			div55 = element("div");
-    			div55.textContent = "Recovery Times";
-    			t89 = space();
-    			div56 = element("div");
-    			t90 = text("Length of hospital stay");
-    			br8 = element("br");
-    			t91 = space();
-    			div57 = element("div");
-    			t92 = text(ctx.D_recovery_severe);
-    			t93 = text(" Days");
-    			t94 = space();
-    			input8 = element("input");
-    			t95 = space();
-    			div58 = element("div");
-    			t96 = text("Recovery time for mild cases");
-    			br9 = element("br");
-    			t97 = space();
-    			div59 = element("div");
-    			t98 = text(ctx.D_recovery_mild);
-    			t99 = text(" Days");
-    			t100 = space();
-    			input9 = element("input");
-    			t101 = space();
-    			div66 = element("div");
-    			div61 = element("div");
-    			div61.textContent = "Care statistics";
-    			t103 = space();
-    			div62 = element("div");
-    			t104 = text("Hospitalization rate.");
-    			br10 = element("br");
-    			t105 = space();
-    			div63 = element("div");
-    			t106 = text(t106_value);
-    			t107 = text(" %");
-    			t108 = space();
-    			input10 = element("input");
-    			t109 = space();
-    			div64 = element("div");
-    			t110 = text("Time to hospitalization.");
-    			br11 = element("br");
-    			t111 = space();
-    			div65 = element("div");
-    			t112 = text(ctx.D_hospital_lag);
-    			t113 = text(" Days");
-    			t114 = space();
-    			input11 = element("input");
-    			t115 = space();
-    			div69 = element("div");
+    			t19 = space();
+    			div17 = element("div");
+    			div15 = element("div");
+    			div14 = element("div");
+    			div14.textContent = "Parameter configuration for selected scenario/model";
+    			t21 = space();
+    			div16 = element("div");
+    			if (if_block2) if_block2.c();
+    			t22 = space();
+    			div18 = element("div");
     			attr_dev(link, "rel", "stylesheet");
     			attr_dev(link, "href", "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.css");
     			attr_dev(link, "integrity", "sha384-bsHo4/LA+lkZv61JspMDQB9QP1TtO4IgOf2yYS+J6VdAYLVyx1c3XKcsHh0Vy8Ws");
     			attr_dev(link, "crossorigin", "anonymous");
-    			add_location(link, file$4, 425, 0, 14573);
-    			attr_dev(h2, "class", "svelte-1t7tm9c");
-    			add_location(h2, file$4, 608, 0, 18345);
-    			attr_dev(h5, "class", "svelte-1t7tm9c");
-    			add_location(h5, file$4, 609, 0, 18362);
-    			attr_dev(div0, "class", "legendtext svelte-1t7tm9c");
+    			add_location(link, file$9, 369, 0, 13262);
+    			attr_dev(h2, "class", "svelte-15r2nza");
+    			add_location(h2, file$9, 551, 0, 17002);
+    			attr_dev(h5, "class", "svelte-15r2nza");
+    			add_location(h5, file$9, 552, 0, 17019);
+    			attr_dev(div0, "class", "legendtext svelte-15r2nza");
     			set_style(div0, "font-size", "14px");
     			set_style(div0, "line-height", "16px");
     			set_style(div0, "font-weight", "bold");
     			set_style(div0, "color", "#777");
-    			add_location(div0, file$4, 615, 6, 18598);
-    			option0.__value = "goh";
+    			add_location(div0, file$9, 558, 6, 17255);
+    			option0.__value = MODEL_GOH;
     			option0.value = option0.__value;
     			option0.selected = true;
-    			add_location(option0, file$4, 619, 8, 18818);
-    			option1.__value = "berkeley";
+    			add_location(option0, file$9, 562, 8, 17475);
+    			option1.__value = MODEL_BERKELEY;
     			option1.value = option1.__value;
-    			add_location(option1, file$4, 620, 8, 18896);
-    			option2.__value = "reina";
+    			add_location(option1, file$9, 563, 8, 17560);
+    			option2.__value = MODEL_REINA;
     			option2.value = option2.__value;
     			option2.disabled = true;
-    			add_location(option2, file$4, 621, 8, 18975);
+    			add_location(option2, file$9, 564, 8, 17646);
     			if (ctx.selected_model === void 0) add_render_callback(() => ctx.select_change_handler.call(select));
     			attr_dev(select, "id", "model-selection");
-    			add_location(select, file$4, 618, 6, 18752);
+    			add_location(select, file$9, 561, 6, 17409);
     			set_style(div1, "position", "relative");
     			set_style(div1, "top", "4px");
     			set_style(div1, "left", "20px");
     			set_style(div1, "color", "#777");
-    			add_location(div1, file$4, 626, 61, 19373);
-    			attr_dev(div2, "class", "tick svelte-1t7tm9c");
+    			add_location(div1, file$9, 569, 61, 18051);
+    			attr_dev(div2, "class", "tick svelte-15r2nza");
     			set_style(div2, "position", "relative");
     			set_style(div2, "color", "#AAA");
     			set_style(div2, "pointer-events", "all");
-    			add_location(div2, file$4, 625, 8, 19232);
+    			add_location(div2, file$9, 568, 8, 17910);
     			set_style(div3, "position", "font-family: nyt-franklin,helvetica,arial,sans-serif");
     			set_style(div3, "font-size", "13px");
     			set_style(div3, "margin-bottom", "10px");
     			set_style(div3, "margin-top", "10px");
     			set_style(div3, "margin-left", "2px");
-    			add_location(div3, file$4, 624, 6, 19072);
+    			add_location(div3, file$9, 567, 6, 17750);
     			set_style(div4, "height", "50px");
-    			add_location(div4, file$4, 613, 4, 18557);
+    			add_location(div4, file$9, 556, 4, 17214);
     			set_style(div5, "position", "relative");
     			set_style(div5, "top", "100px");
     			set_style(div5, "right", "-115px");
-    			add_location(div5, file$4, 632, 4, 19520);
+    			add_location(div5, file$9, 575, 4, 18198);
     			set_style(div6, "flex", "0 0 270px");
     			set_style(div6, "width", "270px");
-    			add_location(div6, file$4, 612, 2, 18509);
-    			set_style(div7, "position", "relative");
-    			set_style(div7, "top", "60px");
-    			set_style(div7, "left", "10px");
-    			add_location(div7, file$4, 649, 4, 19936);
-    			attr_dev(div8, "id", "yAxisDrag");
-    			set_style(div8, "cursor", "row-resize");
-    			set_style(div8, "pointer-events", "all");
-    			set_style(div8, "position", "absolute");
-    			set_style(div8, "top", "" + 55 + "px");
-    			set_style(div8, "left", "" + 0 + "px");
-    			set_style(div8, "width", "" + 20 + "px");
-    			set_style(div8, "background-color", "#222");
-    			set_style(div8, "opacity", "0");
-    			set_style(div8, "height", "425px");
-    			add_location(div8, file$4, 679, 6, 20812);
-    			set_style(span0, "font-size", "13px");
-    			add_location(span0, file$4, 706, 8, 21981);
-    			set_style(div9, "position", "absolute");
-    			set_style(div9, "opacity", "0.5");
-    			set_style(div9, "top", "-5px");
+    			add_location(div6, file$9, 555, 2, 17166);
+    			add_location(div7, file$9, 607, 8, 19056);
+    			add_location(div8, file$9, 606, 6, 19042);
+    			set_style(div9, "position", "relative");
+    			set_style(div9, "top", "60px");
     			set_style(div9, "left", "10px");
-    			set_style(div9, "width", "120px");
-    			add_location(div9, file$4, 705, 8, 21892);
-    			attr_dev(div10, "class", "paneltitle svelte-1t7tm9c");
-    			set_style(div10, "top", "9px");
-    			set_style(div10, "position", "relative");
-    			set_style(div10, "text-align", "right");
-    			add_location(div10, file$4, 716, 10, 22621);
-    			add_location(span1, file$4, 717, 10, 22762);
-    			set_style(div11, "top", "9px");
-    			set_style(div11, "position", "relative");
-    			set_style(div11, "text-align", "right");
-    			add_location(div11, file$4, 717, 23, 22775);
-    			attr_dev(div12, "id", "interventionDrag");
-    			attr_dev(div12, "class", "legendtext svelte-1t7tm9c");
-    			set_style(div12, "flex", "0 0 160px");
-    			set_style(div12, "width", "120px");
+    			add_location(div9, file$9, 592, 4, 18618);
+    			attr_dev(div10, "id", "yAxisDrag");
+    			set_style(div10, "cursor", "row-resize");
+    			set_style(div10, "pointer-events", "all");
+    			set_style(div10, "position", "absolute");
+    			set_style(div10, "top", "" + 55 + "px");
+    			set_style(div10, "left", "" + 0 + "px");
+    			set_style(div10, "width", "" + 20 + "px");
+    			set_style(div10, "background-color", "#222");
+    			set_style(div10, "opacity", "0");
+    			set_style(div10, "height", "425px");
+    			add_location(div10, file$9, 631, 6, 19773);
+    			set_style(div11, "pointer-events", "none");
+    			set_style(div11, "position", "absolute");
+    			set_style(div11, "top", "" + (height$1+84) + "px");
+    			set_style(div11, "left", "" + 0 + "px");
+    			set_style(div11, "width", "" + 780 + "px");
+    			set_style(div11, "opacity", "1.0");
+    			set_style(div11, "height", "25px");
+    			set_style(div11, "cursor", "col-resize");
+    			add_location(div11, file$9, 662, 6, 20701);
+    			set_style(div12, "flex", "0 0 890px");
+    			set_style(div12, "width", "890px");
+    			set_style(div12, "height", "" + (height$1+128) + "px");
     			set_style(div12, "position", "relative");
-    			set_style(div12, "top", "-70px");
-    			set_style(div12, "height", "60px");
-    			set_style(div12, "padding-right", "15px");
-    			set_style(div12, "left", "-125px");
-    			set_style(div12, "pointer-events", "all");
-    			set_style(div12, "cursor", "col-resize");
-    			add_location(div12, file$4, 715, 8, 22406);
-    			set_style(div13, "width", "150px");
-    			set_style(div13, "position", "relative");
-    			set_style(div13, "top", "-85px");
-    			set_style(div13, "height", "80px");
-    			set_style(div13, "padding-right", "15px");
-    			set_style(div13, "left", "0px");
-    			set_style(div13, "cursor", "col-resize");
-    			set_style(div13, "background-color", "white");
-    			set_style(div13, "position", "absolute");
-    			add_location(div13, file$4, 733, 8, 23348);
-    			attr_dev(div14, "id", "dottedline");
-    			set_style(div14, "pointer-events", "all");
-    			set_style(div14, "position", "absolute");
-    			set_style(div14, "top", "-38px");
-    			set_style(div14, "left", "" + ctx.xScaleTime(ctx.InterventionTime) + "px");
-    			set_style(div14, "visibility", ((ctx.xScaleTime(ctx.InterventionTime) < (width$1 - ctx.padding.right)) ? 'visible':'hidden'));
-    			set_style(div14, "width", "2px");
-    			set_style(div14, "background-color", "#FFF");
-    			set_style(div14, "border-right", "1px dashed black");
-    			set_style(div14, "pointer-events", "all");
-    			set_style(div14, "cursor", "col-resize");
-    			set_style(div14, "height", "" + (height$1+19) + "px");
-    			add_location(div14, file$4, 693, 8, 21341);
-    			set_style(div15, "position", "absolute");
-    			set_style(div15, "width", "" + (width$1+15) + "px");
-    			set_style(div15, "height", "" + height$1 + "px");
-    			set_style(div15, "position", "absolute");
-    			set_style(div15, "top", "100px");
-    			set_style(div15, "left", "10px");
-    			set_style(div15, "pointer-events", "none");
-    			add_location(div15, file$4, 692, 6, 21196);
-    			add_location(br0, file$4, 756, 61, 24557);
-    			attr_dev(div16, "class", "paneldesc svelte-1t7tm9c");
-    			add_location(div16, file$4, 756, 14, 24510);
-    			attr_dev(div17, "class", "paneltext svelte-1t7tm9c");
-    			set_style(div17, "height", "20px");
-    			set_style(div17, "text-align", "right");
-    			add_location(div17, file$4, 755, 14, 24433);
-    			attr_dev(div18, "class", "slidertext svelte-1t7tm9c");
-    			add_location(div18, file$4, 759, 14, 24651);
-    			attr_dev(input0, "class", "range svelte-1t7tm9c");
-    			attr_dev(input0, "type", "range");
-    			attr_dev(input0, "min", "-1");
-    			attr_dev(input0, "max", "1");
-    			attr_dev(input0, "step", "0.01");
-    			add_location(input0, file$4, 760, 14, 24762);
-    			set_style(div19, "pointer-events", "all");
-    			add_location(div19, file$4, 758, 14, 24603);
-    			attr_dev(div20, "class", "caption svelte-1t7tm9c");
-    			set_style(div20, "pointer-events", "none");
-    			set_style(div20, "position", "absolute");
-    			set_style(div20, "left", "0");
-    			set_style(div20, "top", "40px");
-    			set_style(div20, "width", "150px");
-    			set_style(div20, "border-left", "2px solid #777");
-    			set_style(div20, "padding", "5px 7px 7px 7px");
-    			add_location(div20, file$4, 754, 14, 24254);
-    			set_style(div21, "flex", "0 0 160px");
-    			set_style(div21, "width", "200px");
-    			set_style(div21, "position", "relative");
-    			set_style(div21, "top", "-125px");
-    			set_style(div21, "left", "1px");
-    			add_location(div21, file$4, 753, 12, 24154);
-    			set_style(div22, "position", "absolute");
-    			set_style(div22, "top", "-38px");
-    			set_style(div22, "left", "" + ctx.xScaleTime(ctx.InterventionTime) + "px");
-    			set_style(div22, "visibility", ((ctx.xScaleTime(ctx.InterventionTime) < (width$1 - ctx.padding.right)) ? 'visible':'hidden'));
-    			set_style(div22, "width", "2px");
-    			set_style(div22, "background-color", "#FFF");
-    			set_style(div22, "border-right", "1px dashed black");
-    			set_style(div22, "cursor", "col-resize");
-    			set_style(div22, "height", "" + height$1 + "px");
-    			add_location(div22, file$4, 743, 8, 23753);
-    			set_style(div23, "position", "absolute");
-    			set_style(div23, "width", "" + (width$1+15) + "px");
-    			set_style(div23, "height", "" + height$1 + "px");
-    			set_style(div23, "position", "absolute");
-    			set_style(div23, "top", "120px");
-    			set_style(div23, "left", "10px");
-    			set_style(div23, "pointer-events", "none");
-    			add_location(div23, file$4, 742, 6, 23608);
-    			set_style(div24, "pointer-events", "none");
-    			set_style(div24, "position", "absolute");
-    			set_style(div24, "top", "" + (height$1+84) + "px");
-    			set_style(div24, "left", "" + 0 + "px");
-    			set_style(div24, "width", "" + 780 + "px");
-    			set_style(div24, "opacity", "1.0");
-    			set_style(div24, "height", "25px");
-    			set_style(div24, "cursor", "col-resize");
-    			add_location(div24, file$4, 767, 6, 24973);
-    			set_style(div25, "flex", "0 0 890px");
-    			set_style(div25, "width", "890px");
-    			set_style(div25, "height", "" + (height$1+128) + "px");
-    			set_style(div25, "position", "relative");
-    			add_location(div25, file$4, 647, 2, 19844);
-    			attr_dev(div26, "class", "chart svelte-1t7tm9c");
-    			set_style(div26, "display", "flex");
-    			set_style(div26, "max-width", "1120px");
-    			add_location(div26, file$4, 611, 0, 18446);
-    			set_style(div27, "margin", "0px 0px 5px 4px");
-    			attr_dev(div27, "class", "minorTitleColumn svelte-1t7tm9c");
-    			add_location(div27, file$4, 790, 4, 25835);
-    			set_style(div28, "flex", "0 0 20");
-    			set_style(div28, "width", "20px");
-    			add_location(div28, file$4, 791, 4, 25929);
-    			set_style(div29, "margin", "0px 4px 5px 0px");
-    			attr_dev(div29, "class", "minorTitleColumn svelte-1t7tm9c");
-    			add_location(div29, file$4, 792, 4, 25978);
-    			attr_dev(div30, "class", "minorTitle svelte-1t7tm9c");
-    			add_location(div30, file$4, 789, 2, 25806);
-    			attr_dev(div31, "class", "paneltitle svelte-1t7tm9c");
-    			add_location(div31, file$4, 797, 6, 26127);
-    			add_location(br1, file$4, 799, 89, 26260);
-    			attr_dev(div32, "class", "paneldesc svelte-1t7tm9c");
-    			set_style(div32, "height", "30px");
-    			set_style(div32, "border-top", "0px solid #EEE");
-    			add_location(div32, file$4, 799, 6, 26177);
-    			attr_dev(div33, "class", "slidertext svelte-1t7tm9c");
-    			add_location(div33, file$4, 800, 6, 26278);
-    			attr_dev(input1, "class", "range svelte-1t7tm9c");
-    			attr_dev(input1, "type", "range");
-    			attr_dev(input1, "min", "1");
-    			attr_dev(input1, "max", "4");
-    			attr_dev(input1, "step", "1");
-    			add_location(input1, file$4, 801, 6, 26321);
-    			add_location(br2, file$4, 803, 90, 26480);
-    			attr_dev(div34, "class", "paneldesc svelte-1t7tm9c");
-    			set_style(div34, "height", "30px");
-    			set_style(div34, "border-top", "0px solid #EEE");
-    			add_location(div34, file$4, 803, 6, 26396);
-    			attr_dev(div35, "class", "slidertext svelte-1t7tm9c");
-    			add_location(div35, file$4, 804, 6, 26498);
-    			attr_dev(input2, "class", "range svelte-1t7tm9c");
-    			attr_dev(input2, "type", "range");
-    			attr_dev(input2, "min", "0");
-    			attr_dev(input2, "max", "10000");
-    			attr_dev(input2, "step", "10");
-    			add_location(input2, file$4, 805, 6, 26579);
-    			attr_dev(div36, "class", "column svelte-1t7tm9c");
-    			add_location(div36, file$4, 796, 4, 26100);
-    			html_tag = new HtmlTag(raw1_value, null);
-    			attr_dev(div37, "class", "paneltitle svelte-1t7tm9c");
-    			add_location(div37, file$4, 812, 6, 26736);
-    			add_location(br3, file$4, 813, 126, 26957);
-    			attr_dev(div38, "class", "paneldesc svelte-1t7tm9c");
-    			add_location(div38, file$4, 813, 6, 26837);
-    			attr_dev(div39, "class", "paneltext svelte-1t7tm9c");
-    			add_location(div39, file$4, 811, 6, 26706);
-    			attr_dev(div40, "class", "slidertext svelte-1t7tm9c");
-    			add_location(div40, file$4, 815, 6, 26987);
-    			attr_dev(input3, "class", "range svelte-1t7tm9c");
-    			attr_dev(input3, "type", "range");
-    			attr_dev(input3, "min", "0.01");
-    			attr_dev(input3, "max", "10");
-    			attr_dev(input3, "step", "0.01");
-    			add_location(input3, file$4, 816, 6, 27028);
-    			attr_dev(div41, "class", "column svelte-1t7tm9c");
-    			add_location(div41, file$4, 810, 4, 26679);
-    			attr_dev(div42, "class", "paneltitle svelte-1t7tm9c");
-    			add_location(div42, file$4, 820, 6, 27148);
-    			html_tag_1 = new HtmlTag(raw2_value, t60);
-    			add_location(br4, file$4, 821, 117, 27314);
-    			attr_dev(div43, "class", "paneldesc svelte-1t7tm9c");
-    			set_style(div43, "height", "30px");
-    			add_location(div43, file$4, 821, 6, 27203);
-    			attr_dev(div44, "class", "slidertext svelte-1t7tm9c");
-    			add_location(div44, file$4, 822, 6, 27331);
-    			attr_dev(input4, "class", "range svelte-1t7tm9c");
-    			set_style(input4, "margin-bottom", "8px");
-    			attr_dev(input4, "type", "range");
-    			attr_dev(input4, "min", 0.15);
-    			attr_dev(input4, "max", "24");
-    			attr_dev(input4, "step", "0.0001");
-    			add_location(input4, file$4, 823, 6, 27399);
-    			html_tag_2 = new HtmlTag(raw3_value, t67);
-    			add_location(br5, file$4, 824, 167, 27680);
-    			attr_dev(div45, "class", "paneldesc svelte-1t7tm9c");
-    			set_style(div45, "height", "29px");
-    			set_style(div45, "border-top", "1px solid #EEE");
-    			set_style(div45, "padding-top", "10px");
-    			add_location(div45, file$4, 824, 6, 27519);
-    			attr_dev(div46, "class", "slidertext svelte-1t7tm9c");
-    			add_location(div46, file$4, 825, 6, 27697);
-    			attr_dev(input5, "class", "range svelte-1t7tm9c");
-    			attr_dev(input5, "type", "range");
-    			attr_dev(input5, "min", 0);
-    			attr_dev(input5, "max", "24");
-    			attr_dev(input5, "step", "0.01");
-    			add_location(input5, file$4, 826, 6, 27753);
-    			attr_dev(div47, "class", "column svelte-1t7tm9c");
-    			add_location(div47, file$4, 819, 4, 27121);
-    			set_style(div48, "flex", "0 0 20");
-    			set_style(div48, "width", "20px");
-    			add_location(div48, file$4, 829, 4, 27853);
-    			attr_dev(div49, "class", "paneltitle svelte-1t7tm9c");
-    			add_location(div49, file$4, 832, 6, 27930);
-    			add_location(br6, file$4, 833, 68, 28049);
-    			attr_dev(div50, "class", "paneldesc svelte-1t7tm9c");
-    			set_style(div50, "height", "30px");
-    			add_location(div50, file$4, 833, 6, 27987);
-    			attr_dev(div51, "class", "slidertext svelte-1t7tm9c");
-    			add_location(div51, file$4, 834, 6, 28066);
-    			attr_dev(input6, "class", "range svelte-1t7tm9c");
-    			set_style(input6, "margin-bottom", "8px");
-    			attr_dev(input6, "type", "range");
-    			attr_dev(input6, "min", 0);
-    			attr_dev(input6, "max", "1");
-    			attr_dev(input6, "step", "0.0001");
-    			add_location(input6, file$4, 835, 6, 28127);
-    			add_location(br7, file$4, 836, 133, 28363);
-    			attr_dev(div52, "class", "paneldesc svelte-1t7tm9c");
-    			set_style(div52, "height", "29px");
-    			set_style(div52, "border-top", "1px solid #EEE");
-    			set_style(div52, "padding-top", "10px");
-    			add_location(div52, file$4, 836, 6, 28236);
-    			attr_dev(div53, "class", "slidertext svelte-1t7tm9c");
-    			add_location(div53, file$4, 837, 6, 28380);
-    			attr_dev(input7, "class", "range svelte-1t7tm9c");
-    			attr_dev(input7, "type", "range");
-    			attr_dev(input7, "min", input7_min_value = (ctx.D_infectious)+0.1);
-    			attr_dev(input7, "max", "100");
-    			attr_dev(input7, "step", "0.01");
-    			add_location(input7, file$4, 838, 6, 28437);
-    			attr_dev(div54, "class", "column svelte-1t7tm9c");
-    			add_location(div54, file$4, 831, 4, 27903);
-    			attr_dev(div55, "class", "paneltitle svelte-1t7tm9c");
-    			add_location(div55, file$4, 842, 6, 28583);
-    			add_location(br8, file$4, 843, 72, 28700);
-    			attr_dev(div56, "class", "paneldesc svelte-1t7tm9c");
-    			set_style(div56, "height", "30px");
-    			add_location(div56, file$4, 843, 6, 28634);
-    			attr_dev(div57, "class", "slidertext svelte-1t7tm9c");
-    			add_location(div57, file$4, 844, 6, 28717);
-    			attr_dev(input8, "class", "range svelte-1t7tm9c");
-    			set_style(input8, "margin-bottom", "8px");
-    			attr_dev(input8, "type", "range");
-    			attr_dev(input8, "min", 0.1);
-    			attr_dev(input8, "max", "100");
-    			attr_dev(input8, "step", "0.01");
-    			add_location(input8, file$4, 845, 6, 28778);
-    			add_location(br9, file$4, 846, 124, 29021);
-    			attr_dev(div58, "class", "paneldesc svelte-1t7tm9c");
-    			set_style(div58, "height", "29px");
-    			set_style(div58, "border-top", "1px solid #EEE");
-    			set_style(div58, "padding-top", "10px");
-    			add_location(div58, file$4, 846, 6, 28903);
-    			attr_dev(div59, "class", "slidertext svelte-1t7tm9c");
-    			add_location(div59, file$4, 847, 6, 29038);
-    			attr_dev(input9, "class", "range svelte-1t7tm9c");
-    			attr_dev(input9, "type", "range");
-    			attr_dev(input9, "min", 0.5);
-    			attr_dev(input9, "max", "100");
-    			attr_dev(input9, "step", "0.01");
-    			add_location(input9, file$4, 848, 6, 29097);
-    			attr_dev(div60, "class", "column svelte-1t7tm9c");
-    			add_location(div60, file$4, 841, 4, 28556);
-    			attr_dev(div61, "class", "paneltitle svelte-1t7tm9c");
-    			add_location(div61, file$4, 852, 6, 29230);
-    			add_location(br10, file$4, 853, 70, 29346);
-    			attr_dev(div62, "class", "paneldesc svelte-1t7tm9c");
-    			set_style(div62, "height", "30px");
-    			add_location(div62, file$4, 853, 6, 29282);
-    			attr_dev(div63, "class", "slidertext svelte-1t7tm9c");
-    			add_location(div63, file$4, 854, 6, 29363);
-    			attr_dev(input10, "class", "range svelte-1t7tm9c");
-    			set_style(input10, "margin-bottom", "8px");
-    			attr_dev(input10, "type", "range");
-    			attr_dev(input10, "min", 0);
-    			attr_dev(input10, "max", "1");
-    			attr_dev(input10, "step", "0.0001");
-    			add_location(input10, file$4, 855, 6, 29429);
-    			add_location(br11, file$4, 856, 120, 29662);
-    			attr_dev(div64, "class", "paneldesc svelte-1t7tm9c");
-    			set_style(div64, "height", "29px");
-    			set_style(div64, "border-top", "1px solid #EEE");
-    			set_style(div64, "padding-top", "10px");
-    			add_location(div64, file$4, 856, 6, 29548);
-    			attr_dev(div65, "class", "slidertext svelte-1t7tm9c");
-    			add_location(div65, file$4, 857, 6, 29679);
-    			attr_dev(input11, "class", "range svelte-1t7tm9c");
-    			attr_dev(input11, "type", "range");
-    			attr_dev(input11, "min", 0.5);
-    			attr_dev(input11, "max", "100");
-    			attr_dev(input11, "step", "0.01");
-    			add_location(input11, file$4, 858, 6, 29737);
-    			attr_dev(div66, "class", "column svelte-1t7tm9c");
-    			add_location(div66, file$4, 851, 4, 29203);
-    			attr_dev(div67, "class", "row svelte-1t7tm9c");
-    			add_location(div67, file$4, 794, 2, 26075);
-    			set_style(div68, "height", "220px");
-    			add_location(div68, file$4, 788, 0, 25776);
-    			set_style(div69, "position", "relative");
-    			set_style(div69, "height", "12px");
-    			add_location(div69, file$4, 864, 0, 29855);
+    			add_location(div12, file$9, 590, 2, 18526);
+    			attr_dev(div13, "class", "chart svelte-15r2nza");
+    			set_style(div13, "display", "flex");
+    			set_style(div13, "max-width", "1120px");
+    			add_location(div13, file$9, 554, 0, 17103);
+    			set_style(div14, "margin", "0px 0px 5px 4px");
+    			attr_dev(div14, "class", "minorTitleColumn svelte-15r2nza");
+    			add_location(div14, file$9, 685, 4, 21563);
+    			attr_dev(div15, "class", "minorTitle svelte-15r2nza");
+    			add_location(div15, file$9, 684, 2, 21534);
+    			attr_dev(div16, "class", "row svelte-15r2nza");
+    			add_location(div16, file$9, 687, 2, 21694);
+    			set_style(div17, "height", "220px");
+    			add_location(div17, file$9, 683, 0, 21504);
+    			set_style(div18, "position", "relative");
+    			set_style(div18, "height", "12px");
+    			add_location(div18, file$9, 760, 0, 25687);
 
     			dispose = [
     				listen_dev(select, "change", ctx.select_change_handler),
-    				listen_dev(div18, "mousedown", ctx.lock_yaxis),
-    				listen_dev(input0, "change", ctx.input0_change_input_handler),
-    				listen_dev(input0, "input", ctx.input0_change_input_handler),
-    				listen_dev(input0, "mousedown", ctx.lock_yaxis),
-    				listen_dev(input1, "change", ctx.input1_change_input_handler),
-    				listen_dev(input1, "input", ctx.input1_change_input_handler),
-    				listen_dev(input2, "change", ctx.input2_change_input_handler),
-    				listen_dev(input2, "input", ctx.input2_change_input_handler),
-    				listen_dev(input3, "change", ctx.input3_change_input_handler),
-    				listen_dev(input3, "input", ctx.input3_change_input_handler),
-    				listen_dev(input4, "change", ctx.input4_change_input_handler),
-    				listen_dev(input4, "input", ctx.input4_change_input_handler),
-    				listen_dev(input5, "change", ctx.input5_change_input_handler),
-    				listen_dev(input5, "input", ctx.input5_change_input_handler),
-    				listen_dev(input6, "change", ctx.input6_change_input_handler),
-    				listen_dev(input6, "input", ctx.input6_change_input_handler),
-    				listen_dev(input7, "change", ctx.input7_change_input_handler),
-    				listen_dev(input7, "input", ctx.input7_change_input_handler),
-    				listen_dev(input8, "change", ctx.input8_change_input_handler),
-    				listen_dev(input8, "input", ctx.input8_change_input_handler),
-    				listen_dev(input9, "change", ctx.input9_change_input_handler),
-    				listen_dev(input9, "input", ctx.input9_change_input_handler),
-    				listen_dev(input10, "change", ctx.input10_change_input_handler),
-    				listen_dev(input10, "input", ctx.input10_change_input_handler),
-    				listen_dev(input11, "change", ctx.input11_change_input_handler),
-    				listen_dev(input11, "input", ctx.input11_change_input_handler)
+    				listen_dev(div7, "click", ctx.toggleZoomStates)
     			];
     		},
 
@@ -29488,15 +32195,18 @@
     			insert_dev(target, t2, anchor);
     			insert_dev(target, h5, anchor);
     			insert_dev(target, t4, anchor);
-    			insert_dev(target, div26, anchor);
-    			append_dev(div26, div6);
+    			insert_dev(target, div13, anchor);
+    			append_dev(div13, div6);
     			append_dev(div6, div4);
     			append_dev(div4, div0);
     			append_dev(div4, t6);
     			append_dev(div4, select);
     			append_dev(select, option0);
+    			append_dev(option0, t7);
     			append_dev(select, option1);
+    			append_dev(option1, t8);
     			append_dev(select, option2);
+    			append_dev(option2, t9);
 
     			select_option(select, ctx.selected_model);
 
@@ -29508,238 +32218,36 @@
     			append_dev(div6, t12);
     			append_dev(div6, div5);
     			mount_component(chartcompanion, div5, null);
-    			append_dev(div26, t13);
-    			append_dev(div26, div25);
-    			append_dev(div25, div7);
-    			mount_component(chart, div7, null);
-    			append_dev(div25, t14);
-    			if (if_block0) if_block0.m(div25, null);
-    			append_dev(div25, t15);
-    			append_dev(div25, div8);
-    			append_dev(div25, t16);
-    			append_dev(div25, div15);
-    			append_dev(div15, div14);
-    			append_dev(div14, div9);
-    			append_dev(div9, span0);
-    			span0.innerHTML = raw0_value;
-    			append_dev(div9, t17);
-    			append_dev(div14, t18);
-    			if (if_block1) if_block1.m(div14, null);
-    			append_dev(div14, t19);
-    			append_dev(div14, div12);
+    			append_dev(div13, t13);
+    			append_dev(div13, div12);
+    			append_dev(div12, div9);
+    			mount_component(chart, div9, null);
+    			append_dev(div9, t14);
+    			append_dev(div9, div8);
+    			append_dev(div8, div7);
+    			mount_component(icon, div7, null);
+    			append_dev(div12, t15);
+    			if (if_block0) if_block0.m(div12, null);
+    			append_dev(div12, t16);
     			append_dev(div12, div10);
-    			append_dev(div10, t20);
-    			append_dev(div10, t21);
-    			append_dev(div12, t22);
-    			append_dev(div12, span1);
+    			append_dev(div12, t17);
+    			if (if_block1) if_block1.m(div12, null);
+    			append_dev(div12, t18);
     			append_dev(div12, div11);
-    			append_dev(div14, t23);
-    			append_dev(div14, div13);
-    			append_dev(div25, t24);
-    			append_dev(div25, div23);
-    			append_dev(div23, div22);
-    			append_dev(div22, div21);
-    			append_dev(div21, div20);
-    			append_dev(div20, div17);
-    			append_dev(div17, div16);
-    			append_dev(div16, t25);
-    			append_dev(div16, br0);
-    			append_dev(div20, t26);
-    			append_dev(div20, div19);
-    			append_dev(div19, div18);
-    			append_dev(div18, t27);
-    			append_dev(div18, t28);
-    			append_dev(div19, t29);
-    			append_dev(div19, input0);
-
-    			set_input_value(input0, ctx.OMInterventionAmt);
-
-    			append_dev(div25, t30);
-    			append_dev(div25, div24);
 
     			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].m(div24, null);
+    				each_blocks[i].m(div11, null);
     			}
 
-    			insert_dev(target, t31, anchor);
-    			insert_dev(target, div68, anchor);
-    			append_dev(div68, div30);
-    			append_dev(div30, div27);
-    			append_dev(div30, t33);
-    			append_dev(div30, div28);
-    			append_dev(div30, t34);
-    			append_dev(div30, div29);
-    			append_dev(div68, t36);
-    			append_dev(div68, div67);
-    			append_dev(div67, div36);
-    			append_dev(div36, div31);
-    			append_dev(div36, t38);
-    			append_dev(div36, div32);
-    			append_dev(div32, t39);
-    			append_dev(div32, br1);
-    			append_dev(div36, t40);
-    			append_dev(div36, div33);
-    			append_dev(div33, t41);
-    			append_dev(div33, t42);
-    			append_dev(div36, t43);
-    			append_dev(div36, input1);
-
-    			set_input_value(input1, ctx.dt);
-
-    			append_dev(div36, t44);
-    			append_dev(div36, div34);
-    			append_dev(div34, t45);
-    			append_dev(div34, br2);
-    			append_dev(div36, t46);
-    			append_dev(div36, div35);
-    			append_dev(div35, t47);
-    			append_dev(div36, t48);
-    			append_dev(div36, input2);
-
-    			set_input_value(input2, ctx.icuCapacity);
-
-    			append_dev(div67, t49);
-    			append_dev(div67, div41);
-    			append_dev(div41, div39);
-    			append_dev(div39, div37);
-    			append_dev(div37, t50);
-    			html_tag.m(div37);
-    			append_dev(div39, t51);
-    			append_dev(div39, div38);
-    			append_dev(div38, t52);
-    			append_dev(div38, br3);
-    			append_dev(div41, t53);
-    			append_dev(div41, div40);
-    			append_dev(div40, t54);
-    			append_dev(div41, t55);
-    			append_dev(div41, input3);
-
-    			set_input_value(input3, ctx.R0);
-
-    			append_dev(div67, t56);
-    			append_dev(div67, div47);
-    			append_dev(div47, div42);
-    			append_dev(div47, t58);
-    			append_dev(div47, div43);
-    			append_dev(div43, t59);
-    			html_tag_1.m(div43);
-    			append_dev(div43, t60);
-    			append_dev(div43, br4);
-    			append_dev(div47, t61);
-    			append_dev(div47, div44);
-    			append_dev(div44, t62);
-    			append_dev(div44, t63);
-    			append_dev(div47, t64);
-    			append_dev(div47, input4);
-
-    			set_input_value(input4, ctx.D_incbation);
-
-    			append_dev(div47, t65);
-    			append_dev(div47, div45);
-    			append_dev(div45, t66);
-    			html_tag_2.m(div45);
-    			append_dev(div45, t67);
-    			append_dev(div45, br5);
-    			append_dev(div47, t68);
-    			append_dev(div47, div46);
-    			append_dev(div46, t69);
-    			append_dev(div46, t70);
-    			append_dev(div47, t71);
-    			append_dev(div47, input5);
-
-    			set_input_value(input5, ctx.D_infectious);
-
-    			append_dev(div67, t72);
-    			append_dev(div67, div48);
-    			append_dev(div67, t73);
-    			append_dev(div67, div54);
-    			append_dev(div54, div49);
-    			append_dev(div54, t75);
-    			append_dev(div54, div50);
-    			append_dev(div50, t76);
-    			append_dev(div50, br6);
-    			append_dev(div54, t77);
-    			append_dev(div54, div51);
-    			append_dev(div51, t78);
-    			append_dev(div51, t79);
-    			append_dev(div54, t80);
-    			append_dev(div54, input6);
-
-    			set_input_value(input6, ctx.CFR);
-
-    			append_dev(div54, t81);
-    			append_dev(div54, div52);
-    			append_dev(div52, t82);
-    			append_dev(div52, br7);
-    			append_dev(div54, t83);
-    			append_dev(div54, div53);
-    			append_dev(div53, t84);
-    			append_dev(div53, t85);
-    			append_dev(div54, t86);
-    			append_dev(div54, input7);
-
-    			set_input_value(input7, ctx.Time_to_death);
-
-    			append_dev(div67, t87);
-    			append_dev(div67, div60);
-    			append_dev(div60, div55);
-    			append_dev(div60, t89);
-    			append_dev(div60, div56);
-    			append_dev(div56, t90);
-    			append_dev(div56, br8);
-    			append_dev(div60, t91);
-    			append_dev(div60, div57);
-    			append_dev(div57, t92);
-    			append_dev(div57, t93);
-    			append_dev(div60, t94);
-    			append_dev(div60, input8);
-
-    			set_input_value(input8, ctx.D_recovery_severe);
-
-    			append_dev(div60, t95);
-    			append_dev(div60, div58);
-    			append_dev(div58, t96);
-    			append_dev(div58, br9);
-    			append_dev(div60, t97);
-    			append_dev(div60, div59);
-    			append_dev(div59, t98);
-    			append_dev(div59, t99);
-    			append_dev(div60, t100);
-    			append_dev(div60, input9);
-
-    			set_input_value(input9, ctx.D_recovery_mild);
-
-    			append_dev(div67, t101);
-    			append_dev(div67, div66);
-    			append_dev(div66, div61);
-    			append_dev(div66, t103);
-    			append_dev(div66, div62);
-    			append_dev(div62, t104);
-    			append_dev(div62, br10);
-    			append_dev(div66, t105);
-    			append_dev(div66, div63);
-    			append_dev(div63, t106);
-    			append_dev(div63, t107);
-    			append_dev(div66, t108);
-    			append_dev(div66, input10);
-
-    			set_input_value(input10, ctx.P_SEVERE);
-
-    			append_dev(div66, t109);
-    			append_dev(div66, div64);
-    			append_dev(div64, t110);
-    			append_dev(div64, br11);
-    			append_dev(div66, t111);
-    			append_dev(div66, div65);
-    			append_dev(div65, t112);
-    			append_dev(div65, t113);
-    			append_dev(div66, t114);
-    			append_dev(div66, input11);
-
-    			set_input_value(input11, ctx.D_hospital_lag);
-
-    			insert_dev(target, t115, anchor);
-    			insert_dev(target, div69, anchor);
+    			insert_dev(target, t19, anchor);
+    			insert_dev(target, div17, anchor);
+    			append_dev(div17, div15);
+    			append_dev(div15, div14);
+    			append_dev(div17, t21);
+    			append_dev(div17, div16);
+    			if (if_block2) if_block2.m(div16, null);
+    			insert_dev(target, t22, anchor);
+    			insert_dev(target, div18, anchor);
     			current = true;
     		},
 
@@ -29759,7 +32267,7 @@
     			if (changed.P_bars) chartcompanion_changes.P_bars = ctx.P_bars;
     			if (changed.active_) chartcompanion_changes.active_ = ctx.active_;
     			if (changed.indexToTime) chartcompanion_changes.indexToTime = ctx.indexToTime;
-    			if (changed.first_date) chartcompanion_changes.first_date = ctx.first_date;
+    			if (changed.firstBarDate) chartcompanion_changes.firstBarDate = ctx.firstBarDate;
     			if (!updating_stateMeta && changed.stateMeta) {
     				chartcompanion_changes.stateMeta = ctx.stateMeta;
     			}
@@ -29782,56 +32290,24 @@
     			}
     			chart.$set(chart_changes);
 
-    			if (ctx.allow_x_axis_resizing) {
-    				if (if_block0) {
-    					if_block0.p(changed, ctx);
-    				} else {
-    					if_block0 = create_if_block_1$1(ctx);
-    					if_block0.c();
-    					if_block0.m(div25, t15);
-    				}
-    			} else if (if_block0) {
-    				if_block0.d(1);
-    				if_block0 = null;
-    			}
+    			if (allow_x_axis_resizing) if_block0.p(changed, ctx);
 
-    			if ((!current || changed.R0 || changed.InterventionAmt) && raw0_value !== (raw0_value = math_inline("\\mathcal{R}_t=" + (ctx.R0*ctx.InterventionAmt).toFixed(2) ) + "")) {
-    				span0.innerHTML = raw0_value;
-    			}
-
-    			if (changed.xScaleTime || changed.InterventionTime) show_if = ctx.xScaleTime(ctx.InterventionTime) >= 100;
-
-    			if (show_if) {
+    			if (ctx.selected_model === MODEL_GOH) {
     				if (if_block1) {
     					if_block1.p(changed, ctx);
+    					transition_in(if_block1, 1);
     				} else {
-    					if_block1 = create_if_block$2(ctx);
+    					if_block1 = create_if_block_1$2(ctx);
     					if_block1.c();
-    					if_block1.m(div14, t19);
+    					transition_in(if_block1, 1);
+    					if_block1.m(div12, t18);
     				}
     			} else if (if_block1) {
-    				if_block1.d(1);
-    				if_block1 = null;
-    			}
-
-    			if ((!current || changed.InterventionTime) && t21_value !== (t21_value = format("d")(ctx.InterventionTime) + "")) {
-    				set_data_dev(t21, t21_value);
-    			}
-
-    			if (!current || changed.xScaleTime || changed.InterventionTime) {
-    				set_style(div14, "left", "" + ctx.xScaleTime(ctx.InterventionTime) + "px");
-    				set_style(div14, "visibility", ((ctx.xScaleTime(ctx.InterventionTime) < (width$1 - ctx.padding.right)) ? 'visible':'hidden'));
-    			}
-
-    			if ((!current || changed.InterventionAmt) && t27_value !== (t27_value = formatDelta(-100*(1-ctx.InterventionAmt)) + "")) {
-    				set_data_dev(t27, t27_value);
-    			}
-
-    			if (changed.OMInterventionAmt) set_input_value(input0, ctx.OMInterventionAmt);
-
-    			if (!current || changed.xScaleTime || changed.InterventionTime) {
-    				set_style(div22, "left", "" + ctx.xScaleTime(ctx.InterventionTime) + "px");
-    				set_style(div22, "visibility", ((ctx.xScaleTime(ctx.InterventionTime) < (width$1 - ctx.padding.right)) ? 'visible':'hidden'));
+    				group_outros();
+    				transition_out(if_block1, 1, 1, () => {
+    					if_block1 = null;
+    				});
+    				check_outros();
     			}
 
     			if (changed.xScaleTime || changed.milestones) {
@@ -29839,16 +32315,16 @@
 
     				let i;
     				for (i = 0; i < each_value.length; i += 1) {
-    					const child_ctx = get_each_context$2(ctx, each_value, i);
+    					const child_ctx = get_each_context$3(ctx, each_value, i);
 
     					if (each_blocks[i]) {
     						each_blocks[i].p(changed, child_ctx);
     						transition_in(each_blocks[i], 1);
     					} else {
-    						each_blocks[i] = create_each_block$2(child_ctx);
+    						each_blocks[i] = create_each_block$3(child_ctx);
     						each_blocks[i].c();
     						transition_in(each_blocks[i], 1);
-    						each_blocks[i].m(div24, null);
+    						each_blocks[i].m(div11, null);
     					}
     				}
 
@@ -29859,75 +32335,18 @@
     				check_outros();
     			}
 
-    			if (!current || changed.dt) {
-    				set_data_dev(t42, ctx.dt);
+    			if (ctx.selected_model === MODEL_GOH) {
+    				if (if_block2) {
+    					if_block2.p(changed, ctx);
+    				} else {
+    					if_block2 = create_if_block$4(ctx);
+    					if_block2.c();
+    					if_block2.m(div16, null);
+    				}
+    			} else if (if_block2) {
+    				if_block2.d(1);
+    				if_block2 = null;
     			}
-
-    			if (changed.dt) set_input_value(input1, ctx.dt);
-
-    			if ((!current || changed.icuCapacity) && t47_value !== (t47_value = ctx.icuCapacity === 0 ? 'Hidden' : ctx.icuCapacity + "")) {
-    				set_data_dev(t47, t47_value);
-    			}
-
-    			if (changed.icuCapacity) set_input_value(input2, ctx.icuCapacity);
-
-    			if (!current || changed.R0) {
-    				set_data_dev(t54, ctx.R0);
-    			}
-
-    			if (changed.R0) set_input_value(input3, ctx.R0);
-
-    			if ((!current || changed.D_incbation) && t62_value !== (t62_value = (ctx.D_incbation).toFixed(2) + "")) {
-    				set_data_dev(t62, t62_value);
-    			}
-
-    			if (changed.D_incbation) set_input_value(input4, ctx.D_incbation);
-
-    			if (!current || changed.D_infectious) {
-    				set_data_dev(t69, ctx.D_infectious);
-    			}
-
-    			if (changed.D_infectious) set_input_value(input5, ctx.D_infectious);
-
-    			if ((!current || changed.CFR) && t78_value !== (t78_value = (ctx.CFR*100).toFixed(2) + "")) {
-    				set_data_dev(t78, t78_value);
-    			}
-
-    			if (changed.CFR) set_input_value(input6, ctx.CFR);
-
-    			if (!current || changed.Time_to_death) {
-    				set_data_dev(t84, ctx.Time_to_death);
-    			}
-
-    			if (changed.Time_to_death) set_input_value(input7, ctx.Time_to_death);
-
-    			if ((!current || changed.D_infectious) && input7_min_value !== (input7_min_value = (ctx.D_infectious)+0.1)) {
-    				attr_dev(input7, "min", input7_min_value);
-    			}
-
-    			if (!current || changed.D_recovery_severe) {
-    				set_data_dev(t92, ctx.D_recovery_severe);
-    			}
-
-    			if (changed.D_recovery_severe) set_input_value(input8, ctx.D_recovery_severe);
-
-    			if (!current || changed.D_recovery_mild) {
-    				set_data_dev(t98, ctx.D_recovery_mild);
-    			}
-
-    			if (changed.D_recovery_mild) set_input_value(input9, ctx.D_recovery_mild);
-
-    			if ((!current || changed.P_SEVERE) && t106_value !== (t106_value = (ctx.P_SEVERE*100).toFixed(2) + "")) {
-    				set_data_dev(t106, t106_value);
-    			}
-
-    			if (changed.P_SEVERE) set_input_value(input10, ctx.P_SEVERE);
-
-    			if (!current || changed.D_hospital_lag) {
-    				set_data_dev(t112, ctx.D_hospital_lag);
-    			}
-
-    			if (changed.D_hospital_lag) set_input_value(input11, ctx.D_hospital_lag);
     		},
 
     		i: function intro(local) {
@@ -29937,6 +32356,10 @@
     			transition_in(chartcompanion.$$.fragment, local);
 
     			transition_in(chart.$$.fragment, local);
+
+    			transition_in(icon.$$.fragment, local);
+
+    			transition_in(if_block1);
 
     			for (let i = 0; i < each_value.length; i += 1) {
     				transition_in(each_blocks[i]);
@@ -29949,6 +32372,8 @@
     			transition_out(checkbox.$$.fragment, local);
     			transition_out(chartcompanion.$$.fragment, local);
     			transition_out(chart.$$.fragment, local);
+    			transition_out(icon.$$.fragment, local);
+    			transition_out(if_block1);
 
     			each_blocks = each_blocks.filter(Boolean);
     			for (let i = 0; i < each_blocks.length; i += 1) {
@@ -29966,7 +32391,7 @@
     				detach_dev(t2);
     				detach_dev(h5);
     				detach_dev(t4);
-    				detach_dev(div26);
+    				detach_dev(div13);
     			}
 
     			destroy_component(checkbox);
@@ -29975,24 +32400,33 @@
 
     			destroy_component(chart);
 
+    			destroy_component(icon);
+
     			if (if_block0) if_block0.d();
     			if (if_block1) if_block1.d();
 
     			destroy_each(each_blocks, detaching);
 
     			if (detaching) {
-    				detach_dev(t31);
-    				detach_dev(div68);
-    				detach_dev(t115);
-    				detach_dev(div69);
+    				detach_dev(t19);
+    				detach_dev(div17);
+    			}
+
+    			if (if_block2) if_block2.d();
+
+    			if (detaching) {
+    				detach_dev(t22);
+    				detach_dev(div18);
     			}
 
     			run_all(dispose);
     		}
     	};
-    	dispatch_dev("SvelteRegisterBlock", { block, id: create_fragment$4.name, type: "component", source: "", ctx });
+    	dispatch_dev("SvelteRegisterBlock", { block, id: create_fragment$a.name, type: "component", source: "", ctx });
     	return block;
     }
+
+    let allow_x_axis_resizing = false;
 
     let width$1  = 750;
 
@@ -30012,6 +32446,13 @@
       return arr
     }
 
+    function getDefaultActionMarkers() {
+      return {
+        MODEL_GOH: goh_default_action_markers(),
+        // TODO ..?
+      }
+    }
+
     function debugHelper([... vars]) {
       if (vars.length == 0) return
       console.log('*** DEBUG ***');
@@ -30020,18 +32461,12 @@
       }
     }
 
-    function math_inline(str) {
-      return katex$1.renderToString(str, {
-      throwOnError: false,
-      displayMode: false,
-      colorIsTextColor: true
-      });
-    }
-
-    function instance$4($$self, $$props, $$invalidate) {
+    function instance$a($$self, $$props, $$invalidate) {
     	
 
-
+      function toggleZoomStates() {
+        $$invalidate('dt', dt = (dt % 4) + 1);
+      }
 
       function getLastHistoricTime(demo_mode, P_all_historical, dt) {
         if (!P_all_historical || demo_mode === SHOW_FUTURE) return 0
@@ -30099,7 +32534,7 @@
         } else if (selected_model === 'berkeley') {
           return map_berkeley_states_into_UFStates(berkeley_states, N)
         } else {
-          console.log('Error! getSolution does not have handling for model', selected_model);
+          console.log('Error! getSolution does not have handling for model ', selected_model);
         }
       }
 
@@ -30112,12 +32547,12 @@
         var Pmaxstart = 0;
 
         var dragstarted = function (d) {
-          dragstarty = event.y;  
+          dragstarty = event$1.y;  
           Pmaxstart  = Pmax;
         };
 
         var dragged = function (d) {
-          $$invalidate('Pmax', Pmax = Math.max( (Pmaxstart*(1 + (event.y - dragstarty)/500)), 10));
+          $$invalidate('Pmax', Pmax = Math.max( (Pmaxstart*(1 + (event$1.y - dragstarty)/500)), 10));
         };
 
         return drag().on("drag", dragged).on("start", dragstarted)
@@ -30127,69 +32562,17 @@
         var dragstartx = 0;
         var dtstart = 0;
         var dragstarted = function (d) {
-          dragstartx = event.x;
+          dragstartx = event$1.x;
           dtstart  = dt;
           $$invalidate('Plock', Plock = Pmax);
           $$invalidate('lock', lock = true);
         };
         var dragged = function (d) {
-          $$invalidate('dt', dt = dtstart - 0.0015*(event.x - dragstartx));
+          $$invalidate('dt', dt = dtstart - 0.0015*(event$1.x - dragstartx));
         };
         var dragend = function (d) {
           $$invalidate('lock', lock = false);
         };
-        return drag().on("drag", dragged).on("start", dragstarted).on("end", dragend)
-      };
-
-      var drag_intervention = function (){
-        var dragstarty = 0;
-        var InterventionTimeStart = 0;
-
-        var dragstarted = function (d) {
-          dragstarty = event.x;  
-          InterventionTimeStart = InterventionTime;
-          $$invalidate('Plock', Plock = Pmax);
-          $$invalidate('lock', lock = true);
-        };
-
-
-        var dragged = function (d) {
-          // InterventionTime = Math.max( (*(1 + (event.x - dragstarty)/500)), 10)
-          // console.log(event.x)
-          const minX = (demo_mode === SHOW_FUTURE ? 0 : P_all_historical.length);
-          $$invalidate('InterventionTime', InterventionTime = Math.min(tmax-1, Math.max(minX, InterventionTimeStart + xScaleTimeInv(event.x - dragstarty))));
-        };
-
-        var dragend = function (d) {
-          $$invalidate('lock', lock = false);
-        };
-
-        return drag().on("drag", dragged).on("start", dragstarted).on("end", dragend)
-      };
-
-
-      var drag_intervention_end = function (){
-        var dragstarty = 0;
-        var durationStart = 0;
-
-        var dragstarted = function (d) {
-          dragstarty = event.x;  
-          durationStart = duration;
-          $$invalidate('Plock', Plock = Pmax);
-          $$invalidate('lock', lock = true);
-        };
-
-        var dragged = function (d) {
-          // InterventionTime = Math.max( (*(1 + (event.x - dragstarty)/500)), 10)
-          // console.log(event.x)
-          const minX = (demo_mode === SHOW_FUTURE ? 0 : P_all_historical.length);
-          $$invalidate('duration', duration = Math.min(tmax-1, Math.max(minX, durationStart + xScaleTimeInv(event.x - dragstarty))));
-        };
-
-        var dragend = function (d) {
-          $$invalidate('lock', lock = false);
-        };
-
         return drag().on("drag", dragged).on("start", dragstarted).on("end", dragend)
       };
       onMount(async () => {
@@ -30202,11 +32585,8 @@
           drag_callback_x(selectAll("#xAxisDrag"));
         }
         
-        var drag_callback_intervention = drag_intervention();
-        // drag_callback_intervention(selectAll("#interventionDrag"))
-        drag_callback_intervention(selectAll("#dottedline"));
-        // var drag_callback_intervention_end = drag_intervention_end()
-        // drag_callback_intervention_end(selectAll("#dottedline2"))
+        //var drag_callback_intervention = drag_intervention()
+        //drag_callback_intervention(selectAll("#dottedline"))
 
         if (typeof window !== 'undefined') {
           parsed = queryString.parse(window.location.search);
@@ -30235,8 +32615,6 @@
       function unlock_yaxis(){
         $$invalidate('lock', lock = false);
       }
-
-      const padding = { top: 20, right: 0, bottom: 20, left: 25 };
 
       window.addEventListener('mouseup', unlock_yaxis);
 
@@ -30271,6 +32649,9 @@
     	function select_change_handler() {
     		selected_model = select_value(this);
     		$$invalidate('selected_model', selected_model);
+    		$$invalidate('MODEL_REINA', MODEL_REINA);
+    		$$invalidate('MODEL_BERKELEY', MODEL_BERKELEY);
+    		$$invalidate('MODEL_GOH', MODEL_GOH);
     	}
 
     	function checkbox_checked_binding(value) {
@@ -30288,64 +32669,89 @@
     		$$invalidate('active', active);
     	}
 
-    	function input0_change_input_handler() {
-    		OMInterventionAmt = to_number(this.value);
+    	function actionmarker_InterventionTime_binding(value) {
+    		InterventionTime = value;
+    		$$invalidate('InterventionTime', InterventionTime);
+    	}
+
+    	function actionmarker_InterventionAmt_binding(value_1) {
+    		InterventionAmt = value_1;
+    		$$invalidate('InterventionAmt', InterventionAmt), $$invalidate('OMInterventionAmt', OMInterventionAmt);
+    	}
+
+    	function actionmarker_OMInterventionAmt_binding(value_2) {
+    		OMInterventionAmt = value_2;
     		$$invalidate('OMInterventionAmt', OMInterventionAmt);
     	}
 
-    	function input1_change_input_handler() {
-    		dt = to_number(this.value);
-    		$$invalidate('dt', dt);
+    	function actionmarker_Plock_binding(value_3) {
+    		Plock = value_3;
+    		$$invalidate('Plock', Plock);
     	}
 
-    	function input2_change_input_handler() {
-    		icuCapacity = to_number(this.value);
-    		$$invalidate('icuCapacity', icuCapacity);
+    	function actionmarker_lock_binding(value_4) {
+    		lock = value_4;
+    		$$invalidate('lock', lock);
     	}
 
-    	function input3_change_input_handler() {
+    	function actionmarker_lock_yaxis_binding(value_5) {
+    		lock_yaxis = value_5;
+    		$$invalidate('lock_yaxis', lock_yaxis);
+    	}
+
+    	function input0_change_input_handler() {
     		R0 = to_number(this.value);
     		$$invalidate('R0', R0);
     	}
 
-    	function input4_change_input_handler() {
+    	function input1_change_input_handler() {
     		D_incbation = to_number(this.value);
     		$$invalidate('D_incbation', D_incbation);
     	}
 
-    	function input5_change_input_handler() {
+    	function input2_change_input_handler() {
     		D_infectious = to_number(this.value);
     		$$invalidate('D_infectious', D_infectious);
     	}
 
-    	function input6_change_input_handler() {
+    	function input3_change_input_handler() {
     		CFR = to_number(this.value);
     		$$invalidate('CFR', CFR);
     	}
 
-    	function input7_change_input_handler() {
+    	function input4_change_input_handler() {
     		Time_to_death = to_number(this.value);
     		$$invalidate('Time_to_death', Time_to_death);
     	}
 
-    	function input8_change_input_handler() {
+    	function input5_change_input_handler() {
     		D_recovery_severe = to_number(this.value);
     		$$invalidate('D_recovery_severe', D_recovery_severe);
     	}
 
-    	function input9_change_input_handler() {
+    	function input6_change_input_handler() {
     		D_recovery_mild = to_number(this.value);
     		$$invalidate('D_recovery_mild', D_recovery_mild);
     	}
 
-    	function input10_change_input_handler() {
+    	function input7_change_input_handler() {
     		P_SEVERE = to_number(this.value);
     		$$invalidate('P_SEVERE', P_SEVERE);
     	}
 
-    	function input11_change_input_handler() {
+    	function input8_change_input_handler() {
     		D_hospital_lag = to_number(this.value);
     		$$invalidate('D_hospital_lag', D_hospital_lag);
+    	}
+
+    	function input9_change_input_handler() {
+    		P_ICU = to_number(this.value);
+    		$$invalidate('P_ICU', P_ICU);
+    	}
+
+    	function input10_change_input_handler() {
+    		icuCapacity = to_number(this.value);
+    		$$invalidate('icuCapacity', icuCapacity);
     	}
 
     	$$self.$capture_state = () => {
@@ -30353,17 +32759,16 @@
     	};
 
     	$$self.$inject_state = $$props => {
+    		if ('allow_x_axis_resizing' in $$props) $$invalidate('allow_x_axis_resizing', allow_x_axis_resizing = $$props.allow_x_axis_resizing);
     		if ('Plock' in $$props) $$invalidate('Plock', Plock = $$props.Plock);
     		if ('drag_y' in $$props) drag_y = $$props.drag_y;
     		if ('drag_x' in $$props) drag_x = $$props.drag_x;
-    		if ('drag_intervention' in $$props) drag_intervention = $$props.drag_intervention;
-    		if ('drag_intervention_end' in $$props) drag_intervention_end = $$props.drag_intervention_end;
     		if ('width' in $$props) $$invalidate('width', width$1 = $$props.width);
     		if ('height' in $$props) $$invalidate('height', height$1 = $$props.height);
     		if ('Tinc_s' in $$props) $$invalidate('Tinc_s', Tinc_s = $$props.Tinc_s);
     		if ('Tinf_s' in $$props) $$invalidate('Tinf_s', Tinf_s = $$props.Tinf_s);
     		if ('Rt_s' in $$props) $$invalidate('Rt_s', Rt_s = $$props.Rt_s);
-    		if ('allow_x_axis_resizing' in $$props) $$invalidate('allow_x_axis_resizing', allow_x_axis_resizing = $$props.allow_x_axis_resizing);
+    		if ('actionMarkers' in $$props) actionMarkers = $$props.actionMarkers;
     		if ('stateMeta' in $$props) $$invalidate('stateMeta', stateMeta = $$props.stateMeta);
     		if ('Time_to_death' in $$props) $$invalidate('Time_to_death', Time_to_death = $$props.Time_to_death);
     		if ('N' in $$props) $$invalidate('N', N = $$props.N);
@@ -30389,10 +32794,11 @@
     		if ('duration' in $$props) $$invalidate('duration', duration = $$props.duration);
     		if ('state' in $$props) state = $$props.state;
     		if ('selected_model' in $$props) $$invalidate('selected_model', selected_model = $$props.selected_model);
-    		if ('first_date' in $$props) $$invalidate('first_date', first_date = $$props.first_date);
-    		if ('goh_states_fin' in $$props) $$invalidate('goh_states_fin', goh_states_fin = $$props.goh_states_fin);
     		if ('showHistory' in $$props) $$invalidate('showHistory', showHistory = $$props.showHistory);
     		if ('demo_mode' in $$props) $$invalidate('demo_mode', demo_mode = $$props.demo_mode);
+    		if ('firstHistoricalDate' in $$props) $$invalidate('firstHistoricalDate', firstHistoricalDate = $$props.firstHistoricalDate);
+    		if ('goh_states_fin' in $$props) $$invalidate('goh_states_fin', goh_states_fin = $$props.goh_states_fin);
+    		if ('firstBarDate' in $$props) $$invalidate('firstBarDate', firstBarDate = $$props.firstBarDate);
     		if ('P_all_historical' in $$props) $$invalidate('P_all_historical', P_all_historical = $$props.P_all_historical);
     		if ('P_all_future' in $$props) $$invalidate('P_all_future', P_all_future = $$props.P_all_future);
     		if ('P_all' in $$props) $$invalidate('P_all', P_all = $$props.P_all);
@@ -30403,9 +32809,9 @@
     		if ('lock' in $$props) $$invalidate('lock', lock = $$props.lock);
     		if ('lastHistoricTime' in $$props) $$invalidate('lastHistoricTime', lastHistoricTime = $$props.lastHistoricTime);
     		if ('debugHelp' in $$props) debugHelp = $$props.debugHelp;
-    		if ('xScaleTimeInv' in $$props) xScaleTimeInv = $$props.xScaleTimeInv;
     		if ('parsed' in $$props) parsed = $$props.parsed;
     		if ('xScaleTime' in $$props) $$invalidate('xScaleTime', xScaleTime = $$props.xScaleTime);
+    		if ('xScaleTimeInv' in $$props) xScaleTimeInv = $$props.xScaleTimeInv;
     		if ('indexToTime' in $$props) $$invalidate('indexToTime', indexToTime = $$props.indexToTime);
     		if ('active' in $$props) $$invalidate('active', active = $$props.active);
     		if ('active_' in $$props) $$invalidate('active_', active_ = $$props.active_);
@@ -30415,9 +32821,9 @@
     		if ('log' in $$props) $$invalidate('log', log = $$props.log);
     	};
 
-    	let allow_x_axis_resizing, stateMeta, Time_to_death, N, logN, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_recovery_severe, D_hospital_lag, D_death, CFR, InterventionTime, OMInterventionAmt, InterventionAmt, Time, Xmax, dt, P_SEVERE, P_ICU, icuCapacity, duration, state, selected_model, first_date, goh_states_fin, showHistory, demo_mode, P_all_historical, P_all_future, P_all, P_bars, timestep, tmax, Pmax, lock, lastHistoricTime, debugHelp, parsed, xScaleTime, xScaleTimeInv, indexToTime, active, active_, ode_eqn, p_num_ind, milestones, log;
+    	let actionMarkers, stateMeta, Time_to_death, N, logN, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_recovery_severe, D_hospital_lag, D_death, CFR, InterventionTime, OMInterventionAmt, InterventionAmt, Time, Xmax, dt, P_SEVERE, P_ICU, icuCapacity, duration, state, selected_model, showHistory, demo_mode, firstHistoricalDate, goh_states_fin, firstBarDate, P_all_historical, P_all_future, P_all, P_bars, timestep, tmax, Pmax, lock, lastHistoricTime, debugHelp, parsed, xScaleTime, xScaleTimeInv, indexToTime, active, active_, ode_eqn, p_num_ind, milestones, log;
 
-    	$$self.$$.update = ($$dirty = { N: 1, Time_to_death: 1, D_infectious: 1, OMInterventionAmt: 1, logN: 1, I0: 1, R0: 1, D_incbation: 1, D_recovery_mild: 1, D_recovery_severe: 1, CFR: 1, InterventionTime: 1, InterventionAmt: 1, D_hospital_lag: 1, P_SEVERE: 1, showHistory: 1, goh_states_fin: 1, P_ICU: 1, demo_mode: 1, selected_model: 1, dt: 1, D_death: 1, duration: 1, P_all_historical: 1, P_all_future: 1, P_all: 1, P_bars: 1, stateMeta: 1, tmax: 1, width: 1, active: 1, Rt_s: 1, Tinc_s: 1, Tinf_s: 1 }) => {
+    	$$self.$$.update = ($$dirty = { N: 1, Time_to_death: 1, D_infectious: 1, OMInterventionAmt: 1, logN: 1, I0: 1, R0: 1, D_incbation: 1, D_recovery_mild: 1, D_recovery_severe: 1, CFR: 1, InterventionTime: 1, InterventionAmt: 1, D_hospital_lag: 1, P_SEVERE: 1, showHistory: 1, firstHistoricalDate: 1, goh_states_fin: 1, P_ICU: 1, demo_mode: 1, selected_model: 1, dt: 1, D_death: 1, duration: 1, P_all_historical: 1, P_all_future: 1, P_all: 1, P_bars: 1, stateMeta: 1, tmax: 1, width: 1, active: 1, Rt_s: 1, Tinc_s: 1, Tinf_s: 1 }) => {
     		if ($$dirty.N) { $$invalidate('logN', logN              = Math.log(N)); }
     		if ($$dirty.Time_to_death || $$dirty.D_infectious) { $$invalidate('D_death', D_death           = Time_to_death - D_infectious); }
     		if ($$dirty.OMInterventionAmt) { $$invalidate('InterventionAmt', InterventionAmt   = 1 - OMInterventionAmt); }
@@ -30434,8 +32840,10 @@
                        "InterventionAmt":InterventionAmt,
                        "D_hospital_lag":D_hospital_lag,
                        "P_SEVERE": P_SEVERE}); }
-    		if ($$dirty.N) { $$invalidate('first_date', [first_date, goh_states_fin] = loadFinnishHistoricalEstimates(finnishHistoricalEstimates, N), first_date, $$invalidate('goh_states_fin', goh_states_fin), $$invalidate('N', N)); }
     		if ($$dirty.showHistory) { $$invalidate('demo_mode', demo_mode        = showHistory ? SHOW_HISTORICAL_AND_FUTURE : SHOW_FUTURE); }
+    		if ($$dirty.N) { $$invalidate('firstHistoricalDate', [firstHistoricalDate,
+              goh_states_fin] = loadFinnishHistoricalEstimates(finnishHistoricalEstimates, N), firstHistoricalDate, $$invalidate('goh_states_fin', goh_states_fin), $$invalidate('N', N)); }
+    		if ($$dirty.showHistory || $$dirty.firstHistoricalDate || $$dirty.goh_states_fin) { $$invalidate('firstBarDate', firstBarDate     = showHistory ? firstHistoricalDate : addDays(firstHistoricalDate, goh_states_fin.length - 1)); }
     		if ($$dirty.goh_states_fin || $$dirty.N || $$dirty.P_ICU) { $$invalidate('P_all_historical', P_all_historical = map_goh_states_into_UFStates(goh_states_fin, N, P_ICU)); }
     		if ($$dirty.demo_mode || $$dirty.selected_model || $$dirty.goh_states_fin || $$dirty.dt || $$dirty.N || $$dirty.I0 || $$dirty.R0 || $$dirty.D_incbation || $$dirty.D_infectious || $$dirty.D_recovery_mild || $$dirty.D_hospital_lag || $$dirty.D_recovery_severe || $$dirty.D_death || $$dirty.P_SEVERE || $$dirty.P_ICU || $$dirty.CFR || $$dirty.InterventionTime || $$dirty.InterventionAmt || $$dirty.duration) { $$invalidate('P_all_future', P_all_future     = get_solution(
                                   demo_mode,
@@ -30482,8 +32890,8 @@
     		if ($$dirty.P_bars) { $$invalidate('milestones', milestones = get_milestones(P_bars)); }
     	};
 
-    	$$invalidate('allow_x_axis_resizing', allow_x_axis_resizing = false);
-    	$$invalidate('stateMeta', stateMeta = getDefaultStateMeta());
+    	actionMarkers     = getDefaultActionMarkers();
+    	$$invalidate('stateMeta', stateMeta         = getDefaultStateMeta());
     	$$invalidate('Time_to_death', Time_to_death     = defaultParameters["days_from_incubation_to_death"]);
     	$$invalidate('N', N                 = defaultParameters["initial_population_count"]);
     	$$invalidate('I0', I0                = 1);
@@ -30503,7 +32911,7 @@
     	$$invalidate('P_ICU', P_ICU             = defaultParameters["icu_rate_from_hospitalized"]);
     	$$invalidate('icuCapacity', icuCapacity       = defaultParameters["icu_capacity"]);
     	$$invalidate('duration', duration          = 7*12*1e10);
-    	$$invalidate('selected_model', selected_model    = "goh");
+    	$$invalidate('selected_model', selected_model   = "goh");
     	$$invalidate('showHistory', showHistory      = true);
     	$$invalidate('lock', lock             = false);
     	debugHelp        = debugHelper([]);
@@ -30513,10 +32921,9 @@
     	$$invalidate('log', log = true);
 
     	return {
+    		toggleZoomStates,
     		Plock,
     		lock_yaxis,
-    		padding,
-    		allow_x_axis_resizing,
     		stateMeta,
     		Time_to_death,
     		N,
@@ -30533,10 +32940,13 @@
     		Xmax,
     		dt,
     		P_SEVERE,
+    		P_ICU,
     		icuCapacity,
     		selected_model,
-    		first_date,
     		showHistory,
+    		demo_mode,
+    		firstBarDate,
+    		P_all_historical,
     		P_all,
     		P_bars,
     		timestep,
@@ -30554,6 +32964,12 @@
     		checkbox_checked_binding,
     		chartcompanion_stateMeta_binding,
     		chart_active_binding,
+    		actionmarker_InterventionTime_binding,
+    		actionmarker_InterventionAmt_binding,
+    		actionmarker_OMInterventionAmt_binding,
+    		actionmarker_Plock_binding,
+    		actionmarker_lock_binding,
+    		actionmarker_lock_yaxis_binding,
     		input0_change_input_handler,
     		input1_change_input_handler,
     		input2_change_input_handler,
@@ -30564,16 +32980,15 @@
     		input7_change_input_handler,
     		input8_change_input_handler,
     		input9_change_input_handler,
-    		input10_change_input_handler,
-    		input11_change_input_handler
+    		input10_change_input_handler
     	};
     }
 
     class App extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$4, create_fragment$4, safe_not_equal, []);
-    		dispatch_dev("SvelteRegisterComponent", { component: this, tagName: "App", options, id: create_fragment$4.name });
+    		init(this, options, instance$a, create_fragment$a, safe_not_equal, []);
+    		dispatch_dev("SvelteRegisterComponent", { component: this, tagName: "App", options, id: create_fragment$a.name });
     	}
     }
 
