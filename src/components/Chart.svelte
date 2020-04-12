@@ -4,7 +4,7 @@
   import { selectAll } from 'd3-selection'
   import { onMount } from 'svelte';
   import { createEventDispatcher } from 'svelte';
-  import { formatNumber } from '../utils.js';
+  import { formatNumber, padding } from '../utils.js';
 
   const dispatch = createEventDispatcher();
 
@@ -80,8 +80,6 @@
     const k = stateMeta[j]["key"]
     return state[k]
   }
-
-  const padding = { top: 20, right: 0, bottom: 20, left: 25 };
 
   let width  = 750;
   let height = 420;

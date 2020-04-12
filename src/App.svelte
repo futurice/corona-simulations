@@ -8,6 +8,7 @@
   import { selectAll } from 'd3-selection'
   import { drag } from 'd3-drag';
   import queryString from "query-string";
+  import ActionMarker from './components/ActionMarker.svelte';
   import Checkbox from './components/Checkbox.svelte';
   import Arrow from './components/Arrow.svelte';
   import { format } from 'd3-format';
@@ -17,7 +18,7 @@
 
   import defaultParameters from '../default_parameters.js';
   import { UFState, getDefaultStateMeta } from './user_facing_states.js';
-  import { get_solution_from_gohs_seir_ode, map_goh_states_into_UFStates } from './models/gohs_seir_ode.js';
+  import { get_solution_from_gohs_seir_ode, map_goh_states_into_UFStates, goh_default_action_markers } from './models/gohs_seir_ode.js';
   import { map_berkeley_states_into_UFStates } from './models/berkeley_abm.js';
   import { loadFinnishHistoricalEstimates } from './models/historical_estimates.js';
   import { addDays,
@@ -27,6 +28,7 @@
          } from './utils.js';
 
   import katex from 'katex';
+  import { math_inline, math_display, padding } from './utils.js';
 
   import finnishCoronaData from './../data/finnishCoronaData.json';
   import berkeley_states from './../data/berkeley1.json';
@@ -49,12 +51,17 @@
     return arr
   }
 
-  $: allow_x_axis_resizing = false // x axis resizing is broken and needs a complete redesign
+  function getDefaultActionMarkers() {
+    return {
+      MODEL_GOH: goh_default_action_markers(),
+      // TODO ..?
+    }
+  }
 
+  let allow_x_axis_resizing = false // x axis "drag resizing" was replaced by magnifying glass toggle
 
-  $: stateMeta = getDefaultStateMeta()
-
-
+  $: actionMarkers     = getDefaultActionMarkers()
+  $: stateMeta         = getDefaultStateMeta()
   $: Time_to_death     = defaultParameters["days_from_incubation_to_death"]
   $: N                 = defaultParameters["initial_population_count"]
   $: logN              = Math.log(N)
@@ -253,59 +260,6 @@
     return drag().on("drag", dragged).on("start", dragstarted).on("end", dragend)
   }
 
-  var drag_intervention = function (){
-    var dragstarty = 0
-    var InterventionTimeStart = 0
-
-    var dragstarted = function (d) {
-      dragstarty = event.x  
-      InterventionTimeStart = InterventionTime
-      Plock = Pmax
-      lock = true
-    }
-
-
-    var dragged = function (d) {
-      // InterventionTime = Math.max( (*(1 + (event.x - dragstarty)/500)), 10)
-      // console.log(event.x)
-      const minX = (demo_mode === SHOW_FUTURE ? 0 : P_all_historical.length)
-      InterventionTime = Math.min(tmax-1, Math.max(minX, InterventionTimeStart + xScaleTimeInv(event.x - dragstarty)))
-    }
-
-    var dragend = function (d) {
-      lock = false
-    }
-
-    return drag().on("drag", dragged).on("start", dragstarted).on("end", dragend)
-  }
-
-
-  var drag_intervention_end = function (){
-    var dragstarty = 0
-    var durationStart = 0
-
-    var dragstarted = function (d) {
-      dragstarty = event.x  
-      durationStart = duration
-      Plock = Pmax
-      lock = true
-    }
-
-    var dragged = function (d) {
-      // InterventionTime = Math.max( (*(1 + (event.x - dragstarty)/500)), 10)
-      // console.log(event.x)
-      const minX = (demo_mode === SHOW_FUTURE ? 0 : P_all_historical.length)
-      duration = Math.min(tmax-1, Math.max(minX, durationStart + xScaleTimeInv(event.x - dragstarty)))
-    }
-
-    var dragend = function (d) {
-      lock = false
-    }
-
-    return drag().on("drag", dragged).on("start", dragstarted).on("end", dragend)
-  }
-
-
   $: parsed = "";
   onMount(async () => {
 
@@ -317,11 +271,8 @@
       drag_callback_x(selectAll("#xAxisDrag"))
     }
     
-    var drag_callback_intervention = drag_intervention()
-    // drag_callback_intervention(selectAll("#interventionDrag"))
-    drag_callback_intervention(selectAll("#dottedline"))
-    // var drag_callback_intervention_end = drag_intervention_end()
-    // drag_callback_intervention_end(selectAll("#dottedline2"))
+    //var drag_callback_intervention = drag_intervention()
+    //drag_callback_intervention(selectAll("#dottedline"))
 
     if (typeof window !== 'undefined') {
       parsed = queryString.parse(window.location.search)
@@ -351,10 +302,9 @@
     lock = false
   }
 
-  const padding = { top: 20, right: 0, bottom: 20, left: 25 };
-
   let width  = 750;
   let height = 400;
+  
 
   $: xScaleTime = scaleLinear()
     .domain([0, tmax])
@@ -381,22 +331,6 @@
     displayMode: true,
     colorIsTextColor: true
   });
-
-  function math_inline(str) {
-    return katex.renderToString(str, {
-    throwOnError: false,
-    displayMode: false,
-    colorIsTextColor: true
-    });
-  }
-
-  function math_display(str) {
-    return katex.renderToString(str, {
-    throwOnError: false,
-    displayMode: true,
-    colorIsTextColor: true
-    });
-  }
   
   $: p_num_ind = 40
 
@@ -496,11 +430,6 @@
     font-size: 13px;
   }
 
-  .caption {
-    font-family: nyt-franklin,helvetica,arial,sans-serif;
-    font-size: 13px;    
-  }
-
   .column {
     flex: 158px;
     padding: 0px 5px 5px 0px;
@@ -566,7 +495,7 @@
     padding-bottom:10px;
   }
 
-  /* TODO should be moved to global.css because this is copypasted into 2 components. */
+  /* TODO should be moved to global.css because this is copypasted into 3 components. */
   .legendtext{
     color:#888; 
     font-size:13px;
@@ -677,12 +606,12 @@
         />
       <div>
         <div on:click={toggleZoomStates}>
-        <Icon data={search}
-          scale=2.5
-          class="magnifyingGlass"
-          style="color: #CCC; position: absolute; right: 70px; bottom: 0px; cursor: hand;"
-          />
-      </div>
+          <Icon data={search}
+            scale=2.5
+            class="magnifyingGlass"
+            style="color: #CCC; position: absolute; right: 70px; bottom: 0px; cursor: hand;"
+            />
+        </div>
       </div>
     </div>
 
@@ -712,82 +641,25 @@
                   height:425px;">
       </div>
 
-      <!-- Intervention Line -->
-      <div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none">
-        <div id="dottedline"  style="pointer-events: all;
-                    position: absolute;
-                    top:-38px;
-                    left:{xScaleTime(InterventionTime)}px;
-                    visibility: {(xScaleTime(InterventionTime) < (width - padding.right)) ? 'visible':'hidden'};
-                    width:2px;
-                    background-color:#FFF;
-                    border-right: 1px dashed black;
-                    pointer-events: all;
-                    cursor:col-resize;
-                    height:{height+19}px">
+      {#if selected_model === MODEL_GOH}
+        <ActionMarker
+          width = {width}
+          height = {height}
+          R0 = {R0}
+          tmax = {tmax}
+          Pmax = {Pmax}
+          P_all_historical = {P_all_historical}
+          demo_mode = {demo_mode}
+          bind:InterventionTime = {InterventionTime}
+          bind:InterventionAmt = {InterventionAmt}
+          bind:OMInterventionAmt = {OMInterventionAmt}
+          bind:Plock = {Plock}
+          bind:lock = {lock}
+          bind:lock_yaxis = {lock_yaxis}
+        />
+      {/if}
 
-        <div style="position:absolute; opacity: 0.5; top:-5px; left:10px; width: 120px">
-        <span style="font-size: 13px">{@html math_inline("\\mathcal{R}_t=" + (R0*InterventionAmt).toFixed(2) )}</span> ⟶ 
-        </div>
-
-        {#if xScaleTime(InterventionTime) >= 100}
-          <div style="position:absolute; opacity: 0.5; top:-5px; left:-97px; width: 120px">
-          <span style="font-size: 13px">⟵ {@html math_inline("\\mathcal{R}_0=" + (R0).toFixed(2) )}</span>
-          </div>      
-        {/if}
-
-        <div id="interventionDrag" class="legendtext" style="flex: 0 0 160px; width:120px; position:relative;  top:-70px; height: 60px; padding-right: 15px; left: -125px; pointer-events: all;cursor:col-resize;" >
-          <div class="paneltitle" style="top:9px; position: relative; text-align: right">Action on day {format("d")(InterventionTime)}</div>
-          <span></span><div style="top:9px; position: relative; text-align: right">
-          <!-- (drag me) --> </div>
-          <!--
-          <div style="top:43px; left:40px; position: absolute; text-align: right; width: 20px; height:20px; opacity: 0.3">
-            <svg width="20" height="20">
-              <g transform="rotate(90)">
-                <g transform="translate(0,-20)">
-                  <path d="M2 11h16v2H2zm0-4h16v2H2zm8 11l3-3H7l3 3zm0-16L7 5h6l-3-3z"/>
-                 </g>  
-              </g>
-            </svg>
-          </div>
-          -->
-        </div>
-
-
-        <div style="width:150px; position:relative; top:-85px; height: 80px; padding-right: 15px; left: 0px; ;cursor:col-resize; background-color: white; position:absolute" >
-
-        </div>
-
-
-        </div>
-      </div>
-
-      <!-- Intervention Line slider -->
-      <div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:120px; left:10px; pointer-events: none">
-        <div style="
-            position: absolute;
-            top:-38px;
-            left:{xScaleTime(InterventionTime)}px;
-            visibility: {(xScaleTime(InterventionTime) < (width - padding.right)) ? 'visible':'hidden'};
-            width:2px;
-            background-color:#FFF;
-            border-right: 1px dashed black;
-            cursor:col-resize;
-            height:{height}px">
-            <div style="flex: 0 0 160px; width:200px; position:relative; top:-125px; left: 1px" >
-              <div class="caption" style="pointer-events: none; position: absolute; left:0; top:40px; width:150px; border-left: 2px solid #777; padding: 5px 7px 7px 7px; ">      
-              <div class="paneltext" style="height:20px; text-align: right">
-              <div class="paneldesc">to alter transmission by<br></div>
-              </div>
-              <div style="pointer-events: all">
-              <div class="slidertext" on:mousedown={lock_yaxis}>{formatDelta(-100*(1-InterventionAmt))}%</div>
-              <input class="range" type=range bind:value={OMInterventionAmt} min=-1 max=1 step=0.01 on:mousedown={lock_yaxis}>
-              </div>
-              </div>
-            </div>
-          </div>
-      </div>
-
+      <!-- Milestones -->
       <div style="pointer-events: none;
                   position: absolute;
                   top:{height+84}px;

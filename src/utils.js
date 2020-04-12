@@ -1,3 +1,5 @@
+import katex from 'katex';
+
 export function formatNumber(num) {
     return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
 }
@@ -21,6 +23,24 @@ export function addDays(date, days) {
     result.setDate(result.getDate() + days);
     return result;
 }
+
+export function math_inline(str) {
+    return katex.renderToString(str, {
+    throwOnError: false,
+    displayMode: false,
+    colorIsTextColor: true
+    });
+}
+
+export function math_display(str) {
+    return katex.renderToString(str, {
+    throwOnError: false,
+    displayMode: true,
+    colorIsTextColor: true
+    });
+}
+
+export const padding = { top: 20, right: 0, bottom: 20, left: 25 };
 
 export const SHOW_HISTORICAL = 0
 export const SHOW_FUTURE = 1

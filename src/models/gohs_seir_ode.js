@@ -1,4 +1,5 @@
 import { UFState } from '../user_facing_states.js';
+import { ActionMarkerData } from '../action_marker_data.js';
 import { SHOW_FUTURE } from '../utils.js';
 
 var Integrators = {
@@ -40,19 +41,20 @@ export function get_solution_from_gohs_seir_ode(demo_mode, historical_goh_states
         // SEIR ODE
 
         const adjustedInterventionTime =
-        demo_mode !== SHOW_FUTURE ?
-        InterventionTime - historical_goh_states.length :
-        InterventionTime
+            demo_mode !== SHOW_FUTURE ?
+            InterventionTime - historical_goh_states.length :
+            InterventionTime
         
         if (t > adjustedInterventionTime && t < adjustedInterventionTime + duration){
-        var beta = (InterventionAmt)*R0/(D_infectious)
+            var beta = (InterventionAmt)*R0/(D_infectious)
         } else if (t > adjustedInterventionTime + duration) {
-        var beta = 0.5*R0/(D_infectious)        
+            var beta = 0.5*R0/(D_infectious)        
         } else {
-        var beta = R0/(D_infectious)
+            var beta = R0/(D_infectious)
         }
-        var a     = 1/D_incbation
-        var gamma = 1/D_infectious
+
+        var a        = 1/D_incbation
+        var gamma    = 1/D_infectious
         
         var S        = x[0] // Susceptible
         var E        = x[1] // Exposed
@@ -101,6 +103,18 @@ export function get_solution_from_gohs_seir_ode(demo_mode, historical_goh_states
     }
 
     return map_goh_states_into_UFStates(goh_states, N, P_ICU)
+}
+
+function tempDebug(goh_states, N) {
+    for (var i=0; i<30; i++) {
+        const exposed = ' exposed: ' + Math.round(N*goh_states[i][1])
+        const infectious = ', infectious: ' + Math.round(N*goh_states[i][2])
+        const mild = ' mild: ' + Math.round(N*goh_states[i][3])
+        const severeHome = ', severeHome: ' + Math.round(N*goh_states[i][4])
+        const infected = ', infected: ' + Math.round(N * (goh_states[i][1] + goh_states[i][2] + goh_states[i][3] + goh_states[i][4]))
+        const propRecovering = ', proportion of mild from infected: ' + (Math.round(N*(goh_states[i][3])) / Math.round(N * (goh_states[i][1] + goh_states[i][2] + goh_states[i][3] + goh_states[i][4])))
+        console.log('i='+i+exposed+infectious+mild+severeHome+infected+propRecovering)
+    }
 }
 
 /** This was the original mapping from Goh model's internal states into the chartable states.
@@ -157,4 +171,11 @@ export function map_goh_states_into_UFStates(goh_states, N, P_ICU) {
             fatalities
         )
     })
+}
+
+export function goh_default_action_markers() {
+    return [
+        new ActionMarkerData(70, "Open uusimaa", 0.3),
+        //new ActionMarkerData(90, "Medical intervention", -0.1)
+    ]
 }
