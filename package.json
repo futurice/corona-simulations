@@ -14,6 +14,7 @@
     "svelte": "^3.0.0"
   },
   "dependencies": {
+    "@fortawesome/free-regular-svg-icons": "^5.13.0",
     "clean": "^4.0.2",
     "d3-drag": "^1.2.5",
     "d3-format": "^1.4.3",
@@ -26,7 +27,8 @@
     "ndarray-scratch": "^1.2.0",
     "numpy-parser": "^1.2.3",
     "query-string": "^6.11.1",
-    "sirv-cli": "^0.4.4"
+    "sirv-cli": "^0.4.4",
+    "svelte-awesome": "^2.2.1"
   },
   "scripts": {
     "build": "rollup -c",
