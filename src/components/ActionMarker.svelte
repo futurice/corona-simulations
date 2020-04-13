@@ -5,7 +5,7 @@
     import { scaleLinear } from 'd3-scale';
     import { format } from 'd3-format';
     import { drag } from 'd3-drag';
-    import { selectAll } from 'd3-selection'
+    import { selectAll } from 'd3-selection';
 
     import { math_inline, math_display, formatDelta, padding, SHOW_FUTURE } from '../utils.js';
 
@@ -165,29 +165,6 @@
                                 cursor:col-resize;
                                 height:{height+19}px">
 
-        <div class="unselectable" style="position:absolute; opacity: 0.5; top:-5px; left:10px; width: 120px">
-            <span style="font-size: 13px">
-                {@html math_inline("\\mathcal{R}_t=" + (R0*InterventionAmt).toFixed(2) )}
-            </span> ⟶ 
-        </div>
-
-        {#if xScaleTime(InterventionTime) >= 100}
-            <div class="unselectable" style="position:absolute; opacity: 0.5; top:-5px; left:-97px; width: 120px">
-                <span style="font-size: 13px">
-                    ⟵ {@html math_inline("\\mathcal{R}_0=" + (R0).toFixed(2) )}
-                </span>
-            </div>      
-        {/if}
-
-        <div id="interventionDrag" class="legendtext" style="flex: 0 0 160px; width:120px; position:relative;  top:-70px; height: 60px; padding-right: 15px; left: -125px; pointer-events: all;cursor:col-resize;" >
-            <div class="paneltitle unselectable" style="top:9px; position: relative; text-align: right">
-                Action on day {format("d")(InterventionTime)}
-            </div>
-            <span></span>
-            <div style="top:9px; position: relative; text-align: right">
-            </div>
-        </div>
-
         <div style="width:150px; position:relative; top:-85px; height: 80px; padding-right: 15px; left: 0px; ;cursor:col-resize; background-color: white; position:absolute" >
         </div>
     </div>
@@ -206,16 +183,23 @@
                 cursor:col-resize;
                 height:{height}px">
         <div style="flex: 0 0 160px; width:200px; position:relative; top:-125px; left: 1px" >
-            <div class="caption" style="pointer-events: none; position: absolute; left:0; top:40px; width:150px; border-left: 2px solid #777; padding: 5px 7px 7px 7px; ">      
+            <div class="caption" style="pointer-events: none; position: absolute; left:0; top:40px; height: 60px; width:200px; border-left: 3px solid #777; padding: 5px 7px 7px 7px; ">      
                 <div class="paneltext" style="height:20px; text-align: right">
+                    <!--<div style="position: absolute; top: -32px; font-size: 40px; left: -15px; color: #777">→</div>-->
+                    <div class="paneltitle unselectable" style="top:0px; position: relative; text-align: left">
+                        Action on day {format("d")(InterventionTime)}
+                    </div>
                     <div class="paneldesc unselectable">
-                        to alter transmission by<br>
+                        <span style="color: {InterventionAmt < 1 ? '#4daf4a' : '#f0027f'}">
+                            {formatDelta(-100*(1-InterventionAmt))}%
+                        </span>
+                        transmission
+                        <span style="font-size: 11px;">
+                            ({@html math_inline("\\mathcal{R}_0=" + (R0*InterventionAmt).toFixed(2) )})
+                        </span>
                     </div>
                 </div>
-                <div style="pointer-events: all">
-                    <div class="slidertext unselectable" on:mousedown={lock_yaxis}>
-                        {formatDelta(-100*(1-InterventionAmt))}%
-                    </div>
+                <div style="pointer-events: all; position: relative; top: 20px; width: 150px;">
                     <input class="range" type=range bind:value={OMInterventionAmt} min=-1 max=1 step=0.01 on:mousedown={lock_yaxis}>
                 </div>
             </div>
