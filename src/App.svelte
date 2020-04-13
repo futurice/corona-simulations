@@ -19,7 +19,7 @@
   import defaultParameters from '../default_parameters.js';
   import { UFState, getDefaultStateMeta } from './user_facing_states.js';
   import { get_solution_from_gohs_seir_ode, map_goh_states_into_UFStates, goh_default_action_markers } from './models/gohs_seir_ode.js';
-  import { map_berkeley_states_into_UFStates } from './models/berkeley_abm.js';
+  import { map_berkeley_states_into_UFStates, temphack } from './models/berkeley_abm.js';
   import { loadFinnishHistoricalEstimates } from './models/historical_estimates.js';
   import { addDays,
            formatCount, formatPercent, formatDelta,
@@ -31,7 +31,8 @@
   import { math_inline, math_display, padding } from './utils.js';
 
   import finnishCoronaData from './../data/finnishCoronaData.json';
-  import berkeley_states from './../data/berkeley1.json';
+  import scenario18_states from './../data/scenario_18_states.json';
+  import scenario18_params from './../data/scenario_18_params.json';
   import finnishHistoricalEstimates from './../data/finnishHistoricalEstimates.csv';
 
 
@@ -174,11 +175,11 @@
     }
   }
 
-  function get_solution(demo_mode, selected_model, goh_states_fin, berkeley_states, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration) {
+  function get_solution(demo_mode, selected_model, goh_states_fin, scenario18_states, scenario18_params, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration) {
     if (selected_model === 'goh') {
       return get_solution_from_gohs_seir_ode(demo_mode, goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration)
     } else if (selected_model === 'berkeley') {
-      return map_berkeley_states_into_UFStates(berkeley_states, N)
+      return temphack(scenario18_states, scenario18_params, N) //map_berkeley_states_into_UFStates(berkeley_states, N)
     } else {
       console.log('Error! getSolution does not have handling for model ', selected_model)
     }
@@ -195,7 +196,8 @@
                           demo_mode,
                           selected_model,
                           goh_states_fin,
-                          berkeley_states,
+                          scenario18_states,
+                          scenario18_params,
                           dt,
                           N,
                           I0,
@@ -753,6 +755,14 @@
 
       </div>
 
+    {/if}
+
+    {#if selected_model === MODEL_BERKELEY}
+      <div>
+        <p>R0 = {scenario18_params[0].R0}</p><br>
+        <p>Social distancing start = {scenario18_params[0].tsocial_on}</p><br>
+        <p>Social distancing length = {scenario18_params[0].tsocial_length}</p><br>
+      </div>
     {/if}
 
   </div>

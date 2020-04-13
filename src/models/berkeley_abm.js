@@ -1,5 +1,25 @@
 import { UFState } from '../user_facing_states.js';
 
+export function temphack(berkeley_states, berkeley_params, N) {
+    var bah = [] 
+    for (var i=0; i<=200; i++) {
+        bah[i] = {}
+    }
+    for (var i=0; i<berkeley_states.length; i++) {
+        var b = berkeley_states[i]
+        if (!Number.isInteger(b.time)) {
+            // timestep was 1/2
+            continue
+        }
+        if (b.time == 0) {
+            // Due to bug in R code 0 time has only 0 values
+            continue
+        }
+        bah[b.time-1][b.state] = b.mean
+    }
+    return map_berkeley_states_into_UFStates(bah, N)
+}
+
 /** Map Berkeley model's internal states into states represented by our chart. */
 export function map_berkeley_states_into_UFStates(berkeley_states, N) {
     const susceptible = 'S'
@@ -22,13 +42,31 @@ export function map_berkeley_states_into_UFStates(berkeley_states, N) {
     const recovered = 'R'
     const dead = 'M'
 
-    // TODO figure out what are "RP" and "mc"
+    const o = berkeley_states[0]
+    var fakePop =
+            o[susceptible]
+            + o[incubating]
+            + o[asymptomatic]
+            + o[asymptomatic_non_severe]
+            + o[symptomatic_non_hospitalized_non_severe]
+            + o[asymptomatic_severe_will_survive]
+            + o[symptomatic_non_hospitalized_severe_will_survive]
+            + o[asymptomatic_severe_will_die]
+            + o[symptomatic_severe_will_die]
+            + o[asymptomatic_non_critical_will_survive]
+            + o[symptomatic_non_critical_will_survive]
+            + o[hospitalized_non_critical_will_survive]
+            + o[asymptomatic_non_critical_will_die]
+            + o[symptomatic_non_critical_will_die]
+            + o[hospitalized_non_critical_will_die]
+            + o[hospitalized_severe_will_survive]
+            + o[hospitalized_severe_will_die]
+            + o[recovered]
+            + o[dead]
 
-    // TODO this / 4486 * N thing should be done in R
-
-    // group 1
+    // TODO this should be done in R
     function h(v) {
-        return Math.round(v / 4486 * N)
+        return Math.round(v / fakePop * N)
     }
 
     // TODO verify that states sum up to one for every day
