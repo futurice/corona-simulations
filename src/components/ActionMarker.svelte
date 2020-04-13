@@ -182,8 +182,8 @@
                 border-right: 1px dashed black;
                 cursor:col-resize;
                 height:{height}px">
-        <div style="flex: 0 0 160px; width:200px; position:relative; top:-125px; left: 1px" >
-            <div class="caption" style="pointer-events: none; position: absolute; left:0; top:40px; height: 60px; width:200px; border-left: 3px solid #777; padding: 5px 7px 7px 7px; ">      
+        <div style="flex: 0 0 160px; min-width:200px; position:relative; top:-125px; left: 1px" >
+            <div class="caption" style="pointer-events: none; position: absolute; left:0; top:40px; height: 60px; min-width:200px; border-left: 3px solid #777; padding: 5px 7px 7px 7px; ">      
                 <div class="paneltext" style="height:20px; text-align: right">
                     <!--<div style="position: absolute; top: -32px; font-size: 40px; left: -15px; color: #777">→</div>-->
                     <div class="paneltitle unselectable" style="top:0px; position: relative; text-align: left">

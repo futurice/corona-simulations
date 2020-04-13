@@ -107,7 +107,7 @@
 
   function getLastHistoricTime(demo_mode, P_all_historical, dt) {
     if (!P_all_historical || demo_mode === SHOW_FUTURE) return 0
-    return get_every_nth(P_all_historical, dt).length
+    return get_every_nth(P_all_historical, dt).length // TODO optimize this to be more efficient
   }
 
   function fix_number_of_values(P, dt) {
@@ -322,8 +322,21 @@
 
   window.addEventListener('mouseup', unlock_yaxis);
 
+  function activeHelper(active, demo_mode, P_all_historical, dt) {
+    if (active >= 0) {
+      // Case: User hovers over a bar or has locked a bar.
+      return active
+    }
+    if (demo_mode === SHOW_FUTURE) {
+      // Historical data is not shown, default to showing first predicted bar.
+      return 0
+    }
+    // Show last historical date
+    return getLastHistoricTime(demo_mode, P_all_historical, dt)
+  }
+
   $: active  = 0
-  $: active_ = active >= 0 ? active : P_bars.length - 1
+  $: active_ = activeHelper(active, demo_mode, P_all_historical, dt)
 
   var Tinc_s = "\\color{#CCC}{T^{-1}_{\\text{inc}}} "
   var Tinf_s = "\\color{#CCC}{T^{-1}_{\\text{inf}}}"
