@@ -106,6 +106,13 @@
         line-height: 14px;
     }
 
+    :global(.unselectable){
+        -webkit-user-select: none; /* Safari */        
+        -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* IE10+/Edge */
+        user-select: none; /* Standard */
+    }
+
 
     .paneltext{
         position:relative;
@@ -158,14 +165,14 @@
                                 cursor:col-resize;
                                 height:{height+19}px">
 
-        <div style="position:absolute; opacity: 0.5; top:-5px; left:10px; width: 120px">
+        <div class="unselectable" style="position:absolute; opacity: 0.5; top:-5px; left:10px; width: 120px">
             <span style="font-size: 13px">
                 {@html math_inline("\\mathcal{R}_t=" + (R0*InterventionAmt).toFixed(2) )}
             </span> ⟶ 
         </div>
 
         {#if xScaleTime(InterventionTime) >= 100}
-            <div style="position:absolute; opacity: 0.5; top:-5px; left:-97px; width: 120px">
+            <div class="unselectable" style="position:absolute; opacity: 0.5; top:-5px; left:-97px; width: 120px">
                 <span style="font-size: 13px">
                     ⟵ {@html math_inline("\\mathcal{R}_0=" + (R0).toFixed(2) )}
                 </span>
@@ -173,7 +180,7 @@
         {/if}
 
         <div id="interventionDrag" class="legendtext" style="flex: 0 0 160px; width:120px; position:relative;  top:-70px; height: 60px; padding-right: 15px; left: -125px; pointer-events: all;cursor:col-resize;" >
-            <div class="paneltitle" style="top:9px; position: relative; text-align: right">
+            <div class="paneltitle unselectable" style="top:9px; position: relative; text-align: right">
                 Action on day {format("d")(InterventionTime)}
             </div>
             <span></span>
@@ -201,12 +208,12 @@
         <div style="flex: 0 0 160px; width:200px; position:relative; top:-125px; left: 1px" >
             <div class="caption" style="pointer-events: none; position: absolute; left:0; top:40px; width:150px; border-left: 2px solid #777; padding: 5px 7px 7px 7px; ">      
                 <div class="paneltext" style="height:20px; text-align: right">
-                    <div class="paneldesc">
+                    <div class="paneldesc unselectable">
                         to alter transmission by<br>
                     </div>
                 </div>
                 <div style="pointer-events: all">
-                    <div class="slidertext" on:mousedown={lock_yaxis}>
+                    <div class="slidertext unselectable" on:mousedown={lock_yaxis}>
                         {formatDelta(-100*(1-InterventionAmt))}%
                     </div>
                     <input class="range" type=range bind:value={OMInterventionAmt} min=-1 max=1 step=0.01 on:mousedown={lock_yaxis}>
