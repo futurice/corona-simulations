@@ -5,17 +5,20 @@ export function formatNumber(num) {
 }
 
 export function formatCount(count) {
+    if (isNaN(count)) return ""
     // Counts are floats in Goh's model, so they need to be rounded.
     // Also formatting to string with space separators etc.
     return formatNumber(Math.round(count))
 }
 
 export function formatDelta(delta) {
+    if (isNaN(delta)) return ""
     return (delta >= 0 ? '+' : '') + formatCount(delta)
 }
 
 export function formatPercent(proportion) {
-    return (100 * proportion).toFixed(2)
+    if (isNaN(proportion)) return ""
+    return `(${(100 * proportion).toFixed(2)}%)`
 }
 
 export function addDays(date, days) {

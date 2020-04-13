@@ -33,6 +33,12 @@
         return delta
     }
 
+    function formatDayChange(k, bar) {
+        const delta = get_count_delta(k, bar)
+        if (isNaN(delta)) return ""
+        return `${formatDelta(delta)} on day ${getDay(active_)}`
+    }
+
     function getDay(bar) {
         return Math.round(indexToTime(bar))
     }
@@ -113,12 +119,12 @@
                 <div class="legendtextnum"><span style="font-size:12px; padding-right:3px; color:#CCC">∑</span>
                     <i>
                     {formatCount(P_bars[active_][state["key"]])} 
-                    ({formatPercent(P_bars[active_][state["key"]] / N)}%)
+                    {formatPercent(P_bars[active_][state["key"]] / N)}
                     </i>
                 </div>
                 <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span>
                     <i>
-                    {formatDelta(get_count_delta(state["key"], active_))} on day {getDay(active_)}
+                    {formatDayChange(state["key"], active_)}
                     </i>
                 </div>
             </div>
