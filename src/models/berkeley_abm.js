@@ -43,30 +43,29 @@ export function map_berkeley_states_into_UFStates(berkeley_states, N) {
     const dead = 'M'
 
     const o = berkeley_states[0]
-    var fakePop =
-            o[susceptible]
-            + o[incubating]
-            + o[asymptomatic]
-            + o[asymptomatic_non_severe]
-            + o[symptomatic_non_hospitalized_non_severe]
-            + o[asymptomatic_severe_will_survive]
-            + o[symptomatic_non_hospitalized_severe_will_survive]
-            + o[asymptomatic_severe_will_die]
-            + o[symptomatic_severe_will_die]
-            + o[asymptomatic_non_critical_will_survive]
-            + o[symptomatic_non_critical_will_survive]
-            + o[hospitalized_non_critical_will_survive]
-            + o[asymptomatic_non_critical_will_die]
-            + o[symptomatic_non_critical_will_die]
-            + o[hospitalized_non_critical_will_die]
-            + o[hospitalized_severe_will_survive]
-            + o[hospitalized_severe_will_die]
-            + o[recovered]
-            + o[dead]
+    var fakePop = o['S']
+                + o['E']
+                + o['A']
+                + o['X1']
+                + o['X2']
+                + o['C1']
+                + o['C2']
+                + o['C3']
+                + o['D1']
+                + o['D2']
+                + o['D3']
+                + o['HR1']
+                + o['HR2']
+                + o['HR3']
+                + o['HM1']
+                + o['HM2']
+                + o['HM3']
+                + o['R']
+                + o['M']
 
     // TODO this should be done in R
     function h(v) {
-        return Math.round(v / fakePop * N)
+        return Math.round(v * N / fakePop)
     }
 
     // TODO verify that states sum up to one for every day
@@ -77,7 +76,7 @@ export function map_berkeley_states_into_UFStates(berkeley_states, N) {
                 b[susceptible]
 
         const infected =
-                b[incubating]
+              b[incubating]
             + b[asymptomatic]
             + b[asymptomatic_non_severe]
             + b[symptomatic_non_hospitalized_non_severe]
@@ -87,18 +86,16 @@ export function map_berkeley_states_into_UFStates(berkeley_states, N) {
             + b[symptomatic_severe_will_die]
             + b[asymptomatic_non_critical_will_survive]
             + b[symptomatic_non_critical_will_survive]
-            + b[hospitalized_non_critical_will_survive]
             + b[asymptomatic_non_critical_will_die]
             + b[symptomatic_non_critical_will_die]
-            + b[hospitalized_non_critical_will_die]
 
         const hospitalized =
-                b[hospitalized_severe_will_survive]
-            + b[hospitalized_severe_will_die]
+                b[hospitalized_non_critical_will_survive]
+              + b[hospitalized_non_critical_will_die]
 
         const icu =
                 b[hospitalized_severe_will_survive]
-            + b[hospitalized_severe_will_die]
+              + b[hospitalized_severe_will_die]
 
         const recov =
                 b[recovered]
