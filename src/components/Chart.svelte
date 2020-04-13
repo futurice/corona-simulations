@@ -30,7 +30,7 @@
   export let icuCapacity;
   
   function lastHistoricTimeHelper() {
-    return Math.min(Math.max(lastHistoricTime-1, 0), states.length-1)
+    return Math.min(Math.max(lastHistoricTime, 0), states.length-1)
   }
 
   function shouldWeDrawICUcapacity(stateMeta, ymax) {
