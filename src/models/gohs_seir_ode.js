@@ -102,8 +102,18 @@ export function get_solution_from_gohs_seir_ode(demo_mode, historical_goh_states
         t+=dt
     }
 
-    return map_goh_states_into_UFStates(goh_states, N, P_ICU)
+    const uf_states = map_goh_states_into_UFStates(goh_states, N, P_ICU)
+
+    if (demo_mode !== SHOW_FUTURE) {
+        // This is typical case.
+        // We need to remove first element from P_all_goh because the end historical state
+        // is used as the start state for the predictions.
+        return uf_states.slice(1)
+    } else {
+        return uf_states
+    }
 }
+    
 
 function tempDebug(goh_states, N) {
     for (var i=0; i<30; i++) {

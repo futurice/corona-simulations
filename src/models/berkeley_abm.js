@@ -17,6 +17,7 @@ export function temphack(berkeley_states, berkeley_params, N) {
         }
         bah[b.time-1][b.state] = b.mean
     }
+
     return map_berkeley_states_into_UFStates(bah, N)
 }
 
@@ -65,10 +66,9 @@ export function map_berkeley_states_into_UFStates(berkeley_states, N) {
 
     // TODO this should be done in R
     function h(v) {
+        //console.log(v, N, fakePop, Math.round(v * N / fakePop))
         return Math.round(v * N / fakePop)
     }
-
-    // TODO verify that states sum up to one for every day
 
     return berkeley_states.map(b => {
 
@@ -103,7 +103,7 @@ export function map_berkeley_states_into_UFStates(berkeley_states, N) {
         const fatalities =
                 b[dead]
 
-        return new UFState(
+        const state = new UFState(
             h(suscep),
             h(infected),
             h(hospitalized),
@@ -111,5 +111,11 @@ export function map_berkeley_states_into_UFStates(berkeley_states, N) {
             h(recov),
             h(fatalities)
         )
+
+        // verify that states sum up to one for every day
+        //const sumCheck = state['susceptible'] + state['infected'] + state['hospitalized'] + state['icu'] + state['recovered'] + state['fatalities']
+        //if (sumCheck < 5571079 || sumCheck > 5571081) console.log('error', sumCheck)
+
+        return state
     }
 )}

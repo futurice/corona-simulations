@@ -22,7 +22,7 @@
   import { map_berkeley_states_into_UFStates, temphack } from './models/berkeley_abm.js';
   import { loadFinnishHistoricalEstimates } from './models/historical_estimates.js';
   import { addDays,
-           formatCount, formatPercent, formatDelta,
+           formatCount, formatDelta,
            SHOW_HISTORICAL, SHOW_FUTURE, SHOW_HISTORICAL_AND_FUTURE,
            MODEL_GOH, MODEL_BERKELEY, MODEL_REINA,
          } from './utils.js';
@@ -31,8 +31,8 @@
   import { math_inline, math_display, padding } from './utils.js';
 
   import finnishCoronaData from './../data/finnishCoronaData.json';
-  import scenario18_states from './../data/scenario_18_states.json';
-  import scenario18_params from './../data/scenario_18_params.json';
+  import berkeley_states from './../data/berkeley3_states.json';
+  import berkeley_params from './../data/berkeley3_params.json';
   import finnishHistoricalEstimates from './../data/finnishHistoricalEstimates.csv';
 
 
@@ -128,12 +128,6 @@
     return augmented
   }
 
-  function combine_historical_and_predictions(P_all_historical, P_all_goh) {
-    // We need to remove first element from P_all_goh because the end historical state
-    // is used as the start state for the predictions.
-    return P_all_historical.concat(P_all_goh.slice(1))
-  }
-
   function getPmax(P_bars, states) {
     var Pmax = 0
     for (var i=0; i<P_bars.length; i++) {
@@ -163,7 +157,7 @@
     var P_chosen = []
     if (demo_mode === SHOW_HISTORICAL) P_chosen = P_all_historical
     if (demo_mode === SHOW_FUTURE) P_chosen = P_all_future
-    if (demo_mode === SHOW_HISTORICAL_AND_FUTURE) P_chosen = combine_historical_and_predictions(P_all_historical, P_all_future)
+    if (demo_mode === SHOW_HISTORICAL_AND_FUTURE) P_chosen = P_all_historical.concat(P_all_future)
     return fix_number_of_values(P_chosen, dt)
   }
 
@@ -175,11 +169,11 @@
     }
   }
 
-  function get_solution(demo_mode, selected_model, goh_states_fin, scenario18_states, scenario18_params, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration) {
+  function get_solution(demo_mode, selected_model, goh_states_fin, berkeley_states, berkeley_params, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration) {
     if (selected_model === 'goh') {
       return get_solution_from_gohs_seir_ode(demo_mode, goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration)
     } else if (selected_model === 'berkeley') {
-      return temphack(scenario18_states, scenario18_params, N) //map_berkeley_states_into_UFStates(berkeley_states, N)
+      return temphack(berkeley_states, berkeley_params, N) //map_berkeley_states_into_UFStates(berkeley_states, N)
     } else {
       console.log('Error! getSolution does not have handling for model ', selected_model)
     }
@@ -196,8 +190,8 @@
                           demo_mode,
                           selected_model,
                           goh_states_fin,
-                          scenario18_states,
-                          scenario18_params,
+                          berkeley_states,
+                          berkeley_params,
                           dt,
                           N,
                           I0,
@@ -588,7 +582,6 @@
     </div>
 
     <div style="position:relative; top:100px; right:-115px">
-
       <ChartCompanion bind:stateMeta = {stateMeta}
         N = {N}
         dt = {dt}
@@ -771,9 +764,9 @@
 
     {#if selected_model === MODEL_BERKELEY}
       <div>
-        <p>R0 = {scenario18_params[0].R0}</p><br>
-        <p>Social distancing start = {scenario18_params[0].tsocial_on}</p><br>
-        <p>Social distancing length = {scenario18_params[0].tsocial_length}</p><br>
+        <p>R0 = {berkeley_params[0].R0}</p>
+        <p>Social distancing start = {berkeley_params[0].tsocial_on}</p>
+        <p>Social distancing length = {berkeley_params[0].tsocial_length}</p>
       </div>
     {/if}
 
