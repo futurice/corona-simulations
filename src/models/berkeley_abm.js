@@ -2,20 +2,19 @@ import { UFState } from '../user_facing_states.js';
 
 export function temphack(berkeley_states, berkeley_params, N) {
     var bah = [] 
-    for (var i=0; i<=200; i++) {
-        bah[i] = {}
-    }
     for (var i=0; i<berkeley_states.length; i++) {
-        var b = berkeley_states[i]
+        var b = berkeley_states[i]  
         if (!Number.isInteger(b.time)) {
             // timestep was 1/2
             continue
         }
         if (b.time == 0) {
-            // Due to bug in R code 0 time has only 0 values
+            // Initialization date should be last historical date, so we don't want it twice.
             continue
         }
-        bah[b.time-1][b.state] = b.mean
+        const time = b.time-1
+        if (!bah[time]) bah[time] = {}
+        bah[time][b.state] = b.mean
     }
 
     return map_berkeley_states_into_UFStates(bah, N)

@@ -31,8 +31,8 @@
   import { math_inline, math_display, padding } from './utils.js';
 
   import finnishCoronaData from './../data/finnishCoronaData.json';
-  import berkeley_states from './../data/berkeley3_states.json';
-  import berkeley_params from './../data/berkeley3_params.json';
+  import berkeley_states from './../data/berkeley4_states.json';
+  import berkeley_params from './../data/berkeley4_params.json';
   import finnishHistoricalEstimates from './../data/finnishHistoricalEstimates.csv';
 
 
