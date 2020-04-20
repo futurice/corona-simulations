@@ -40,10 +40,7 @@ export function get_solution_from_gohs_seir_ode(demo_mode, actionMarkersForGoh, 
         // SEIR ODE
 
         // Calculate effects to R0 from actions which occurred before time t.
-        const adjustedTime =
-            demo_mode !== SHOW_FUTURE ?
-            t + historical_goh_states.length :
-            t
+        const adjustedTime = t + historical_goh_states.length
         var cumulativeActionMarkerEffects = 1
         for (var i=0; i<actionMarkersForGoh.length; i++) {
             const am = actionMarkersForGoh[i]

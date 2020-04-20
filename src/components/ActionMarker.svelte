@@ -37,17 +37,22 @@
         return adjustedR0
     }
 
+    function getLeftPx(actionMarkerData, demo_mode, P_all_historical, tmax) {
+        // Note: tmax must be in parameters to trigger re-render correctly.
+        const adjustedDays = actionMarkerData[AM_DAY] - (demo_mode === SHOW_FUTURE ? P_all_historical.length-1 : 0)
+        return xScaleTime(adjustedDays)
+    }
+
+    $: displayDay = actionMarkerData[AM_DAY] - (demo_mode === SHOW_FUTURE ? P_all_historical.length-1 : 0)
     $: adjustedR0 = getAdjustedR0(R0, allActiveActionMarkers, actionMarkerData)
-
     $: InterventionAmt = 1 - actionMarkerData[AM_EFFECT]
-
     $: xScaleTime = scaleLinear()
                         .domain([0, tmax])
                         .range([padding.left, width - padding.right]);
-
     $: xScaleTimeInv = scaleLinear()
                         .domain([0, width])
                         .range([0, tmax]);
+    $: leftPx = getLeftPx(actionMarkerData, demo_mode, P_all_historical, tmax)
 
     var drag_intervention = function (){
         var dragstarty = 0
@@ -61,8 +66,10 @@
         }
 
         var dragged = function (d) {
-            const minX = (demo_mode === SHOW_FUTURE ? 0 : P_all_historical.length)
-            actionMarkerData[AM_DAY] = Math.round(Math.min(tmax-1, Math.max(minX, InterventionTimeStart + xScaleTimeInv(event.x - dragstarty))))
+            const draggedX = InterventionTimeStart + xScaleTimeInv(event.x - dragstarty)
+            const minX = P_all_historical.length
+            const maxX = tmax-1 + (demo_mode === SHOW_FUTURE ? P_all_historical.length-1 : 0)
+            actionMarkerData[AM_DAY] = Math.round(Math.min(maxX, Math.max(minX, draggedX)))
         }
 
         var dragend = function (d) {
@@ -151,8 +158,8 @@
     <div id={actionMarkerData.id} style="pointer-events: all;
                                 position: absolute;
                                 top:-38px;
-                                left:{xScaleTime(actionMarkerData[AM_DAY]) - 1}px;
-                                visibility: {(xScaleTime(actionMarkerData[AM_DAY]) < (width - padding.right)) ? 'visible':'hidden'};
+                                left:{leftPx - 1}px;
+                                visibility: {(leftPx < (width - padding.right)) ? 'visible':'hidden'};
                                 width:2px;
                                 background-color:#FFF;
                                 border-right: 1px dashed black;
@@ -170,8 +177,8 @@
     <div style="
                 position: absolute;
                 top:-38px;
-                left:{xScaleTime(actionMarkerData[AM_DAY]) - 1}px;
-                visibility: {(xScaleTime(actionMarkerData[AM_DAY]) < (width - padding.right)) ? 'visible':'hidden'};
+                left:{leftPx - 1}px;
+                visibility: {(leftPx < (width - padding.right)) ? 'visible':'hidden'};
                 width:2px;
                 background-color:#FFF;
                 border-right: 1px dashed black;
@@ -182,7 +189,7 @@
                 <div class="paneltext" style="height:20px; text-align: right">
                     <!--<div style="position: absolute; top: -32px; font-size: 40px; left: -15px; color: #777">→</div>-->
                     <div class="paneltitle unselectable" style="top:0px; position: relative; text-align: left">
-                        {actionMarkerData[AM_NAME]} on day {actionMarkerData[AM_DAY]}
+                        {actionMarkerData[AM_NAME]} on day {displayDay}
                     </div>
                     <div class="paneldesc unselectable">
                         <span style="color: {InterventionAmt < 1 ? '#4daf4a' : '#f0027f'}">
