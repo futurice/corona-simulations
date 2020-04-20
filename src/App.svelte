@@ -164,17 +164,17 @@
     }
   }
 
-  function get_solution(demo_mode, selected_model, actionMarkers, goh_states_fin, berkeley_states, berkeley_params, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR) {
-    if (selected_model === MODEL_GOH) {
-      return get_solution_from_gohs_seir_ode(demo_mode, actionMarkers[selected_model], goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR)
-    } else if (selected_model === MODEL_BERKELEY) {
+  function get_solution(demo_mode, selectedModel, actionMarkers, goh_states_fin, berkeley_states, berkeley_params, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR) {
+    if (selectedModel === MODEL_GOH) {
+      return get_solution_from_gohs_seir_ode(demo_mode, actionMarkers[selectedModel], goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR)
+    } else if (selectedModel === MODEL_BERKELEY) {
       return temphack(berkeley_states, berkeley_params, N)
     } else {
-      console.log('Error! getSolution does not have handling for model ', selected_model)
+      console.log('Error! getSolution does not have handling for model ', selectedModel)
     }
   }
   
-  $: selected_model   = "goh"
+  $: selectedModel   = "goh"
   $: showHistory      = true
   $: demo_mode        = showHistory ? SHOW_HISTORICAL_AND_FUTURE : SHOW_FUTURE
   $: [firstHistoricalDate,
@@ -183,7 +183,7 @@
   $: P_all_historical = map_goh_states_into_UFStates(goh_states_fin, N, P_ICU)
   $: P_all_future     = get_solution(
                           demo_mode,
-                          selected_model,
+                          selectedModel,
                           actionMarkers,
                           goh_states_fin,
                           berkeley_states,
@@ -556,7 +556,7 @@
       <div class="legendtext" style="font-size: 14px; line-height:16px; font-weight: bold; color: #777;">
         Select scenario and model:
       </div>
-      <select id="model-selection" bind:value={selected_model}>
+      <select id="model-selection" bind:value={selectedModel}>
         <option value={MODEL_GOH} selected >Finland | Goh's SEIR ODE (live)</option>
         <option value={MODEL_BERKELEY} >Finland | Berkeley ABM (precomputed)</option>
         <option value={MODEL_REINA} disabled >Uusimaa | REINA ABM (precomputed)</option>
@@ -596,7 +596,7 @@
         N={N}
         ymax={lock ? Plock: Pmax}
         lastHistoricTime={lastHistoricTime}
-        selected_model={selected_model}
+        selectedModel={selectedModel}
         icuCapacity={icuCapacity}
         log={!log}
         />
@@ -636,7 +636,7 @@
                   opacity: 0;
                   height:425px;">
       </div>
-      {#each actionMarkers[selected_model] as actionMarkerData}
+      {#each actionMarkers[selectedModel] as actionMarkerData}
         <ActionMarker
           width = {width}
           height = {height}
@@ -645,6 +645,7 @@
           Pmax = {Pmax}
           P_all_historical = {P_all_historical}
           demo_mode = {demo_mode}
+          bind:allActiveActionMarkers = {actionMarkers[selectedModel]}
           bind:actionMarkerData = {actionMarkerData}
           bind:Plock = {Plock}
           bind:lock = {lock}
@@ -680,7 +681,7 @@
   </div>
   <div class = "row">
 
-    {#if selected_model === MODEL_GOH}
+    {#if selectedModel === MODEL_GOH}
 
       <div class="column">
         <div class="paneltext">
@@ -748,7 +749,7 @@
 
     {/if}
 
-    {#if selected_model === MODEL_BERKELEY}
+    {#if selectedModel === MODEL_BERKELEY}
       <div>
         <p>R0 = {berkeley_params[0].R0}</p>
         <p>Social distancing start = {berkeley_params[0].tsocial_on}</p>

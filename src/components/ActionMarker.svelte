@@ -16,12 +16,28 @@
     export let Pmax;
     export let tmax;
 
-    export let actionMarkerData;
+    export let allActiveActionMarkers; // We need these to calculate cumulative effect to R0
+    export let actionMarkerData; // The data for this action marker
     export let Plock;
     export let lock;
     export let lock_yaxis;
     export let P_all_historical;
     export let demo_mode;
+
+    function getAdjustedR0(R0, allActiveActionMarkers, actionMarkerData) {
+        var adjustedR0 = R0
+        const upToIncludingDay = actionMarkerData[AM_DAY]
+        for (var i=0; i<allActiveActionMarkers.length; i++) {
+            const am = allActiveActionMarkers[i]
+            const day = am[AM_DAY]
+            if (day <= upToIncludingDay) {
+                adjustedR0 *= (1 - am[AM_EFFECT])
+            }
+        }
+        return adjustedR0
+    }
+
+    $: adjustedR0 = getAdjustedR0(R0, allActiveActionMarkers, actionMarkerData)
 
     $: InterventionAmt = 1 - actionMarkerData[AM_EFFECT]
 
@@ -174,7 +190,7 @@
                         </span>
                         transmission
                         <span style="font-size: 11px;">
-                            ({@html math_inline("\\mathcal{R}_0=" + (R0*InterventionAmt).toFixed(2) )})
+                            ({@html math_inline("\\mathcal{R}_0=" + adjustedR0.toFixed(2) )})
                         </span>
                     </div>
                 </div>

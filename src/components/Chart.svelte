@@ -26,18 +26,18 @@
   export let ymax;
   export let log = false;
   export let lastHistoricTime;
-  export let selected_model;
+  export let selectedModel;
   export let icuCapacity;
   
   function lastHistoricTimeHelper() {
     return Math.min(Math.max(lastHistoricTime, 0), states.length-1)
   }
 
-  function shouldWeDrawICUcapacity(selected_model, stateMeta, ymax) {
+  function shouldWeDrawICUcapacity(selectedModel, stateMeta, ymax) {
     // Note that we need stateMeta and ymax as parameters in order to trigger re-render on certain user actions.
     var icuVisible = false
     var areStatesBelowICUvisible = false
-    if (selected_model !== MODEL_GOH) {
+    if (selectedModel !== MODEL_GOH) {
       // Some precomputed models may have been precomputed with a different condition for icu capacity,
       // so it could be misleading if we visualized their results with a different icu capacity indicator.
       return false
@@ -219,7 +219,7 @@
 
 <div style="width:{width+15}px; height: {height}px; position: relative; top:20px">
 
-  {#if shouldWeDrawICUcapacity(selected_model, stateMeta, ymax)}
+  {#if shouldWeDrawICUcapacity(selectedModel, stateMeta, ymax)}
     <div style="position: absolute;
                 top: {Math.max(yScale(icuCapacity),0)}px;
                 left: 30px;
