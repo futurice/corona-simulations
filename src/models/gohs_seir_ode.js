@@ -1,5 +1,5 @@
 import { UFState } from '../user_facing_states.js';
-import { ActionMarkerData } from '../action_marker_data.js';
+import { ActionMarkerData, AM_DAY, AM_EFFECT } from '../action_marker_data.js';
 import { SHOW_FUTURE } from '../utils.js';
 
 var Integrators = {
@@ -27,8 +27,7 @@ var integrate=(m,f,y,t,h)=>{
     return r;
 }
 
-// P_prior, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, CFR, InterventionTime, InterventionAmt, duration
-export function get_solution_from_gohs_seir_ode(demo_mode, historical_goh_states, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration) {
+export function get_solution_from_gohs_seir_ode(demo_mode, actionMarkersForGoh, historical_goh_states, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR) {
 
     var interpolation_steps = 40
     var steps = 101*interpolation_steps*real_dt
@@ -40,18 +39,20 @@ export function get_solution_from_gohs_seir_ode(demo_mode, historical_goh_states
 
         // SEIR ODE
 
-        const adjustedInterventionTime =
+        // Calculate effects to R0 from actions which occurred before time t.
+        const adjustedTime =
             demo_mode !== SHOW_FUTURE ?
-            InterventionTime - historical_goh_states.length :
-            InterventionTime
-        
-        if (t > adjustedInterventionTime && t < adjustedInterventionTime + duration){
-            var beta = (InterventionAmt)*R0/(D_infectious)
-        } else if (t > adjustedInterventionTime + duration) {
-            var beta = 0.5*R0/(D_infectious)        
-        } else {
-            var beta = R0/(D_infectious)
+            t + historical_goh_states.length :
+            t
+        var cumulativeActionMarkerEffects = 1
+        for (var i=0; i<actionMarkersForGoh.length; i++) {
+            const am = actionMarkersForGoh[i]
+            const startTime = am[AM_DAY]
+            if (adjustedTime > startTime) {
+                cumulativeActionMarkerEffects *= (1 - am[AM_EFFECT])
+            }
         }
+        var beta = cumulativeActionMarkerEffects * R0 / (D_infectious)
 
         var a        = 1/D_incbation
         var gamma    = 1/D_infectious
@@ -185,7 +186,7 @@ export function map_goh_states_into_UFStates(goh_states, N, P_ICU) {
 
 export function goh_default_action_markers() {
     return [
-        new ActionMarkerData(70, "Open uusimaa", 0.3),
-        //new ActionMarkerData(90, "Medical intervention", -0.1)
+        new ActionMarkerData(70, "Open schools", 0.3),
+        new ActionMarkerData(90, "Medical intervention", -0.1)
     ]
 }

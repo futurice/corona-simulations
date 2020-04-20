@@ -1,6 +1,6 @@
 <script>
 
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
 
     import { scaleLinear } from 'd3-scale';
     import { format } from 'd3-format';
@@ -8,20 +8,22 @@
     import { selectAll } from 'd3-selection';
 
     import { math_inline, math_display, formatDelta, padding, SHOW_FUTURE } from '../utils.js';
+    import { AM_NAME, AM_DAY, AM_EFFECT, ActionMarkerData } from '../action_marker_data.js';
 
     export let width;
     export let height;
     export let R0;
     export let Pmax;
     export let tmax;
-    export let InterventionTime;
-    export let InterventionAmt;
-    export let OMInterventionAmt;
+
+    export let actionMarkerData;
     export let Plock;
     export let lock;
     export let lock_yaxis;
     export let P_all_historical;
     export let demo_mode;
+
+    $: InterventionAmt = 1 - actionMarkerData[AM_EFFECT]
 
     $: xScaleTime = scaleLinear()
                         .domain([0, tmax])
@@ -37,41 +39,14 @@
 
         var dragstarted = function (d) {
             dragstarty = event.x  
-            InterventionTimeStart = InterventionTime
+            InterventionTimeStart = actionMarkerData[AM_DAY]
             Plock = Pmax
             lock = true
         }
 
         var dragged = function (d) {
-            // InterventionTime = Math.max( (*(1 + (event.x - dragstarty)/500)), 10)
-            // console.log(event.x)
             const minX = (demo_mode === SHOW_FUTURE ? 0 : P_all_historical.length)
-            InterventionTime = Math.min(tmax-1, Math.max(minX, InterventionTimeStart + xScaleTimeInv(event.x - dragstarty)))
-        }
-
-        var dragend = function (d) {
-            lock = false
-        }
-
-        return drag().on("drag", dragged).on("start", dragstarted).on("end", dragend)
-    }
-
-    var drag_intervention_end = function (){
-        var dragstarty = 0
-        var durationStart = 0
-
-        var dragstarted = function (d) {
-            dragstarty = event.x  
-            durationStart = duration
-            Plock = Pmax
-            lock = true
-        }
-
-        var dragged = function (d) {
-            // InterventionTime = Math.max( (*(1 + (event.x - dragstarty)/500)), 10)
-            // console.log(event.x)
-            const minX = (demo_mode === SHOW_FUTURE ? 0 : P_all_historical.length)
-            duration = Math.min(tmax-1, Math.max(minX, durationStart + xScaleTimeInv(event.x - dragstarty)))
+            actionMarkerData[AM_DAY] = Math.round(Math.min(tmax-1, Math.max(minX, InterventionTimeStart + xScaleTimeInv(event.x - dragstarty))))
         }
 
         var dragend = function (d) {
@@ -83,8 +58,12 @@
 
     onMount(async () => {
         var drag_callback_intervention = drag_intervention()
-        drag_callback_intervention(selectAll("#dottedline"))
+        drag_callback_intervention(selectAll(`#${actionMarkerData.id}`))
     });
+
+    onDestroy(async () => {
+        //console.log('destroyed')
+    })
 
 </script>
 
@@ -153,11 +132,11 @@
 
 <!-- Intervention Line -->
 <div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none">
-    <div id="dottedline" style="pointer-events: all;
+    <div id={actionMarkerData.id} style="pointer-events: all;
                                 position: absolute;
                                 top:-38px;
-                                left:{xScaleTime(InterventionTime)}px;
-                                visibility: {(xScaleTime(InterventionTime) < (width - padding.right)) ? 'visible':'hidden'};
+                                left:{xScaleTime(actionMarkerData[AM_DAY]) - 1}px;
+                                visibility: {(xScaleTime(actionMarkerData[AM_DAY]) < (width - padding.right)) ? 'visible':'hidden'};
                                 width:2px;
                                 background-color:#FFF;
                                 border-right: 1px dashed black;
@@ -175,8 +154,8 @@
     <div style="
                 position: absolute;
                 top:-38px;
-                left:{xScaleTime(InterventionTime)}px;
-                visibility: {(xScaleTime(InterventionTime) < (width - padding.right)) ? 'visible':'hidden'};
+                left:{xScaleTime(actionMarkerData[AM_DAY]) - 1}px;
+                visibility: {(xScaleTime(actionMarkerData[AM_DAY]) < (width - padding.right)) ? 'visible':'hidden'};
                 width:2px;
                 background-color:#FFF;
                 border-right: 1px dashed black;
@@ -187,7 +166,7 @@
                 <div class="paneltext" style="height:20px; text-align: right">
                     <!--<div style="position: absolute; top: -32px; font-size: 40px; left: -15px; color: #777">→</div>-->
                     <div class="paneltitle unselectable" style="top:0px; position: relative; text-align: left">
-                        Action on day {format("d")(InterventionTime)}
+                        {actionMarkerData[AM_NAME]} on day {actionMarkerData[AM_DAY]}
                     </div>
                     <div class="paneldesc unselectable">
                         <span style="color: {InterventionAmt < 1 ? '#4daf4a' : '#f0027f'}">
@@ -200,7 +179,7 @@
                     </div>
                 </div>
                 <div style="pointer-events: all; position: relative; top: 20px; width: 150px;">
-                    <input class="range" type=range bind:value={OMInterventionAmt} min=-1 max=1 step=0.01 on:mousedown={lock_yaxis}>
+                    <input class="range" type=range bind:value={actionMarkerData[AM_EFFECT]} min=-1 max=1 step=0.01 on:mousedown={lock_yaxis}>
                 </div>
             </div>
         </div>

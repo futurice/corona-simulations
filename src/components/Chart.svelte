@@ -4,7 +4,7 @@
   import { selectAll } from 'd3-selection'
   import { onMount } from 'svelte';
   import { createEventDispatcher } from 'svelte';
-  import { formatNumber, padding } from '../utils.js';
+  import { formatNumber, padding, MODEL_GOH } from '../utils.js';
 
   const dispatch = createEventDispatcher();
 
@@ -24,19 +24,24 @@
   export let timestep;
   export let N;
   export let ymax;
-  export let InterventionTime;
   export let log = false;
   export let lastHistoricTime;
+  export let selected_model;
   export let icuCapacity;
   
   function lastHistoricTimeHelper() {
     return Math.min(Math.max(lastHistoricTime, 0), states.length-1)
   }
 
-  function shouldWeDrawICUcapacity(stateMeta, ymax) {
+  function shouldWeDrawICUcapacity(selected_model, stateMeta, ymax) {
     // Note that we need stateMeta and ymax as parameters in order to trigger re-render on certain user actions.
     var icuVisible = false
     var areStatesBelowICUvisible = false
+    if (selected_model !== MODEL_GOH) {
+      // Some precomputed models may have been precomputed with a different condition for icu capacity,
+      // so it could be misleading if we visualized their results with a different icu capacity indicator.
+      return false
+    }
     for (var i=0; i<stateMeta.length; i++) {
       const state = stateMeta[i]
       const visible = state["checked"]
@@ -178,13 +183,6 @@
     stroke-dasharray: 0;
   }
 
-  .intervention line {
-    stroke: #555;
-    stroke-dasharray: 0;
-    stroke-width:12.5;
-  }
-
-
   .x-axis .tick text {
     text-anchor: middle;
   }
@@ -221,7 +219,7 @@
 
 <div style="width:{width+15}px; height: {height}px; position: relative; top:20px">
 
-  {#if shouldWeDrawICUcapacity(stateMeta, ymax)}
+  {#if shouldWeDrawICUcapacity(selected_model, stateMeta, ymax)}
     <div style="position: absolute;
                 top: {Math.max(yScale(icuCapacity),0)}px;
                 left: 30px;

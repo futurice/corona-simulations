@@ -53,10 +53,11 @@
   }
 
   function getDefaultActionMarkers() {
-    return {
-      MODEL_GOH: goh_default_action_markers(),
-      // TODO ..?
-    }
+    const m = {}
+    m[MODEL_GOH] = goh_default_action_markers()
+    m[MODEL_BERKELEY] = []
+    m[MODEL_REINA] = []
+    return m
   }
 
   let allow_x_axis_resizing = false // x axis "drag resizing" was replaced by magnifying glass toggle
@@ -75,16 +76,12 @@
   $: D_hospital_lag    = defaultParameters["days_in_severe_recovering_state_before_hospital"]
   $: D_death           = Time_to_death - D_infectious 
   $: CFR               = defaultParameters["fatality_rate"]
-  $: InterventionTime  = defaultParameters["InterventionTime"]
-  $: OMInterventionAmt = defaultParameters["OMInterventionAmt"]
-  $: InterventionAmt   = 1 - OMInterventionAmt
   $: Time              = 220
   $: Xmax              = 110000
   $: dt                = 1
   $: P_SEVERE          = defaultParameters["hospitalization_rate"]
   $: P_ICU             = defaultParameters["icu_rate_from_hospitalized"]
   $: icuCapacity       = defaultParameters["icu_capacity"]
-  $: duration          = 7*12*1e10
 
   // Default parameters are "activated" on page load with the same mechanism that export uses ("share your model").
   $: state = location.protocol + '//' + location.host + location.pathname + "?" + queryString.stringify({"Time_to_death":Time_to_death,
@@ -96,8 +93,6 @@
                "D_recovery_mild":D_recovery_mild,
                "D_recovery_severe":D_recovery_severe,
                "CFR":CFR,
-               "InterventionTime":InterventionTime,
-               "InterventionAmt":InterventionAmt,
                "D_hospital_lag":D_hospital_lag,
                "P_SEVERE": P_SEVERE})
 
@@ -169,11 +164,11 @@
     }
   }
 
-  function get_solution(demo_mode, selected_model, goh_states_fin, berkeley_states, berkeley_params, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration) {
-    if (selected_model === 'goh') {
-      return get_solution_from_gohs_seir_ode(demo_mode, goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR, InterventionTime, InterventionAmt, duration)
-    } else if (selected_model === 'berkeley') {
-      return temphack(berkeley_states, berkeley_params, N) //map_berkeley_states_into_UFStates(berkeley_states, N)
+  function get_solution(demo_mode, selected_model, actionMarkers, goh_states_fin, berkeley_states, berkeley_params, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR) {
+    if (selected_model === MODEL_GOH) {
+      return get_solution_from_gohs_seir_ode(demo_mode, actionMarkers[selected_model], goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR)
+    } else if (selected_model === MODEL_BERKELEY) {
+      return temphack(berkeley_states, berkeley_params, N)
     } else {
       console.log('Error! getSolution does not have handling for model ', selected_model)
     }
@@ -189,6 +184,7 @@
   $: P_all_future     = get_solution(
                           demo_mode,
                           selected_model,
+                          actionMarkers,
                           goh_states_fin,
                           berkeley_states,
                           berkeley_params,
@@ -203,10 +199,7 @@
                           D_recovery_severe,
                           D_death, P_SEVERE,
                           P_ICU,
-                          CFR,
-                          InterventionTime,
-                          InterventionAmt,
-                          duration
+                          CFR
                         )
   $: P_all            = chooseP(demo_mode, P_all_historical, P_all_future, dt)
   $: P_bars           = get_every_nth(P_all, dt)
@@ -266,10 +259,8 @@
       var drag_callback_x = drag_x()
       drag_callback_x(selectAll("#xAxisDrag"))
     }
-    
-    //var drag_callback_intervention = drag_intervention()
-    //drag_callback_intervention(selectAll("#dottedline"))
 
+    // TODO what is this? Is it for "share your model" links?
     if (typeof window !== 'undefined') {
       parsed = queryString.parse(window.location.search)
       if (!(parsed.logN === undefined)) {logN = parsed.logN}
@@ -280,8 +271,6 @@
       if (!(parsed.D_recovery_mild === undefined)) {D_recovery_mild = parseFloat(parsed.D_recovery_mild)}
       if (!(parsed.D_recovery_severe === undefined)) {D_recovery_severe = parseFloat(parsed.D_recovery_severe)}
       if (!(parsed.CFR === undefined)) {CFR = parseFloat(parsed.CFR)}
-      if (!(parsed.InterventionTime === undefined)) {InterventionTime = parseFloat(parsed.InterventionTime)}
-      if (!(parsed.InterventionAmt === undefined)) {InterventionAmt = parseFloat(parsed.InterventionAmt)}
       if (!(parsed.D_hospital_lag === undefined)) {D_hospital_lag = parseFloat(parsed.D_hospital_lag)}
       if (!(parsed.P_SEVERE === undefined)) {P_SEVERE = parseFloat(parsed.P_SEVERE)}
       if (!(parsed.Time_to_death === undefined)) {Time_to_death = parseFloat(parsed.Time_to_death)}
@@ -606,8 +595,8 @@
         tmax={tmax}
         N={N}
         ymax={lock ? Plock: Pmax}
-        InterventionTime={InterventionTime}
         lastHistoricTime={lastHistoricTime}
+        selected_model={selected_model}
         icuCapacity={icuCapacity}
         log={!log}
         />
@@ -647,8 +636,7 @@
                   opacity: 0;
                   height:425px;">
       </div>
-
-      {#if selected_model === MODEL_GOH}
+      {#each actionMarkers[selected_model] as actionMarkerData}
         <ActionMarker
           width = {width}
           height = {height}
@@ -657,14 +645,12 @@
           Pmax = {Pmax}
           P_all_historical = {P_all_historical}
           demo_mode = {demo_mode}
-          bind:InterventionTime = {InterventionTime}
-          bind:InterventionAmt = {InterventionAmt}
-          bind:OMInterventionAmt = {OMInterventionAmt}
+          bind:actionMarkerData = {actionMarkerData}
           bind:Plock = {Plock}
           bind:lock = {lock}
           bind:lock_yaxis = {lock_yaxis}
         />
-      {/if}
+      {/each}
 
       <!-- Milestones -->
       <div style="pointer-events: none;
