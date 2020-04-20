@@ -165,9 +165,9 @@
                                 border-right: 1px dashed black;
                                 pointer-events: all;
                                 cursor:col-resize;
-                                height:{height+19}px">
+                                height:{height+19}px;">
 
-        <div style="width:150px; position:relative; top:-85px; height: 80px; padding-right: 15px; left: 0px; ;cursor:col-resize; background-color: white; position:absolute" >
+        <div style="width:200px; position:relative; top:-85px; height: 100px; padding-right: 15px; left: 0px; ;cursor:col-resize; background-color: white; position:absolute" >
         </div>
     </div>
 </div>
@@ -187,7 +187,6 @@
         <div style="flex: 0 0 160px; min-width:200px; position:relative; top:-125px; left: 1px" >
             <div class="caption" style="pointer-events: none; position: absolute; left:0; top:40px; height: 60px; min-width:200px; border-left: 3px solid #777; padding: 5px 7px 7px 7px; ">      
                 <div class="paneltext" style="height:20px; text-align: right">
-                    <!--<div style="position: absolute; top: -32px; font-size: 40px; left: -15px; color: #777">→</div>-->
                     <div class="paneltitle unselectable" style="top:0px; position: relative; text-align: left">
                         {actionMarkerData[AM_NAME]} on day {displayDay}
                     </div>
