@@ -133,6 +133,7 @@
         color:#888; 
         text-align: left;
         font-weight: 300;
+        padding-left: 1px;
     }
 
     .slidertext{
@@ -153,13 +154,13 @@
 
 </style>
 
-<!-- Intervention Line -->
 <div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none">
+
+    <!-- Drag (clicking anywhere on this div will trigger drag, no other events) -->
     <div id={actionMarkerData.id} style="pointer-events: all;
                                 position: absolute;
                                 top:-38px;
                                 left:{leftPx - 1}px;
-                                visibility: {(leftPx < (width - padding.right)) ? 'visible':'hidden'};
                                 width:2px;
                                 background-color:#FFF;
                                 border-right: 1px dashed black;
@@ -167,25 +168,8 @@
                                 cursor:col-resize;
                                 height:{height+19}px;">
 
-        <div style="width:200px; position:relative; top:-85px; height: 100px; padding-right: 15px; left: 0px; ;cursor:col-resize; background-color: white; position:absolute" >
-        </div>
-    </div>
-</div>
-
-<!-- Intervention Line slider -->
-<div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:120px; left:10px; pointer-events: none">
-    <div style="
-                position: absolute;
-                top:-38px;
-                left:{leftPx - 1}px;
-                visibility: {(leftPx < (width - padding.right)) ? 'visible':'hidden'};
-                width:2px;
-                background-color:#FFF;
-                border-right: 1px dashed black;
-                cursor:col-resize;
-                height:{height}px">
-        <div style="flex: 0 0 160px; min-width:200px; position:relative; top:-125px; left: 1px" >
-            <div class="caption" style="pointer-events: none; position: absolute; left:0; top:40px; height: 60px; min-width:200px; border-left: 3px solid #777; padding: 5px 7px 7px 7px; ">      
+        <div style="flex: 0 0 160px; min-width:200px; max-width: 200px; position:relative; top:-67px; height: 74px; left: 0px; ;cursor:col-resize; background-color: white; position:absolute" >
+            <div class="caption" style="pointer-events: none; position: absolute; left:1px; top:0px; height: 60px; min-width:200px; border-left: 3px solid #777; padding: 5px 7px 7px 7px; ">      
                 <div class="paneltext" style="height:20px; text-align: right">
                     <div class="paneltitle unselectable" style="top:0px; position: relative; text-align: left">
                         {actionMarkerData[AM_NAME]} on day {displayDay}
@@ -196,14 +180,20 @@
                         </span>
                         transmission
                         <span style="font-size: 11px;">
-                            ({@html math_inline("\\mathcal{R}_0=" + adjustedR0.toFixed(2) )})
+                             ({@html math_inline("\\mathcal{R}_0=" + adjustedR0.toFixed(2) )})
                         </span>
                     </div>
+                    
                 </div>
-                <div style="pointer-events: all; position: relative; top: 20px; width: 150px;">
-                    <input class="range" type=range bind:value={actionMarkerData[AM_EFFECT]} min=-1 max=1 step=0.01 on:mousedown={lock_yaxis}>
-                </div>
+                
             </div>
         </div>
     </div>
+
+    <!-- Interactive controls placed here, outside the drag div. -->
+    <div style="pointer-events: all; position: absolute; left:{leftPx - 1}px; top: -65px; padding: 5px 7px 7px 7px; width: 150px;">
+        <input class="range" type=range bind:value={actionMarkerData[AM_EFFECT]} min=-1 max=1 step=0.01 on:mousedown={lock_yaxis}>
+    </div>
 </div>
+
+    
