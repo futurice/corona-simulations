@@ -190,6 +190,11 @@
         </div>
     </div>
 
+    
+</div>
+
+<div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none">
+
     <!-- Interactive controls placed here, outside the drag div. -->
     <div style="pointer-events: all; position: absolute; left:{leftPx - 1}px; top: -65px; padding: 5px 7px 7px 7px; width: 150px;">
         <input class="range" type=range bind:value={actionMarkerData[AM_EFFECT]} min=-1 max=1 step=0.01 on:mousedown={lock_yaxis}>
