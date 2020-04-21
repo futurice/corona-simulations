@@ -1,4 +1,5 @@
 import { UFState } from '../user_facing_states.js';
+import { ActionMarkerData } from '../action_marker_data.js';
 
 export function temphack(berkeley_states, berkeley_params, N) {
     var bah = [] 
@@ -118,3 +119,10 @@ export function map_berkeley_states_into_UFStates(berkeley_states, N) {
         return state
     }
 )}
+
+export function get_berkeley_action_markers(berkeley_params) {
+    return [
+        new ActionMarkerData(berkeley_params[0].tsocial_on, "Begin lockdown"),
+        new ActionMarkerData(berkeley_params[0].tsocial_on + berkeley_params[0].tsocial_length, "End lockdown")
+    ]
+}

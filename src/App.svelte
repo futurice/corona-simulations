@@ -19,7 +19,7 @@
   import defaultParameters from '../default_parameters.js';
   import { UFState, getDefaultStateMeta } from './user_facing_states.js';
   import { get_solution_from_gohs_seir_ode, map_goh_states_into_UFStates, goh_default_action_markers } from './models/gohs_seir_ode.js';
-  import { map_berkeley_states_into_UFStates, temphack } from './models/berkeley_abm.js';
+  import { map_berkeley_states_into_UFStates, temphack, get_berkeley_action_markers } from './models/berkeley_abm.js';
   import { loadFinnishHistoricalEstimates } from './models/historical_estimates.js';
   import { addDays,
            formatCount, formatDelta,
@@ -54,8 +54,9 @@
 
   function getDefaultActionMarkers() {
     const m = {}
+    console.log(berkeley_params)
     m[MODEL_GOH] = goh_default_action_markers()
-    m[MODEL_BERKELEY] = []
+    m[MODEL_BERKELEY] = get_berkeley_action_markers(berkeley_params)
     m[MODEL_REINA] = []
     return m
   }
@@ -544,7 +545,7 @@
     font-size: 16.5px;
   }
 
-  :global(.magnifyingGlass:hover) {
+  :global(.clickableIcons:hover) {
     color: #777 !important;
   }
 
@@ -613,7 +614,7 @@
         <div on:click={toggleZoomStates}>
           <Icon data={search}
             scale=2.5
-            class="magnifyingGlass"
+            class="clickableIcons"
             style="color: #CCC; position: absolute; right: 70px; bottom: 0px; cursor: hand;"
             />
         </div>

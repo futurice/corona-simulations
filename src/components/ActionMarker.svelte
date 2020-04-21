@@ -6,9 +6,11 @@
     import { format } from 'd3-format';
     import { drag } from 'd3-drag';
     import { selectAll } from 'd3-selection';
+    import Icon from 'svelte-awesome';
+    import { gear } from 'svelte-awesome/icons';
 
     import { math_inline, math_display, formatDelta, padding, SHOW_FUTURE } from '../utils.js';
-    import { AM_NAME, AM_DAY, AM_EFFECT, ActionMarkerData } from '../action_marker_data.js';
+    import { AM_NAME, AM_DAY, AM_EFFECT, AM_EXPANDED, ActionMarkerData } from '../action_marker_data.js';
 
     export let width;
     export let height;
@@ -23,6 +25,10 @@
     export let lock_yaxis;
     export let P_all_historical;
     export let demo_mode;
+
+    function toggleConfig() {
+        actionMarkerData[AM_EXPANDED] = !actionMarkerData[AM_EXPANDED]
+    }
 
     function getAdjustedR0(R0, allActiveActionMarkers, actionMarkerData) {
         var adjustedR0 = R0
@@ -66,10 +72,12 @@
         }
 
         var dragged = function (d) {
-            const draggedX = InterventionTimeStart + xScaleTimeInv(event.x - dragstarty)
-            const minX = P_all_historical.length
-            const maxX = tmax-1 + (demo_mode === SHOW_FUTURE ? P_all_historical.length-1 : 0)
-            actionMarkerData[AM_DAY] = Math.round(Math.min(maxX, Math.max(minX, draggedX)))
+            if (actionMarkerData.isConfigurable()) {
+                const draggedX = InterventionTimeStart + xScaleTimeInv(event.x - dragstarty)
+                const minX = P_all_historical.length
+                const maxX = tmax-1 + (demo_mode === SHOW_FUTURE ? P_all_historical.length-1 : 0)
+                actionMarkerData[AM_DAY] = Math.round(Math.min(maxX, Math.max(minX, draggedX)))
+            }
         }
 
         var dragend = function (d) {
@@ -165,24 +173,37 @@
                                 background-color:#FFF;
                                 border-right: 1px dashed black;
                                 pointer-events: all;
-                                cursor:col-resize;
+                                cursor:{actionMarkerData.isConfigurable() ? 'col-resize' : 'not-allowed'};
                                 height:{height+19}px;">
 
-        <div style="flex: 0 0 160px; min-width:200px; max-width: 200px; position:relative; top:-67px; height: 74px; left: 0px; ;cursor:col-resize; background-color: white; position:absolute" >
+        <div style="flex: 0 0 160px;
+                    min-width:200px;
+                    max-width:200px;
+                    position:relative;
+                    top:-67px;
+                    height: 74px;
+                    left: 0px;
+                    cursor:{actionMarkerData.isConfigurable() ? 'col-resize' : 'not-allowed'};
+                    background-color: white;
+                    position:absolute">
             <div class="caption" style="pointer-events: none; position: absolute; left:1px; top:0px; height: 60px; min-width:200px; border-left: 3px solid #777; padding: 5px 7px 7px 7px; ">      
                 <div class="paneltext" style="height:20px; text-align: right">
+
                     <div class="paneltitle unselectable" style="top:0px; position: relative; text-align: left">
                         {actionMarkerData[AM_NAME]} on day {displayDay}
                     </div>
-                    <div class="paneldesc unselectable">
-                        <span style="color: {InterventionAmt < 1 ? '#4daf4a' : '#f0027f'}">
-                            {formatDelta(-100*(1-InterventionAmt))}%
-                        </span>
-                        transmission
-                        <span style="font-size: 11px;">
-                             ({@html math_inline("\\mathcal{R}_0=" + adjustedR0.toFixed(2) )})
-                        </span>
-                    </div>
+
+                    {#if actionMarkerData.isConfigurable()}
+                        <div class="paneldesc unselectable">
+                            <span style="color: {InterventionAmt < 1 ? '#4daf4a' : '#f0027f'}">
+                                {formatDelta(-100*(1-InterventionAmt))}%
+                            </span>
+                            transmission
+                            <span style="font-size: 11px;">
+                                ({@html math_inline("\\mathcal{R}_0=" + adjustedR0.toFixed(2) )})
+                            </span>
+                        </div>
+                    {/if}
                     
                 </div>
                 
@@ -193,12 +214,36 @@
     
 </div>
 
-<div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none">
+<!-- Interactive controls placed below. Note that we must keep them outside the parent div of the drag div! -->
+{#if actionMarkerData.isConfigurable()}
+    <div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:140px; left:20px; pointer-events: none">
+        
+        <div style="pointer-events: all; position: absolute; left:{leftPx - 1}px; top: -105px; padding-top: 7px; width: 150px;">
 
-    <!-- Interactive controls placed here, outside the drag div. -->
-    <div style="pointer-events: all; position: absolute; left:{leftPx - 1}px; top: -65px; padding: 5px 7px 7px 7px; width: 150px;">
-        <input class="range" type=range bind:value={actionMarkerData[AM_EFFECT]} min=-1 max=1 step=0.01 on:mousedown={lock_yaxis}>
+            <div class="caption paneldesc unselectable" style="margin-top: 0px; height: 20px; font-style: italic;" on:click={toggleConfig}>
+                <Icon data={gear}
+                    scale=1.0
+                    class="clickableIcons"
+                    style="color: #CCC; position: absolute; cursor: hand;"
+                />
+                <span style="position: absolute; left: 20px;">Configure</span>
+            </div>
+
+            {#if actionMarkerData[AM_EXPANDED]}
+                <div style="background-color: #FFF;">
+                    <div class="caption paneldesc unselectable" style="margin-top: 6px;">Name</div>
+                    <input bind:value={actionMarkerData[AM_NAME]} style="width: 99%;">
+                    <input class="range" style="width: 100%;" type=range bind:value={actionMarkerData[AM_EFFECT]} min=-2 max=1 step=0.01 on:mousedown={lock_yaxis}>
+                    <div class="caption paneldesc unselectable" style="margin-top: -10px; text-align:left;">
+                        {@html math_inline("←")} Bad
+                        <span style="float:right;">
+                        Good {@html math_inline("→")}
+                        </span>
+                    </div>
+                </div>
+            {/if}
+        </div>
     </div>
-</div>
+{/if}
 
     
