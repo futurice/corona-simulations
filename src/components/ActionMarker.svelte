@@ -226,7 +226,7 @@
                     class="clickableIcons"
                     style="color: #CCC; position: absolute; cursor: hand;"
                 />
-                <span style="position: absolute; left: 20px;">Configure</span>
+                <span style="position: absolute; left: 20px;">{actionMarkerData[AM_EXPANDED] ? "Hide config" : "Configure"}</span>
             </div>
 
             {#if actionMarkerData[AM_EXPANDED]}

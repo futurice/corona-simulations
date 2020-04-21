@@ -9,12 +9,13 @@
   import { drag } from 'd3-drag';
   import queryString from "query-string";
   import ActionMarker from './components/ActionMarker.svelte';
+  import { ActionMarkerData } from './action_marker_data.js';
   import Checkbox from './components/Checkbox.svelte';
   import Arrow from './components/Arrow.svelte';
   import { format } from 'd3-format';
   import { event } from 'd3-selection';
   import Icon from 'svelte-awesome';
-  import { search } from 'svelte-awesome/icons';
+  import { search, plus } from 'svelte-awesome/icons';
 
   import defaultParameters from '../default_parameters.js';
   import { UFState, getDefaultStateMeta } from './user_facing_states.js';
@@ -79,7 +80,7 @@
   $: CFR               = defaultParameters["fatality_rate"]
   $: Time              = 220
   $: Xmax              = 110000
-  $: dt                = 1
+  $: dt                = 2
   $: P_SEVERE          = defaultParameters["hospitalization_rate"]
   $: P_ICU             = defaultParameters["icu_rate_from_hospitalized"]
   $: icuCapacity       = defaultParameters["icu_capacity"]
@@ -99,6 +100,11 @@
 
   function toggleZoomStates() {
     dt = (dt % 4) + 1
+  }
+
+  function addActionMarker() {
+    actionMarkers[selectedModel].push(new ActionMarkerData(99*dt, undefined, -0.1, true))
+    actionMarkers = actionMarkers // Trigger re-render
   }
 
   function getLastHistoricTime(demo_mode, P_all_historical, dt) {
@@ -611,6 +617,15 @@
         log={!log}
         />
       <div>
+        {#if selectedModel === MODEL_GOH}
+        <div on:click={addActionMarker}>
+          <Icon data={plus}
+            scale=2.5
+            class="clickableIcons"
+            style="color: #CCC; position: absolute; right: 70px; top: 20px; cursor: hand;"
+            />
+        </div>
+        {/if}
         <div on:click={toggleZoomStates}>
           <Icon data={search}
             scale=2.5
