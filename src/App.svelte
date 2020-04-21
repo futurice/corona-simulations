@@ -31,9 +31,9 @@
   import { math_inline, math_display, padding } from './utils.js';
 
   import finnishCoronaData from './../data/finnishCoronaData.json';
-  import berkeley_states from './../data/berkeley6_states.json';
-  import berkeley_params from './../data/berkeley6_params.json';
-  import finnishHistoricalEstimates from './../data/finnishHistoricalEstimates.csv';
+  import berkeley_states from './../data/berkeley7_states.json';
+  import berkeley_params from './../data/berkeley7_params.json'; 
+  import finnishHistoricalEstimates from './../data/finnishHistoricalEstimates_01_03.csv';
 
 
 
@@ -78,7 +78,7 @@
   $: CFR               = defaultParameters["fatality_rate"]
   $: Time              = 220
   $: Xmax              = 110000
-  $: dt                = 2
+  $: dt                = 1
   $: P_SEVERE          = defaultParameters["hospitalization_rate"]
   $: P_ICU             = defaultParameters["icu_rate_from_hospitalized"]
   $: icuCapacity       = defaultParameters["icu_capacity"]
@@ -566,8 +566,8 @@
         Select scenario and model:
       </div>
       <select id="model-selection" bind:value={selectedModel}>
-        <option value={MODEL_GOH} selected >Finland | Goh's SEIR ODE (live)</option>
-        <option value={MODEL_BERKELEY} >Finland | Berkeley ABM (precomputed)</option>
+        <option value={MODEL_GOH} selected >Uusimaa | Goh's SEIR ODE (live)</option>
+        <option value={MODEL_BERKELEY} >Uusimaa | Berkeley ABM (precomputed)</option>
         <option value={MODEL_REINA} disabled >Uusimaa | REINA ABM (precomputed)</option>
       </select>
 
