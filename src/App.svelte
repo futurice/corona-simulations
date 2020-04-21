@@ -78,7 +78,7 @@
   $: CFR               = defaultParameters["fatality_rate"]
   $: Time              = 220
   $: Xmax              = 110000
-  $: dt                = 1
+  $: dt                = 2
   $: P_SEVERE          = defaultParameters["hospitalization_rate"]
   $: P_ICU             = defaultParameters["icu_rate_from_hospitalized"]
   $: icuCapacity       = defaultParameters["icu_capacity"]
@@ -349,13 +349,22 @@
     var milestones = []
     for (var i = 0; i < P.length; i++) {
       if (P[i]['fatalities'] >= 0.5) {
+        if (i == 0) {
+          // If first death occurs on first day, the initial conditions for the visualization
+          // are in the middle of the epidemic. In that case we don't want to draw this milestone.
+          break
+        }
         milestones.push([i*dt, "First death"])
         break
       }
     }
 
-    var i = argmax('hospitalized')
-    milestones.push([i*dt, "Peak: " + format(",")(Math.round(P[i]['hospitalized'])) + " hospitalizations"])
+    var bar_peak_hosp = argmax('hospitalized')
+    if (bar_peak_hosp < 100) {
+      // If peak hospitalization occurs on last day of zoomed in area, there is likely a higher peak beyond the visible area.
+      // In that case we don't want to draw this milestone.
+      milestones.push([bar_peak_hosp*dt, "Peak: " + format(",")(Math.round(P[bar_peak_hosp]['hospitalized'])) + " hospitalizations"])
+    }
     return milestones
   }
 
