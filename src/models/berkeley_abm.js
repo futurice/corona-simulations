@@ -120,9 +120,9 @@ export function map_berkeley_states_into_UFStates(berkeley_states, N) {
     }
 )}
 
-export function get_berkeley_action_markers(berkeley_params) {
+export function get_berkeley_action_markers(offset, berkeley_params) {
     return [
-        new ActionMarkerData(berkeley_params[0].tsocial_on, "Begin lockdown"),
-        new ActionMarkerData(berkeley_params[0].tsocial_on + berkeley_params[0].tsocial_length, "End lockdown")
+        new ActionMarkerData(offset + berkeley_params[0].tsocial_on, "Begin lockdown"),
+        new ActionMarkerData(offset + berkeley_params[0].tsocial_on + berkeley_params[0].tsocial_length, "End lockdown")
     ]
 }
