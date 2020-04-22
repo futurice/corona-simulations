@@ -17,7 +17,6 @@ export class ActionMarkerData {
     // ActionMarker is configurable if it has an effect.
     // Otherwise it's just a visual marker (e.g. to show where an action was taken in precomputed results).
     isConfigurable() {
-        console.log('effect thing ', this[AM_EFFECT])
         return typeof this[AM_EFFECT] !== 'undefined'
     }
 }

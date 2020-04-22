@@ -7,7 +7,7 @@
     import { drag } from 'd3-drag';
     import { selectAll } from 'd3-selection';
     import Icon from 'svelte-awesome';
-    import { gear } from 'svelte-awesome/icons';
+    import { gear, trash } from 'svelte-awesome/icons';
 
     import { math_inline, math_display, formatDelta, padding, SHOW_FUTURE } from '../utils.js';
     import { AM_NAME, AM_DAY, AM_EFFECT, AM_EXPANDED, ActionMarkerData } from '../action_marker_data.js';
@@ -230,6 +230,13 @@
             </div>
 
             {#if actionMarkerData[AM_EXPANDED]}
+                <div on:click={() => {actionMarkerData[AM_DAY] = 1337}}>
+                    <Icon data={trash}
+                        scale=1.0
+                        class="clickableIcons"
+                        style="color: #CCC; position: absolute; cursor: hand; right: 0px;"
+                    />
+                </div>
                 <div style="background-color: #FFF;">
                     <div class="caption paneldesc unselectable" style="margin-top: 6px;">Name</div>
                     <input bind:value={actionMarkerData[AM_NAME]} style="width: 99%;">
