@@ -1,6 +1,6 @@
 export default {
     days_from_incubation_to_death: 18, // From Mikko Viikari.
-    initial_population_count: 1671000+250, // TEMP uusimaa population count   //5538328, // 2020 Finnish population count.
+    initial_population_count: 5538328, // 2020 Finnish population count // for uusimaa population count set 1671000+250 
     R0: 1.05,
     days_from_incubation_to_infectious: 5.2,     
     days_from_infectious_to_not_infectious: 2.9,

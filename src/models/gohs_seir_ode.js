@@ -183,7 +183,7 @@ export function map_goh_states_into_UFStates(goh_states, N, P_ICU) {
 
 export function goh_default_action_markers() {
     return [
-        new ActionMarkerData(70, "Open schools", 0.3),
+        new ActionMarkerData(70, "Open schools", 0.13),
         new ActionMarkerData(130, "Medical intervention", -0.1)
     ]
 }
