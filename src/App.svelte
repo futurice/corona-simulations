@@ -9,7 +9,7 @@
   import { drag } from 'd3-drag';
   import queryString from "query-string";
   import ActionMarker from './components/ActionMarker.svelte';
-  import { ActionMarkerData } from './action_marker_data.js';
+  import { ActionMarkerData, AM_DAY } from './action_marker_data.js';
   import Checkbox from './components/Checkbox.svelte';
   import Arrow from './components/Arrow.svelte';
   import { format } from 'd3-format';
@@ -662,20 +662,22 @@
                   height:425px;">
       </div>
       {#each actionMarkers[selectedModel] as actionMarkerData}
-        <ActionMarker
-          width = {width}
-          height = {height}
-          R0 = {R0}
-          tmax = {tmax}
-          Pmax = {Pmax}
-          P_all_historical = {P_all_historical}
-          demo_mode = {demo_mode}
-          bind:allActiveActionMarkers = {actionMarkers[selectedModel]}
-          bind:actionMarkerData = {actionMarkerData}
-          bind:Plock = {Plock}
-          bind:lock = {lock}
-          bind:lock_yaxis = {lock_yaxis}
-        />
+        {#if actionMarkerData[AM_DAY] < tmax}
+          <ActionMarker
+            width = {width}
+            height = {height}
+            R0 = {R0}
+            tmax = {tmax}
+            Pmax = {Pmax}
+            P_all_historical = {P_all_historical}
+            demo_mode = {demo_mode}
+            bind:allActiveActionMarkers = {actionMarkers[selectedModel]}
+            bind:actionMarkerData = {actionMarkerData}
+            bind:Plock = {Plock}
+            bind:lock = {lock}
+            bind:lock_yaxis = {lock_yaxis}
+          />
+        {/if}
       {/each}
 
       <!-- Milestones -->
