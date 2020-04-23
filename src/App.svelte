@@ -53,19 +53,8 @@
     return arr
   }
 
-  function getDefaultActionMarkers() {
-    const m = {}
-    m[MODEL_GOH] = goh_default_action_markers()
-    // TODO properly
-    m[MODEL_BERKELEY] = get_berkeley_action_markers(47, berkeley_params)
-    m[MODEL_REINA] = []
-    return m
-  }
-
   let allow_x_axis_resizing = false // x axis "drag resizing" was replaced by magnifying glass toggle
 
-  $: actionMarkers     = getDefaultActionMarkers()
-  $: stateMeta         = getDefaultStateMeta()
   $: Time_to_death     = defaultParameters["days_from_incubation_to_death"]
   $: N                 = defaultParameters["initial_population_count"]
   $: logN              = Math.log(N)
@@ -180,14 +169,24 @@
       console.log('Error! getSolution does not have handling for model ', selectedModel)
     }
   }
+
+  function actionMarkerHelper(P_all_historical) {
+    const m = actionMarkers || {}
+    if (!m[MODEL_GOH]) m[MODEL_GOH] = goh_default_action_markers()
+    m[MODEL_BERKELEY] = get_berkeley_action_markers(P_all_historical.length, berkeley_params)
+    m[MODEL_REINA] = []
+    return m
+  }
   
-  $: selectedModel   = "goh"
+  $: selectedModel    = MODEL_GOH
   $: showHistory      = true
   $: demo_mode        = showHistory ? SHOW_HISTORICAL_AND_FUTURE : SHOW_FUTURE
   $: [firstHistoricalDate,
       goh_states_fin] = loadFinnishHistoricalEstimates(finnishHistoricalEstimates, N)
   $: firstBarDate     = showHistory ? firstHistoricalDate : addDays(firstHistoricalDate, goh_states_fin.length - 1)
   $: P_all_historical = map_goh_states_into_UFStates(goh_states_fin, N, P_ICU)
+  $: actionMarkers    = actionMarkerHelper(P_all_historical)
+  $: stateMeta        = getDefaultStateMeta()
   $: P_all_future     = get_solution(
                           demo_mode,
                           selectedModel,
