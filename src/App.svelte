@@ -53,17 +53,18 @@
     return arr
   }
 
-  function getDefaultActionMarkers(P_all_historical) {
+  function getDefaultActionMarkers() {
     const m = {}
     m[MODEL_GOH] = goh_default_action_markers()
-    m[MODEL_BERKELEY] = get_berkeley_action_markers(P_all_historical.length-1, berkeley_params)
+    // TODO properly
+    m[MODEL_BERKELEY] = get_berkeley_action_markers(47, berkeley_params)
     m[MODEL_REINA] = []
     return m
   }
 
   let allow_x_axis_resizing = false // x axis "drag resizing" was replaced by magnifying glass toggle
 
-  $: actionMarkers     = getDefaultActionMarkers(P_all_historical)
+  $: actionMarkers     = getDefaultActionMarkers()
   $: stateMeta         = getDefaultStateMeta()
   $: Time_to_death     = defaultParameters["days_from_incubation_to_death"]
   $: N                 = defaultParameters["initial_population_count"]
