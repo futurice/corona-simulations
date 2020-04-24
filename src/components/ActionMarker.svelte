@@ -49,6 +49,7 @@
         return xScaleTime(adjustedDays)
     }
 
+    $: zIndex = actionMarkerData[AM_DAY] * 1000
     $: displayDay = actionMarkerData[AM_DAY] - (demo_mode === SHOW_FUTURE ? P_all_historical.length-1 : 0)
     $: adjustedR0 = getAdjustedR0(R0, allActiveActionMarkers, actionMarkerData)
     $: InterventionAmt = 1 - actionMarkerData[AM_EFFECT]
@@ -162,7 +163,7 @@
 
 </style>
 
-<div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none">
+<div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none; z-index: {zIndex};">
 
     <!-- Drag (clicking anywhere on this div will trigger drag, no other events) -->
     <div id={actionMarkerData.id} style="pointer-events: all;
@@ -216,7 +217,7 @@
 
 <!-- Interactive controls placed below. Note that we must keep them outside the parent div of the drag div! -->
 {#if actionMarkerData.isConfigurable()}
-    <div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:140px; left:20px; pointer-events: none">
+    <div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:140px; left:20px; pointer-events: none; z-index: {zIndex+1};">
         
         <div style="pointer-events: all; position: absolute; left:{leftPx - 1}px; top: -105px; padding-top: 7px; width: 150px;">
 
