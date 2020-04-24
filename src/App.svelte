@@ -144,12 +144,12 @@
 
   /********************************** Generate state (choose which model to run, run it with user specified parameters, etc.) *********************************/
 
-  function chooseP(demo_mode, P_all_historical, P_all_future, dt) {
+  function chooseP(demo_mode, P_all_historical, P_all_future) {
     var P_chosen = []
     if (demo_mode === SHOW_HISTORICAL) P_chosen = P_all_historical
     if (demo_mode === SHOW_FUTURE) P_chosen = P_all_future
     if (demo_mode === SHOW_HISTORICAL_AND_FUTURE) P_chosen = P_all_historical.concat(P_all_future)
-    return fix_number_of_values(P_chosen, dt)
+    return P_chosen
   }
 
   function debugHelper([... vars]) {
@@ -208,7 +208,7 @@
                           CFR
                         )
   $: P_all            = chooseP(demo_mode, P_all_historical, P_all_future, dt)
-  $: P_bars           = get_every_nth(P_all, dt)
+  $: P_bars           = get_every_nth(fix_number_of_values(P_all, dt), dt)
   $: timestep         = dt
   $: tmax             = dt*101
   $: Pmax             = getPmax(P_bars, stateMeta)
@@ -360,21 +360,21 @@
           // are in the middle of the epidemic. In that case we don't want to draw this milestone.
           break
         }
-        milestones.push([i*dt, "First death"])
+        milestones.push([i, "First death"])
         break
       }
     }
 
     var bar_peak_hosp = argmax('hospitalized')
-    if (bar_peak_hosp < 100) {
+    if (bar_peak_hosp < 100*dt) {
       // If peak hospitalization occurs on last day of zoomed in area, there is likely a higher peak beyond the visible area.
       // In that case we don't want to draw this milestone.
-      milestones.push([bar_peak_hosp*dt, "Peak: " + format(",")(Math.round(P[bar_peak_hosp]['hospitalized'])) + " hospitalizations"])
+      milestones.push([bar_peak_hosp, "Peak: " + format(",")(Math.round(P[bar_peak_hosp]['hospitalized'])) + " hospitalizations"])
     }
     return milestones
   }
 
-  $: milestones = get_milestones(P_bars)
+  $: milestones = get_milestones(P_all)
   $: log = true
 
 </script>
