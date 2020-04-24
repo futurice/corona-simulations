@@ -54,6 +54,9 @@
   }
 
   let allow_x_axis_resizing = false // x axis "drag resizing" was replaced by magnifying glass toggle
+  let custom_scenario_url_prefix = 'https://coronastoragemyvs.blob.core.windows.net/coviducb/'
+  //let custom_scenario_url_prefix = 'http://localhost:5000/'
+  let custom_scenario_url_postfix = '-outcome_1.json'
 
   $: Time_to_death     = defaultParameters["days_from_incubation_to_death"]
   $: N                 = defaultParameters["initial_population_count"]
@@ -164,15 +167,50 @@
     }
   }
 
-  function get_solution(demo_mode, selectedModel, actionMarkers, goh_states_fin, berkeley_states, berkeley_params, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR) {
+  function fetchCustomScenarioAsync() {
+    customScenarioStatus = 'Fetching data...'
+    const url = custom_scenario_url_prefix + customScenarioGUID + custom_scenario_url_postfix
+    fetch(url, { 
+      method: 'GET'
+    })
+    .then((response) => {
+      if (!response.ok) {
+        showUserError(response)
+      }
+      return response
+    })
+    .then(function(response) {
+      return response.json();
+    })
+    .then(function(json) {
+      parseCustomScenario(json)
+    })
+    .catch(error => {
+      showUserError(error)
+    });
+  }
+
+  let customScenarioStatus = ''
+
+  function showUserError(thing) {
+    customScenarioStatus = 'Error fetching scenario'
+    console.log(thing)
+  }
+
+  function parseCustomScenario(json) {
+    customScenarioStatus = '' // Clear out "Fetching..." message
+    P_all_fetched = temphack(json["scenario_states"], json["scenario_params"], N)
+    actionMarkers[MODEL_CUSTOM] = get_berkeley_action_markers(P_all_historical.length, json["scenario_params"])
+    custom_params = {...json["scenario_params"], ...json["parameters"]}
+  }
+
+  function get_solution(demo_mode, selectedModel, P_all_fetched, actionMarkers, goh_states_fin, berkeley_states, berkeley_params, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR) {
     if (selectedModel === MODEL_GOH) {
       return get_solution_from_gohs_seir_ode(demo_mode, actionMarkers[selectedModel], goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR)
     } else if (selectedModel === MODEL_BERKELEY) {
       return temphack(berkeley_states, berkeley_params, N)
     } else if (selectedModel === MODEL_CUSTOM) {
-      // TODO fetch data from URL here? what do we do while waiting?
-      return []
-      //return temphack(berkeley_states, berkeley_params, N)
+      return P_all_fetched
     } else {
       console.log('Error! getSolution does not have handling for model ', selectedModel)
     }
@@ -183,12 +221,16 @@
     if (!m[MODEL_GOH]) m[MODEL_GOH] = goh_default_action_markers()
     m[MODEL_BERKELEY] = get_berkeley_action_markers(P_all_historical.length, berkeley_params)
     m[MODEL_REINA] = []
-    m[MODEL_CUSTOM] = []
+    if (!m[MODEL_CUSTOM]) m[MODEL_CUSTOM] = []
     return m
   }
   
-  $: customScenario   = queryString.parse(location.search).customScenario
-  $: selectedModel    = customScenario ? MODEL_CUSTOM : MODEL_GOH
+  let customScenarioGUID   = queryString.parse(location.search).customScenario
+  let P_all_fetched   = [] // For "Custom scenario": empty array until we get data.
+  let custom_params   = {} // Empty "parameters object" as placeholder until we get data.
+
+  $: selectedModel    = customScenarioGUID ? MODEL_CUSTOM : MODEL_GOH
+  $: selectedParams   = selectedModel === MODEL_BERKELEY ? berkeley_params : custom_params
   $: showHistory      = true
   $: demo_mode        = showHistory ? SHOW_HISTORICAL_AND_FUTURE : SHOW_FUTURE
   $: [firstHistoricalDate,
@@ -200,6 +242,7 @@
   $: P_all_future     = get_solution(
                           demo_mode,
                           selectedModel,
+                          P_all_fetched,
                           actionMarkers,
                           goh_states_fin,
                           berkeley_states,
@@ -268,6 +311,10 @@
   $: parsed = "";
   onMount(async () => {
 
+    if (customScenarioGUID) {
+      fetchCustomScenarioAsync()
+    }
+
     var drag_callback_y = drag_y()
     drag_callback_y(selectAll("#yAxisDrag"))
 
@@ -292,6 +339,9 @@
       if (!(parsed.Time_to_death === undefined)) {Time_to_death = parseFloat(parsed.Time_to_death)}
 
     }
+
+    
+
   });
 
   function lock_yaxis(){
@@ -585,7 +635,7 @@
         <option value={MODEL_GOH} >Finland | Goh's SEIR ODE (live)</option>
         <option value={MODEL_BERKELEY} >Finland | Berkeley ABM (precomputed)</option>
         <option value={MODEL_REINA} disabled >Uusimaa | REINA ABM (precomputed)</option>
-        <option value={MODEL_CUSTOM} disabled={customScenario ? false : true} >Custom scenario (precomputed)</option>
+        <option value={MODEL_CUSTOM} disabled={customScenarioGUID ? false : true} >Custom scenario (precomputed)</option>
       </select>
 
       <div style="position: font-family: nyt-franklin,helvetica,arial,sans-serif; font-size: 13px; margin-bottom: 10px; margin-top: 10px; margin-left: 2px;">
@@ -613,6 +663,13 @@
   <div style="flex: 0 0 890px; width:890px; height: {height+128}px; position:relative;">
 
     <div style="position:relative; top:60px; left: 10px" >
+
+      {#if selectedModel === MODEL_CUSTOM && customScenarioStatus !== ''}
+        <div style="position: absolute; top: 100px; left: 100px; font-size: 40px;">
+          {customScenarioStatus}
+        </div>
+      {/if}
+
       <Chart bind:active={active}
         states = {P_bars} 
         stateMeta = {stateMeta}
@@ -786,11 +843,9 @@
 
     {/if}
 
-    {#if selectedModel === MODEL_BERKELEY}
+    {#if selectedModel !== MODEL_GOH}
       <div>
-        <p>R0 = {berkeley_params[0].R0}</p>
-        <p>Social distancing start = {berkeley_params[0].tsocial_on}</p>
-        <p>Social distancing length = {berkeley_params[0].tsocial_length}</p>
+        <p style="white-space: pre-wrap; color: #777; line-height: 17px;">{@html JSON.stringify(selectedParams, null, 4)}</p>
       </div>
     {/if}
 
