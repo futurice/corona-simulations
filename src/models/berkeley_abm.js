@@ -3,7 +3,6 @@ import { ActionMarkerData } from '../action_marker_data.js';
 
 export function temphack(berkeley_states, berkeley_params, N) {
     var bah = [] 
-    console.log(berkeley_states)
     for (var i=0; i<berkeley_states.length; i++) {
         var b = berkeley_states[i]  
         if (!Number.isInteger(b.time)) {
