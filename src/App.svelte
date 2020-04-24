@@ -25,7 +25,7 @@
   import { addDays,
            formatCount, formatDelta,
            SHOW_HISTORICAL, SHOW_FUTURE, SHOW_HISTORICAL_AND_FUTURE,
-           MODEL_GOH, MODEL_BERKELEY, MODEL_REINA,
+           MODEL_GOH, MODEL_BERKELEY, MODEL_REINA, MODEL_CUSTOM,
          } from './utils.js';
 
   import katex from 'katex';
@@ -101,7 +101,7 @@
     return get_every_nth(P_all_historical, dt).length - 1 // TODO optimize this to be more efficient
   }
 
-  function fix_number_of_values(P, dt) {
+  function with_enough_days(P, dt) {
     var augmented = []
     for (var i=0; i<P.length; i++) {
       augmented.push(P[i])
@@ -110,12 +110,16 @@
     while (augmented.length < 101*dt) {
       augmented.push([0,0,0,0,0])
     }
+    return augmented
+  }
+
+  function take_slice_from_beginning(P, dt) {
+    var augmented = []
+    for (var i=0; i<P.length; i++) {
+      augmented.push(P[i])
+    }
     // If we have too many values, take desired slice from the beginning.
     augmented = augmented.slice(0, 101*dt)
-    // Log to console when this function is needed
-    if (augmented.length !== P.length) {
-      //console.log("Augm", P.length, "length to", augmented.length)
-    }
     return augmented
   }
 
@@ -165,6 +169,10 @@
       return get_solution_from_gohs_seir_ode(demo_mode, actionMarkers[selectedModel], goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR)
     } else if (selectedModel === MODEL_BERKELEY) {
       return temphack(berkeley_states, berkeley_params, N)
+    } else if (selectedModel === MODEL_CUSTOM) {
+      // TODO fetch data from URL here? what do we do while waiting?
+      return []
+      //return temphack(berkeley_states, berkeley_params, N)
     } else {
       console.log('Error! getSolution does not have handling for model ', selectedModel)
     }
@@ -175,10 +183,12 @@
     if (!m[MODEL_GOH]) m[MODEL_GOH] = goh_default_action_markers()
     m[MODEL_BERKELEY] = get_berkeley_action_markers(P_all_historical.length, berkeley_params)
     m[MODEL_REINA] = []
+    m[MODEL_CUSTOM] = []
     return m
   }
   
-  $: selectedModel    = MODEL_GOH
+  $: customScenario   = queryString.parse(location.search).customScenario
+  $: selectedModel    = customScenario ? MODEL_CUSTOM : MODEL_GOH
   $: showHistory      = true
   $: demo_mode        = showHistory ? SHOW_HISTORICAL_AND_FUTURE : SHOW_FUTURE
   $: [firstHistoricalDate,
@@ -207,8 +217,8 @@
                           P_ICU,
                           CFR
                         )
-  $: P_all            = chooseP(demo_mode, P_all_historical, P_all_future, dt)
-  $: P_bars           = get_every_nth(fix_number_of_values(P_all, dt), dt)
+  $: P_all            = with_enough_days(chooseP(demo_mode, P_all_historical, P_all_future, dt), dt)
+  $: P_bars           = get_every_nth(take_slice_from_beginning(P_all, dt), dt)
   $: timestep         = dt
   $: tmax             = dt*101
   $: Pmax             = getPmax(P_bars, stateMeta)
@@ -572,9 +582,10 @@
         Select scenario and model:
       </div>
       <select id="model-selection" bind:value={selectedModel}>
-        <option value={MODEL_GOH} selected >Finland | Goh's SEIR ODE (live)</option>
+        <option value={MODEL_GOH} >Finland | Goh's SEIR ODE (live)</option>
         <option value={MODEL_BERKELEY} >Finland | Berkeley ABM (precomputed)</option>
         <option value={MODEL_REINA} disabled >Uusimaa | REINA ABM (precomputed)</option>
+        <option value={MODEL_CUSTOM} disabled={customScenario ? false : true} >Custom scenario (precomputed)</option>
       </select>
 
       <div style="position: font-family: nyt-franklin,helvetica,arial,sans-serif; font-size: 13px; margin-bottom: 10px; margin-top: 10px; margin-left: 2px;">

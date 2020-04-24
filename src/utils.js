@@ -52,3 +52,4 @@ export const SHOW_HISTORICAL_AND_FUTURE = 2
 export const MODEL_GOH = 'goh'
 export const MODEL_BERKELEY = 'berkeley'
 export const MODEL_REINA = 'reina'
+export const MODEL_CUSTOM = 'customScenario'
