@@ -402,7 +402,7 @@
     function argmax(k) {
       var maxVal = 0
       var maxValIndex = 0
-      for (var i=0; i<P.length; i++) {
+      for (var i=0; i<P.length; i+=dt) {
         const val = P[i][k]
         if (val > maxVal) {
           maxVal = val
@@ -413,7 +413,7 @@
     }
 
     var milestones = []
-    for (var i = 0; i < P.length; i++) {
+    for (var i = 0; i < P.length; i+=dt) {
       if (P[i]['fatalities'] >= 0.5) {
         if (i == 0) {
           // If first death occurs on first day, the initial conditions for the visualization
