@@ -34,7 +34,7 @@
   import finnishCoronaData from './../data/finnishCoronaData.json';
   import berkeley_states from './../data/berkeley6_states.json';
   import berkeley_params from './../data/berkeley6_params.json'; 
-  import finnishHistoricalEstimates from './../data/finnishHistoricalEstimates_11_04.csv';
+  import finnishHistoricalEstimates from './../data/hardcodedHistoricalEstimates.csv';
 
 
 
