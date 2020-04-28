@@ -802,7 +802,7 @@
         <div class="paneltitle">Mortality Statistics</div>
         <div class="paneldesc" style="height:30px">Infected fatality rate.<br></div>
         <div class="slidertext">{(CFR*100).toFixed(2)} %</div>
-        <input class="range" style="margin-bottom: 8px" type=range bind:value={CFR} min={0} max=1 step=0.0001>
+        <input class="range" style="margin-bottom: 8px" type=range bind:value={CFR} min={0} max=0.05 step=0.0001>
         <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Time from end of incubation to death.<br></div>
         <div class="slidertext">{Time_to_death} Days</div>
         <input class="range" type=range bind:value={Time_to_death} min={(D_infectious)+0.1} max=100 step=0.01>
