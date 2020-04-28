@@ -425,11 +425,11 @@
       }
     }
 
-    var bar_peak_hosp = argmax('hospitalized')
+    var bar_peak_hosp = argmax('icu')
     if (bar_peak_hosp < 100*dt) {
       // If peak hospitalization occurs on last day of zoomed in area, there is likely a higher peak beyond the visible area.
       // In that case we don't want to draw this milestone.
-      milestones.push([bar_peak_hosp, "Peak: " + format(",")(Math.round(P[bar_peak_hosp]['hospitalized'])) + " hospitalizations"])
+      milestones.push([bar_peak_hosp, "Peak: " + format(",")(Math.round(P[bar_peak_hosp]['icu'])) + " ICU"])
     }
     return milestones
   }
