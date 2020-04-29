@@ -25,12 +25,12 @@
   export let N;
   export let ymax;
   export let log = false;
-  export let lastHistoricTime;
+  export let lastHistoricBar;
   export let selectedModel;
   export let icuCapacity;
   
-  function lastHistoricTimeHelper() {
-    return Math.min(Math.max(lastHistoricTime, 0), states.length-1)
+  function lastHistoricBarHelper() {
+    return Math.min(Math.max(lastHistoricBar, 0), states.length-1)
   }
 
   function shouldWeDrawICUcapacity(selectedModel, stateMeta, ymax) {
@@ -346,23 +346,23 @@
       </div>
     {/if}
 
-    <!-- Last historical datapoint marker. -->
-    {#if xScale(lastHistoricTimeHelper()) > xScale(0)}
+    <!-- Last historical datapoint marker (deprecated; was replaced by HistoryMarker)
+    {#if xScale(lastHistoricBarHelper()) > xScale(0)}
       <div id="historicalMarker" style="pointer-events: none;
                 position: absolute;
                 top: 20px;
-                left:{xScale(lastHistoricTimeHelper()) + 3}px;
+                left:{xScale(lastHistoricBarHelper()) + 3}px;
                 visibility: 'visible';
                 width:2px;
                 background-color:#FFF;
                 border-right: 1px dashed plum;
-                height: {Math.max(yScale(getBarY(states[lastHistoricTimeHelper()], stateMeta, 0)),0) - 30}px;">
+                height: {Math.max(yScale(getBarY(states[lastHistoricBarHelper()], stateMeta, 0)),0) - 30}px;">
       </div>
       <div style="position:absolute; 
                     pointer-events: none;
                     width:100px;
-                    left:{xScale(lastHistoricTimeHelper())}px;
-                    top:{Math.max(yScale(getBarY(states[lastHistoricTimeHelper()], stateMeta, 0)),0) }px" class="tip"> 
+                    left:{xScale(lastHistoricBarHelper())}px;
+                    top:{Math.max(yScale(getBarY(states[lastHistoricBarHelper()], stateMeta, 0)),0) }px" class="tip"> 
             <svg style="position:absolute; top:-12px; left:0px" height="10" width="10">
             <path 
               d="M 0 0 L 10 0 L 5 10 z"
@@ -371,7 +371,8 @@
             </svg>
       </div>
     {/if}
-
+    -->
+    
   </div>
 
 </div>

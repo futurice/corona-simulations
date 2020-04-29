@@ -1,22 +1,27 @@
 <script>
   
+  // Libraries
   import { scaleLinear } from "d3-scale";
-  // import { Date } from "d3-time"
-  import Chart from './components/Chart.svelte';
-  import ChartCompanion from './components/ChartCompanion.svelte';
   import { onMount } from 'svelte';
   import { selectAll } from 'd3-selection'
   import { drag } from 'd3-drag';
   import queryString from "query-string";
-  import ActionMarker from './components/ActionMarker.svelte';
-  import { ActionMarkerData, AM_DAY } from './action_marker_data.js';
-  import Checkbox from './components/Checkbox.svelte';
-  import Arrow from './components/Arrow.svelte';
   import { format } from 'd3-format';
   import { event } from 'd3-selection';
   import Icon from 'svelte-awesome';
   import { search, plus } from 'svelte-awesome/icons';
+  import katex from 'katex';
 
+  // Custom Svelte components
+  import Chart from './components/Chart.svelte';
+  import ChartCompanion from './components/ChartCompanion.svelte';
+  import Checkbox from './components/Checkbox.svelte';
+  import Arrow from './components/Arrow.svelte';
+  import HistoryMarker from './components/HistoryMarker.svelte';
+  import ActionMarker from './components/ActionMarker.svelte';
+
+  // Custom utilities
+  import { ActionMarkerData, AM_DAY } from './action_marker_data.js';
   import defaultParameters from '../default_parameters.js';
   import { UFState, getDefaultStateMeta } from './user_facing_states.js';
   import { get_solution_from_gohs_seir_ode, map_goh_states_into_UFStates, goh_default_action_markers } from './models/gohs_seir_ode.js';
@@ -27,10 +32,9 @@
            SHOW_HISTORICAL, SHOW_FUTURE, SHOW_HISTORICAL_AND_FUTURE,
            MODEL_GOH, MODEL_BERKELEY, MODEL_REINA, MODEL_CUSTOM,
          } from './utils.js';
-
-  import katex from 'katex';
   import { math_inline, math_display, padding } from './utils.js';
 
+  // Static data imports
   import finnishCoronaData from './../data/finnishCoronaData.json';
   import berkeley_states from './../data/berkeley6_states.json';
   import berkeley_params from './../data/berkeley6_params.json'; 
@@ -54,6 +58,9 @@
   }
 
   let allow_x_axis_resizing = false // x axis "drag resizing" was replaced by magnifying glass toggle
+  let display_scenario_dropdown = false
+  let display_toggle_for_historical_estimates = false
+
   let custom_scenario_url_prefix = 'https://coronastoragemyvs.blob.core.windows.net/coviducb/'
   //let custom_scenario_url_prefix = 'http://localhost:5000/'
   let custom_scenario_url_postfix = '-outcome_1.json'
@@ -99,7 +106,7 @@
     actionMarkers = actionMarkers // Trigger re-render
   }
 
-  function getLastHistoricTime(demo_mode, P_all_historical, dt) {
+  function getlastHistoricBar(demo_mode, P_all_historical, dt) {
     if (!P_all_historical || demo_mode === SHOW_FUTURE) return 0
     return get_every_nth(P_all_historical, dt).length - 1 // TODO optimize this to be more efficient
   }
@@ -266,7 +273,9 @@
   $: tmax             = dt*101
   $: Pmax             = getPmax(P_bars, stateMeta)
   $: lock             = false
-  $: lastHistoricTime = getLastHistoricTime(demo_mode, P_all_historical, dt)
+  $: lastHistoricBar  = getlastHistoricBar(demo_mode, P_all_historical, dt)
+  $: lastHistoricDay  = P_all_historical.length
+  $: cutoffHistoricDay = lastHistoricDay
   $: debugHelp        = debugHelper([])
 
 
@@ -371,7 +380,7 @@
 
   window.addEventListener('mouseup', unlock_yaxis);
 
-  function activeHelper(active, demo_mode, P_all_historical, dt, lastHistoricTime) {
+  function activeHelper(active, demo_mode, P_all_historical, dt, lastHistoricBar) {
     if (active >= 0) {
       // Case: User hovers over a bar or has locked a bar.
       return active
@@ -380,11 +389,11 @@
       // Case: Historical data is not shown, default to showing first predicted bar.
       return 0
     }
-    return lastHistoricTime
+    return lastHistoricBar
   }
 
   $: active  = 0
-  $: active_ = activeHelper(active, demo_mode, P_all_historical, dt, lastHistoricTime)
+  $: active_ = activeHelper(active, demo_mode, P_all_historical, dt, lastHistoricBar)
 
   var Tinc_s = "\\color{#CCC}{T^{-1}_{\\text{inc}}} "
   var Tinf_s = "\\color{#CCC}{T^{-1}_{\\text{inf}}}"
@@ -622,27 +631,31 @@
 </style>
 
 <h2>Corosim</h2>
-<h5>Historical Estimates & Future Predictions — Modelling COVID-19 in Finland</h5>
+<h5>Historical Estimates & Model Predictions for COVID-19 in Finland</h5>
 
 <div class="chart" style="display: flex; max-width: 1120px">
   <div style="flex: 0 0 270px; width:270px;">
     <div style="height: 50px;">
       
-      <div class="legendtext" style="font-size: 14px; line-height:16px; font-weight: bold; color: #777;">
-        Select scenario and model:
-      </div>
-      <select id="model-selection" bind:value={selectedModel}>
-        <option value={MODEL_GOH} >Finland | Goh's SEIR ODE (live)</option>
-        <option value={MODEL_BERKELEY} >Finland | Berkeley ABM (precomputed)</option>
-        <option value={MODEL_REINA} disabled >Uusimaa | REINA ABM (precomputed)</option>
-        <option value={MODEL_CUSTOM} disabled={customScenarioGUID ? false : true} >Custom scenario (precomputed)</option>
-      </select>
+      {#if display_scenario_dropdown}
+        <div class="legendtext" style="font-size: 14px; line-height:16px; font-weight: bold; color: #777;">
+          Select scenario and model:
+        </div>
+        <select id="model-selection" bind:value={selectedModel}>
+          <option value={MODEL_GOH} >Finland | Goh's SEIR ODE (live)</option>
+          <option value={MODEL_BERKELEY} >Finland | Berkeley ABM (precomputed)</option>
+          <option value={MODEL_REINA} disabled >Uusimaa | REINA ABM (precomputed)</option>
+          <option value={MODEL_CUSTOM} disabled={customScenarioGUID ? false : true} >Custom scenario (precomputed)</option>
+        </select>
+      {/if}
 
+      {#if display_toggle_for_historical_estimates}
       <div style="position: font-family: nyt-franklin,helvetica,arial,sans-serif; font-size: 13px; margin-bottom: 10px; margin-top: 10px; margin-left: 2px;">
         <div class="tick" style="position: relative; color: #AAA; pointer-events:all;">
           <Checkbox color="#BBB" bind:checked={showHistory}/><div style="position: relative; top: 4px; left:20px; color: #777;">Display historical estimates</div>
         </div>
       </div>
+      {/if}
 
     </div>
 
@@ -678,7 +691,7 @@
         tmax={tmax}
         N={N}
         ymax={lock ? Plock: Pmax}
-        lastHistoricTime={lastHistoricTime}
+        lastHistoricBar={lastHistoricBar}
         selectedModel={selectedModel}
         icuCapacity={icuCapacity}
         log={!log}
@@ -728,6 +741,23 @@
                   opacity: 0;
                   height:425px;">
       </div>
+
+      {#if demo_mode !== SHOW_FUTURE}
+        <HistoryMarker
+          width = {width}
+          height = {height}
+          R0 = {R0}
+          tmax = {tmax}
+          Pmax = {Pmax}
+          P_all_historical = {P_all_historical}
+          lastHistoricDay = {lastHistoricDay}
+          bind:cutoffHistoricDay = {cutoffHistoricDay}
+          bind:Plock = {Plock}
+          bind:lock = {lock}
+          bind:lock_yaxis = {lock_yaxis}
+        />
+      {/if}
+
       {#each actionMarkers[selectedModel] as actionMarkerData}
         {#if actionMarkerData[AM_DAY] < tmax}
           <ActionMarker
@@ -857,20 +887,12 @@
 
 
 <p class = "center">
-This is a fork of Gabriel Goh's fantastic Epidemic Calculator. The text below is by Gabriel Goh.
-</p>
-
-<hr/>
-<p></p>
-
-<p class = "center">
-At the time of writing, the coronavirus disease of 2019 remains a global health crisis of grave and uncertain magnitude. To the non-expert (such as myself), contextualizing the numbers, forecasts and epidemiological parameters described in the media and literature can be challenging. I created this calculator as an attempt to address this gap in understanding.
+This is a fork of Gabriel Goh's fantastic Epidemic Calculator.
 </p>
 
 <p class = "center">
 This calculator implements a classical infectious disease model &mdash <b><a href="https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SEIR_model">SEIR</a> </b>(<b>S</b>usceptible → <b>E</b>xposed → <b>I</b>nfected → <b>R</b>emoved), an idealized model of spread still used in frontlines of research e.g. [<a href="https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(20)30260-9/fulltext">Wu, et. al</a>, <a href = "https://cmmid.github.io/topics/covid19/current-patterns-transmission/wuhan-early-dynamics.html">Kucharski et. al</a>]. The dynamics of this model are characterized by a set of four ordinary differential equations that correspond to the stages of the disease's progression:
 <span style="color:#777">{@html ode_eqn}</span>
-In addition to the transmission dynamics, this model allows the use of supplemental timing information to model the death rate and healthcare burden. 
 </p>
 
 
@@ -975,22 +997,9 @@ A sampling of the estimates for epidemic parameters are presented below:
 See [<a href="https://academic.oup.com/jtm/advance-article/doi/10.1093/jtm/taaa021/5735319">Liu et. al</a>] detailed survey of current estimates of the reproduction number. Parameters for the diseases' clinical characteristics are taken from the following <a href="https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf">WHO Report</a>. 
 </p>
 
-<p class="center">
-Please DM me feedback <a href="https://twitter.com/gabeeegoooh">here</a> or email me <a href="mailto:izmegabe@gmail.com">here</a>. My <a href="http://gabgoh.github.io/">website</a>.
-</p>
-
-
-
 <p class = "center">
 <b> Model Details </b><br>
 The clinical dynamics in this model are an elaboration on SEIR that simulates the disease's progression at a higher resolution, subdividing {@html math_inline("I,R")} into <i>mild</i> (patients who recover without the need for hospitalization), <i>moderate</i> (patients who require hospitalization but survive) and <i>fatal</i> (patients who require hospitalization and do not survive). Each of these variables follows its own trajectory to the final outcome, and the sum of these compartments add up to the values predicted by SEIR. Please refer to the source code for details. Note that we assume, for simplicity, that all fatalities come from hospitals, and that all fatal cases are admitted to hospitals immediately after the infectious period.
-</p>
-
-<p class = "center">
-<b> Acknowledgements </b><br>
-<a href = "https://enkimute.github.io/">Steven De Keninck</a> for RK4 Integrator. <a href="https://twitter.com/ch402">Chris Olah</a>, <a href="https://twitter.com/shancarter">Shan Carter
-</a> and <a href="https://twitter.com/ludwigschubert">Ludwig Schubert
-</a> wonderful feedback. <a href="https://twitter.com/NikitaJer">Nikita Jerschov</a> for improving clarity of text. Charie Huang for context and discussion.
 </p>
 
 <!-- Input data -->

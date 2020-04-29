@@ -187,6 +187,19 @@
                     cursor:{actionMarkerData.isConfigurable() ? 'col-resize' : 'not-allowed'};
                     background-color: white;
                     position:absolute">
+
+            {#if actionMarkerData.isConfigurable()}
+                <div style="top:-23px; left:-7px; position: absolute; text-align: right; width: 20px; height:20px; opacity: 0.3">
+                    <svg width="20" height="20">
+                        <g transform="rotate(90)">
+                            <g transform="translate(0,-20)">
+                            <path d="M2 11h16v2H2zm0-4h16v2H2zm8 11l3-3H7l3 3zm0-16L7 5h6l-3-3z"/>
+                            </g>  
+                        </g>
+                    </svg>
+                </div>
+            {/if}
+
             <div class="caption" style="pointer-events: none; position: absolute; left:1px; top:0px; height: 60px; min-width:200px; border-left: 3px solid #777; padding: 5px 7px 7px 7px; ">      
                 <div class="paneltext" style="height:20px; text-align: right">
 
@@ -218,7 +231,7 @@
 <!-- Interactive controls placed below. Note that we must keep them outside the parent div of the drag div! -->
 {#if actionMarkerData.isConfigurable()}
     <div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:140px; left:20px; pointer-events: none; z-index: {zIndex+1};">
-        
+
         <div style="pointer-events: all; position: absolute; left:{leftPx - 1}px; top: -105px; padding-top: 7px; width: 150px;">
 
             <div class="caption paneldesc unselectable" style="margin-top: 0px; height: 20px; font-style: italic;" on:click={toggleConfig}>
