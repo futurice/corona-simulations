@@ -685,7 +685,7 @@
         />
       <div>
         {#if selectedModel === MODEL_GOH}
-        <div on:click={addActionMarker}>
+        <div on:click={addActionMarker} title="Add new action marker">
           <Icon data={plus}
             scale=2.5
             class="clickableIcons"
@@ -693,7 +693,7 @@
             />
         </div>
         {/if}
-        <div on:click={toggleZoomStates}>
+        <div on:click={toggleZoomStates} title="Zoom">
           <Icon data={search}
             scale=2.5
             class="clickableIcons"
