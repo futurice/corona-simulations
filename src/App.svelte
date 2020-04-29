@@ -257,11 +257,11 @@
   $: firstBarDate     = showHistory ? firstHistoricalDate : addDays(firstHistoricalDate, goh_states_fin_before_slicing.length - 1)
 
   $: P_all_historical_before_slicing = map_goh_states_into_UFStates(goh_states_fin_before_slicing, N, P_ICU)
-  $: lastHistoricBar  = getlastHistoricBar(demo_mode, P_all_historical_before_slicing, dt)
   $: lastHistoricDay  = P_all_historical_before_slicing.length-1
   $: cutoffHistoricDay = cutoffHistoricDay ? cutoffHistoricDay : lastHistoricDay+1
   $: P_all_historical = P_all_historical_before_slicing.slice(0, cutoffHistoricDay)
   $: goh_states_fin = goh_states_fin_before_slicing.slice(0, cutoffHistoricDay)
+  $: lastHistoricBar  = getlastHistoricBar(demo_mode, P_all_historical, dt)
 
   $: actionMarkers    = actionMarkerHelper(P_all_historical)
   $: stateMeta        = getDefaultStateMeta()
@@ -759,7 +759,6 @@
         tmax={tmax}
         N={N}
         ymax={lock ? Plock: Pmax}
-        lastHistoricBar={lastHistoricBar}
         selectedModel={selectedModel}
         icuCapacity={icuCapacity}
         log={!log}

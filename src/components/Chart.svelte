@@ -25,13 +25,8 @@
   export let N;
   export let ymax;
   export let log = false;
-  export let lastHistoricBar;
   export let selectedModel;
   export let icuCapacity;
-  
-  function lastHistoricBarHelper() {
-    return Math.min(Math.max(lastHistoricBar, 0), states.length-1)
-  }
 
   function shouldWeDrawICUcapacity(selectedModel, stateMeta, ymax) {
     // Note that we need stateMeta and ymax as parameters in order to trigger re-render on certain user actions.
@@ -346,33 +341,6 @@
       </div>
     {/if}
 
-    <!-- Last historical datapoint marker (deprecated; was replaced by HistoryMarker)
-    {#if xScale(lastHistoricBarHelper()) > xScale(0)}
-      <div id="historicalMarker" style="pointer-events: none;
-                position: absolute;
-                top: 20px;
-                left:{xScale(lastHistoricBarHelper()) + 3}px;
-                visibility: 'visible';
-                width:2px;
-                background-color:#FFF;
-                border-right: 1px dashed plum;
-                height: {Math.max(yScale(getBarY(states[lastHistoricBarHelper()], stateMeta, 0)),0) - 30}px;">
-      </div>
-      <div style="position:absolute; 
-                    pointer-events: none;
-                    width:100px;
-                    left:{xScale(lastHistoricBarHelper())}px;
-                    top:{Math.max(yScale(getBarY(states[lastHistoricBarHelper()], stateMeta, 0)),0) }px" class="tip"> 
-            <svg style="position:absolute; top:-12px; left:0px" height="10" width="10">
-            <path 
-              d="M 0 0 L 10 0 L 5 10 z"
-              fill="plum" 
-              stroke-width="3" />
-            </svg>
-      </div>
-    {/if}
-    -->
-    
   </div>
 
 </div>
