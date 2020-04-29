@@ -225,7 +225,19 @@
 
   function actionMarkerHelper(P_all_historical) {
     const m = actionMarkers || {}
-    if (!m[MODEL_GOH]) m[MODEL_GOH] = goh_default_action_markers()
+    if (!m[MODEL_GOH]) {
+      // Action markers for Goh have not been set yet; set to default values.
+      m[MODEL_GOH] = goh_default_action_markers()
+    } else {
+      // Action markers for Goh have been set, but we may have to adjust them
+      // in case historymarker has been moved to the right.
+      for (var i=0; i<m[MODEL_GOH].length; i++) {
+        const actionMarker = m[MODEL_GOH][i]
+        if (actionMarker[AM_DAY] < P_all_historical.length) {
+          actionMarker[AM_DAY] = P_all_historical.length
+        }
+      }
+    }
     m[MODEL_BERKELEY] = get_berkeley_action_markers(P_all_historical.length, berkeley_params)
     m[MODEL_REINA] = []
     if (!m[MODEL_CUSTOM]) m[MODEL_CUSTOM] = []
@@ -240,12 +252,20 @@
   $: selectedParams   = selectedModel === MODEL_BERKELEY ? berkeley_params : custom_params
   $: showHistory      = true
   $: demo_mode        = showHistory ? SHOW_HISTORICAL_AND_FUTURE : SHOW_FUTURE
-  $: [firstHistoricalDate,
-      goh_states_fin] = loadFinnishHistoricalEstimates(finnishHistoricalEstimates, N)
-  $: firstBarDate     = showHistory ? firstHistoricalDate : addDays(firstHistoricalDate, goh_states_fin.length - 1)
-  $: P_all_historical = map_goh_states_into_UFStates(goh_states_fin, N, P_ICU)
+
+  $: [firstHistoricalDate, goh_states_fin_before_slicing] = loadFinnishHistoricalEstimates(finnishHistoricalEstimates, N)
+  $: firstBarDate     = showHistory ? firstHistoricalDate : addDays(firstHistoricalDate, goh_states_fin_before_slicing.length - 1)
+
+  $: P_all_historical_before_slicing = map_goh_states_into_UFStates(goh_states_fin_before_slicing, N, P_ICU)
+  $: lastHistoricBar  = getlastHistoricBar(demo_mode, P_all_historical_before_slicing, dt)
+  $: lastHistoricDay  = P_all_historical_before_slicing.length-1
+  $: cutoffHistoricDay = cutoffHistoricDay ? cutoffHistoricDay : lastHistoricDay+1
+  $: P_all_historical = P_all_historical_before_slicing.slice(0, cutoffHistoricDay)
+  $: goh_states_fin = goh_states_fin_before_slicing.slice(0, cutoffHistoricDay)
+
   $: actionMarkers    = actionMarkerHelper(P_all_historical)
   $: stateMeta        = getDefaultStateMeta()
+
   $: P_all_future     = get_solution(
                           demo_mode,
                           selectedModel,
@@ -273,9 +293,6 @@
   $: tmax             = dt*101
   $: Pmax             = getPmax(P_bars, stateMeta)
   $: lock             = false
-  $: lastHistoricBar  = getlastHistoricBar(demo_mode, P_all_historical, dt)
-  $: lastHistoricDay  = P_all_historical.length
-  $: cutoffHistoricDay = lastHistoricDay
   $: debugHelp        = debugHelper([])
 
 
@@ -749,7 +766,6 @@
           R0 = {R0}
           tmax = {tmax}
           Pmax = {Pmax}
-          P_all_historical = {P_all_historical}
           lastHistoricDay = {lastHistoricDay}
           bind:cutoffHistoricDay = {cutoffHistoricDay}
           bind:Plock = {Plock}

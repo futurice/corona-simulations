@@ -24,9 +24,8 @@
     export let Plock;
     export let lock;
     export let lock_yaxis;
-    export let P_all_historical;
 
-    function getLeftPx(cutoffHistoricDay, P_all_historical, tmax) {
+    function getLeftPx(cutoffHistoricDay, lastHistoricDay, tmax) {
         // Note: tmax must be in parameters to trigger re-render correctly.
         return xScaleTime(cutoffHistoricDay) - 1
     }
@@ -37,7 +36,7 @@
     $: xScaleTimeInv = scaleLinear()
                         .domain([0, width])
                         .range([0, tmax]);
-    $: leftPx = getLeftPx(cutoffHistoricDay, P_all_historical, tmax)
+    $: leftPx = getLeftPx(cutoffHistoricDay, lastHistoricDay, tmax)
     $: leftPxHistoricalText = Math.min(leftPx-300, 0) // Allow this text to overflow to the left if needed
 
     var drag_intervention = function (){
@@ -53,8 +52,8 @@
 
         var dragged = function (d) {
             const draggedX = InterventionTimeStart + xScaleTimeInv(event.x - dragstarty)
-            const minX = 0
-            const maxX = P_all_historical.length
+            const minX = 1
+            const maxX = lastHistoricDay + 1
             cutoffHistoricDay = Math.round(Math.min(maxX, Math.max(minX, draggedX)))
         }
 

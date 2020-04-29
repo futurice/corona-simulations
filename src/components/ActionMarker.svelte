@@ -76,6 +76,7 @@
             if (actionMarkerData.isConfigurable()) {
                 const draggedX = InterventionTimeStart + xScaleTimeInv(event.x - dragstarty)
                 const minX = P_all_historical.length
+                console.log('draggedX', draggedX, 'minX', minX)
                 const maxX = tmax-1 + (demo_mode === SHOW_FUTURE ? P_all_historical.length-1 : 0)
                 actionMarkerData[AM_DAY] = Math.round(Math.min(maxX, Math.max(minX, draggedX)))
             }
