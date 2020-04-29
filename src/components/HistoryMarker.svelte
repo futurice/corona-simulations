@@ -24,6 +24,7 @@
     export let Plock;
     export let lock;
     export let lock_yaxis;
+    export let flashMessage;
 
     function getLeftPx(cutoffHistoricDay, lastHistoricDay, tmax) {
         // Note: tmax must be in parameters to trigger re-render correctly.
@@ -54,6 +55,11 @@
             const draggedX = InterventionTimeStart + xScaleTimeInv(event.x - dragstarty)
             const minX = 1
             const maxX = lastHistoricDay + 1
+            if (draggedX > maxX+3) {
+                flashMessage = 'Historical data is available up to day ' + lastHistoricDay
+            } else {
+                flashMessage = ''
+            }
             cutoffHistoricDay = Math.round(Math.min(maxX, Math.max(minX, draggedX)))
         }
 

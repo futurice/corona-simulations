@@ -9,7 +9,7 @@
   import { format } from 'd3-format';
   import { event } from 'd3-selection';
   import Icon from 'svelte-awesome';
-  import { search, plus } from 'svelte-awesome/icons';
+  import { search, plus, exclamationCircle } from 'svelte-awesome/icons';
   import katex from 'katex';
 
   // Custom Svelte components
@@ -294,6 +294,7 @@
   $: Pmax             = getPmax(P_bars, stateMeta)
   $: lock             = false
   $: debugHelp        = debugHelper([])
+  $: flashMessage     = ''
 
 
 
@@ -692,6 +693,27 @@
 
   <div style="flex: 0 0 890px; width:890px; height: {height+128}px; position:relative;">
 
+    <!-- Flash message to help the user understand why some action was not possible. -->
+    <div on:click={() => {flashMessage = ''}} style="position: absolute;
+                left: 400px;
+                top: -70px;
+                width: 700px;
+                cursor: pointer;
+                color: #f0027f;
+                opacity: 0.5;
+                font-family: nyt-franklin,helvetica,arial,sans-serif;
+                visibility: {flashMessage !== '' ? 'visible' : 'hidden'};
+                font-size: 16px;
+                ">
+      <Icon data={exclamationCircle}
+        scale=1.5
+        style="color: #f0027f; position: absolute; cursor: hand;"
+        />
+      <span style="position: absolute; left: 30px; top: 3px;">
+        {flashMessage}
+      </span>
+    </div>
+
     <div style="position:relative; top:60px; left: 10px" >
 
       {#if selectedModel === MODEL_CUSTOM && customScenarioStatus !== ''}
@@ -771,6 +793,7 @@
           bind:Plock = {Plock}
           bind:lock = {lock}
           bind:lock_yaxis = {lock_yaxis}
+          bind:flashMessage = {flashMessage}
         />
       {/if}
 
@@ -789,6 +812,7 @@
             bind:Plock = {Plock}
             bind:lock = {lock}
             bind:lock_yaxis = {lock_yaxis}
+            bind:flashMessage = {flashMessage}
           />
         {/if}
       {/each}

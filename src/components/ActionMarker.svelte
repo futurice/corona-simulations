@@ -25,6 +25,7 @@
     export let lock_yaxis;
     export let P_all_historical;
     export let demo_mode;
+    export let flashMessage;
 
     function toggleConfig() {
         actionMarkerData[AM_EXPANDED] = !actionMarkerData[AM_EXPANDED]
@@ -76,8 +77,12 @@
             if (actionMarkerData.isConfigurable()) {
                 const draggedX = InterventionTimeStart + xScaleTimeInv(event.x - dragstarty)
                 const minX = P_all_historical.length
-                console.log('draggedX', draggedX, 'minX', minX)
                 const maxX = tmax-1 + (demo_mode === SHOW_FUTURE ? P_all_historical.length-1 : 0)
+                if (draggedX < minX-3) {
+                    flashMessage = 'Action markers affect model predictions, not historical estimates.'
+                } else {
+                    flashMessage = ''
+                }
                 actionMarkerData[AM_DAY] = Math.round(Math.min(maxX, Math.max(minX, draggedX)))
             }
         }
