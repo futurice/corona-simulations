@@ -675,7 +675,11 @@
 
 </style>
 
-<h2>Corosim</h2>
+
+<h2><div>
+  <span style="">Corosim</span>
+  <img style="vertical-align:middle" src="flag.png" title="Finland" alt="finnish flag" width="100">
+</div></h2>
 <h5>Historical Estimates & Model Predictions for COVID-19 in Finland</h5>
 
 <div class="chart" style="display: flex; max-width: 1120px">
