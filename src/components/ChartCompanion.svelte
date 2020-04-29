@@ -104,13 +104,13 @@
 <b>Scenario outcome</b>
 <span style="text-align: left;">
 <ul style="margin-top: 10px;">
-    <li>{P_all[P_all.length-1]['fatalities']} fatalities in first {P_all.length} days.</li>
+    <li>{formatCount(P_all[P_all.length-1]['fatalities'])} fatalities in first {P_all.length} days.</li>
     {#if peakICUDay < P_all.length-50}
         <li>Peak ICU on {getDate(peakICUDay)}.</li>
+        <li>{peakICUCount} ICU patients at peak.</li>
     {:else}
         <li>Peak possibly not reached!</li>
     {/if}
-    <li>{peakICUCount} ICU patients at peak.</li>
     <li>{Math.round(100 * P_all[P_all.length-1]['susceptible'] / N)}% remain susceptible.</li>
 </ul>
 </span>
