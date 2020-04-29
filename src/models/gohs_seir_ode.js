@@ -30,7 +30,8 @@ var integrate=(m,f,y,t,h)=>{
 export function get_solution_from_gohs_seir_ode(demo_mode, actionMarkersForGoh, historical_goh_states, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR) {
 
     var interpolation_steps = 40
-    var steps = 101*interpolation_steps*real_dt
+    var days_to_simulate = 400
+    var steps = 101*interpolation_steps*days_to_simulate/100
     var dt = 1/interpolation_steps
     var sample_step = interpolation_steps
 

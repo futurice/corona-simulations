@@ -13,6 +13,8 @@
     export let active_;
     export let indexToTime;
     export let firstBarDate;
+    export let peakICUDay;
+    export let peakICUCount;
 
     function sumOfRoundedArrayValues(arr) {
         var s = 0
@@ -50,8 +52,7 @@
         return `${day}.${month}.${year}`
     }
 
-    function getDate(bar) {
-        const days = getDay(bar)
+    function getDate(days) {
         return formatDate(addDays(firstBarDate, days))
     }
 
@@ -99,11 +100,28 @@
     }
 </style>
 
+<div class="legendtext" style="position:absolute; left:-110px; top:-155px; width:230px; height: 100px; font-size: 13px; line-height:16px; font-weight: normal; text-align: center; background-color: white; z-index: 10000;">
+<b>Scenario outcome</b>
+<span style="text-align: left;">
+<ul style="margin-top: 10px;">
+    <li>{P_all[P_all.length-1]['fatalities']} fatalities in first {P_all.length} days.</li>
+    {#if peakICUDay < P_all.length-50}
+        <li>Peak ICU on {getDate(peakICUDay)}.</li>
+    {:else}
+        <li>Peak possibly not reached!</li>
+    {/if}
+    <li>{peakICUCount} ICU patients at peak.</li>
+    <li>{Math.round(100 * P_all[P_all.length-1]['susceptible'] / N)}% remain susceptible.</li>
+</ul>
+</span>
+
+</div>
+
 
 <div class="legendtext" style="position:absolute; left:-70px; top:-50px; width:150px; height: 100px; font-size: 13px; line-height:16px; font-weight: normal; text-align: center">
-<b>Highlighted day:</b>
+<b>Highlighted day</b>
 <br>Day {getDay(active_)}
-<br>{getDate(active_)}
+<br>{getDate(getDay(active_))}
 </div>
 
 {#each stateMeta as state,i}

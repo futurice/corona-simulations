@@ -298,6 +298,7 @@
 
 
 
+
   var Plock = 1
 
   var drag_y = function (){
@@ -424,7 +425,33 @@
   
   $: p_num_ind = 40
 
-  function get_milestones(P){
+
+  function get_icu_peak(P) {
+
+    function argmax(k) {
+      var maxVal = 0
+      var maxValIndex = 0
+      for (var i=0; i<P.length; i+=1) {
+        const val = P[i][k]
+        if (val > maxVal) {
+          maxVal = val
+          maxValIndex = i
+        }
+      }
+      return maxValIndex
+    }
+
+    const peakICUDay = argmax('icu')
+    const peakICUCount = Math.round(P[peakICUDay]['icu'])
+    return [peakICUDay, peakICUCount]
+  }
+
+  $: [peakICUDay, peakICUCount] = get_icu_peak(P_all)
+
+  // Reminder: milestone for peak ICU is different than actual peak ICU, because
+  // milestones are chosen from timestepped days, whereas "scenario outcome icu peak" is from all days.
+  // So don't merge these by refactoring.
+  function get_milestones(P) {
 
     function argmax(k) {
       var maxVal = 0
@@ -451,8 +478,8 @@
         break
       }
     }
-
-    var bar_peak_hosp = argmax('icu')
+    
+    const bar_peak_hosp = argmax('icu')
     if (bar_peak_hosp < 100*dt) {
       // If peak hospitalization occurs on last day of zoomed in area, there is likely a higher peak beyond the visible area.
       // In that case we don't want to draw this milestone.
@@ -686,6 +713,8 @@
         active_ = {active_}
         indexToTime = {indexToTime}
         firstBarDate = {firstBarDate}
+        peakICUDay = {peakICUDay}
+        peakICUCount = {peakICUCount}
       />
 
     </div>
