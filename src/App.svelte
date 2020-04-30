@@ -207,8 +207,8 @@
   function parseCustomScenario(json) {
     customScenarioStatus = '' // Clear out "Fetching..." message
     P_all_fetched = temphack(json["scenario_states"], json["scenario_params"], N)
-    actionMarkers[MODEL_CUSTOM] = get_berkeley_action_markers(P_all_historical.length, json["scenario_params"])
     custom_params = {...json["scenario_params"], ...json["parameters"]}
+    actionMarkers = actionMarkerHelper(P_all_historical, custom_params)
   }
 
   function get_solution(demo_mode, selectedModel, P_all_fetched, actionMarkers, goh_states_fin, berkeley_states, berkeley_params, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR) {
@@ -223,7 +223,7 @@
     }
   }
 
-  function actionMarkerHelper(P_all_historical) {
+  function actionMarkerHelper(P_all_historical, custom_params) {
     const m = actionMarkers || {}
     if (!m[MODEL_GOH]) {
       // Action markers for Goh have not been set yet; set to default values.
@@ -240,7 +240,11 @@
     }
     m[MODEL_BERKELEY] = get_berkeley_action_markers(P_all_historical.length, berkeley_params)
     m[MODEL_REINA] = []
-    if (!m[MODEL_CUSTOM]) m[MODEL_CUSTOM] = []
+    if (custom_params['0']) {
+      m[MODEL_CUSTOM] = get_berkeley_action_markers(P_all_historical.length, custom_params)
+    } else if (!m[MODEL_CUSTOM]) {
+      m[MODEL_CUSTOM] = []
+    }
     return m
   }
   
@@ -263,7 +267,7 @@
   $: goh_states_fin = goh_states_fin_before_slicing.slice(0, cutoffHistoricDay)
   $: lastHistoricBar  = getlastHistoricBar(demo_mode, P_all_historical, dt)
 
-  $: actionMarkers    = actionMarkerHelper(P_all_historical)
+  $: actionMarkers    = actionMarkerHelper(P_all_historical, custom_params)
   $: stateMeta        = getDefaultStateMeta()
 
   $: P_all_future     = get_solution(
@@ -957,131 +961,133 @@
 <div style="position: relative; height: 12px"></div>
 
 
+{#if selectedModel === MODEL_GOH}
+  <p class = "center">
+  This is a fork of Gabriel Goh's fantastic Epidemic Calculator.
+  </p>
 
-<p class = "center">
-This is a fork of Gabriel Goh's fantastic Epidemic Calculator.
-</p>
-
-<p class = "center">
-This calculator implements a classical infectious disease model &mdash <b><a href="https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SEIR_model">SEIR</a> </b>(<b>S</b>usceptible → <b>E</b>xposed → <b>I</b>nfected → <b>R</b>emoved), an idealized model of spread still used in frontlines of research e.g. [<a href="https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(20)30260-9/fulltext">Wu, et. al</a>, <a href = "https://cmmid.github.io/topics/covid19/current-patterns-transmission/wuhan-early-dynamics.html">Kucharski et. al</a>]. The dynamics of this model are characterized by a set of four ordinary differential equations that correspond to the stages of the disease's progression:
-<span style="color:#777">{@html ode_eqn}</span>
-</p>
-
-
-<p class = "center">
-A sampling of the estimates for epidemic parameters are presented below:
-</p>
-
-<div class="center">
-<table style="width:100%; margin:auto; font-weight: 300; border-spacing: inherit">
-  <tr>
-    <th></th>
-    <th>Location</th>
-    <th>Reproduction Number<br> {@html math_inline("\\mathcal{R}_0")}</th>
-    <th>Incubation Period<br> {@html math_inline("T_{\\text{inc}}")} (in days)</th>
-    <th>Infectious Period<br> {@html math_inline("T_{\\text{inf}}")} (in days)</th>
-  </tr>
-  <tr>
-    <td width="27%"><a href = "https://cmmid.github.io/topics/covid19/current-patterns-transmission/wuhan-early-dynamics.html">Kucharski et. al</a></td>
-    <td>Wuhan </td>    
-    <td>3.0 (1.5 — 4.5)</td>
-    <td>5.2</td>
-    <td>2.9</td>
-  </tr>
-  <tr>
-    <td><a href = "https://www.nejm.org/doi/full/10.1056/NEJMoa2001316">Li, Leung and Leung</a></td>
-    <td>Wuhan </td>    
-    <td>2.2 (1.4 — 3.9)</td>
-    <td>5.2 (4.1 — 7.0)</td>
-    <td>2.3 (0.0 — 14.9)</td>
-  </tr>
-  <tr>
-    <td><a href = "https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(20)30260-9/fulltext">Wu et. al</a></td>
-    <td>Greater Wuhan </td>    
-    <td>2.68 (2.47 — 2.86)</td>
-    <td>6.1</td>
-    <td>2.3</td>
-  </tr>
-  <tr>
-    <td><a href = "https://www.who.int/news-room/detail/23-01-2020-statement-on-the-meeting-of-the-international-health-regulations-(2005)-emergency-committee-regarding-the-outbreak-of-novel-coronavirus-(2019-ncov)">WHO Initial Estimate</a></td>
-    <td>Hubei </td>    
-    <td>1.95 (1.4 — 2.5)</td>
-    <td></td>
-    <td></td>
-  </tr>
-  <tr>
-    <td><a href = "https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf">WHO-China Joint Mission </a></td>
-    <td>Hubei </td>    
-    <td>2.25 (2.0 — 2.5)</td>
-    <td>5.5 (5.0 - 6.0)</td>
-    <td></td>
-  </tr>
-  <tr>
-    <td><a href = "https://www.biorxiv.org/content/10.1101/2020.01.25.919787v2">Liu et. al </a></td>
-    <td>Guangdong</td>
-    <td>4.5 (4.4 — 4.6)</td>
-    <td>4.8 (2.2 — 7.4) </td>
-    <td>2.9 (0 — 5.9)</td>
-  </tr>
-  <tr>
-    <td><a href = "https://academic.oup.com/jtm/advance-article/doi/10.1093/jtm/taaa030/5766334">Rocklöv, Sjödin and Wilder-Smith</a></td>
-    <td>Princess Diamond</td>
-    <td>14.8</td>
-    <td>5.0</td>
-    <td>10.0</td>
-  </tr>
-  <tr>
-    <td><a href = "https://www.eurosurveillance.org/content/10.2807/1560-7917.ES.2020.25.5.2000062">Backer, Klinkenberg, Wallinga</a></td>
-    <td>Wuhan</td>
-    <td></td>
-    <td>6.5 (5.6 — 7.9)</td>
-    <td></td>
-  </tr>
-  <tr>
-    <td><a href = "https://www.medrxiv.org/content/10.1101/2020.01.23.20018549v2.article-info">Read et. al</a></td>
-    <td>Wuhan</td>
-    <td>3.11 (2.39 — 4.13)</td>
-    <td></td>
-    <td></td>
-  </tr>
-  <tr>
-    <td><a href = "https://www.medrxiv.org/content/10.1101/2020.03.03.20028423v1">Bi et. al</a></td>
-    <td>Shenzhen</td>
-    <td></td>
-    <td>4.8 (4.2 — 5.4)</td>
-    <td>1.5 (0 — 3.4)</td>
-    <td></td>
-  </tr>
-
-  <tr>
-    <td><a href = "https://www.mdpi.com/2077-0383/9/2/462">Tang et. al</a></td>
-    <td>China</td>
-    <td>6.47 (5.71 — 7.23)</td>
-    <td></td>
-    <td></td>
-  </tr>
-
-</table>
-</div>
+  <p class = "center">
+  This calculator implements a classical infectious disease model &mdash <b><a href="https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SEIR_model">SEIR</a> </b>(<b>S</b>usceptible → <b>E</b>xposed → <b>I</b>nfected → <b>R</b>emoved), an idealized model of spread still used in frontlines of research e.g. [<a href="https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(20)30260-9/fulltext">Wu, et. al</a>, <a href = "https://cmmid.github.io/topics/covid19/current-patterns-transmission/wuhan-early-dynamics.html">Kucharski et. al</a>]. The dynamics of this model are characterized by a set of four ordinary differential equations that correspond to the stages of the disease's progression:
+  <span style="color:#777">{@html ode_eqn}</span>
+  </p>
 
 
-<p class="center">
-See [<a href="https://academic.oup.com/jtm/advance-article/doi/10.1093/jtm/taaa021/5735319">Liu et. al</a>] detailed survey of current estimates of the reproduction number. Parameters for the diseases' clinical characteristics are taken from the following <a href="https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf">WHO Report</a>. 
-</p>
+  <p class = "center">
+  A sampling of the estimates for epidemic parameters are presented below:
+  </p>
 
-<p class = "center">
-<b> Model Details </b><br>
-The clinical dynamics in this model are an elaboration on SEIR that simulates the disease's progression at a higher resolution, subdividing {@html math_inline("I,R")} into <i>mild</i> (patients who recover without the need for hospitalization), <i>moderate</i> (patients who require hospitalization but survive) and <i>fatal</i> (patients who require hospitalization and do not survive). Each of these variables follows its own trajectory to the final outcome, and the sum of these compartments add up to the values predicted by SEIR. Please refer to the source code for details. Note that we assume, for simplicity, that all fatalities come from hospitals, and that all fatal cases are admitted to hospitals immediately after the infectious period.
-</p>
+  <div class="center">
+  <table style="width:100%; margin:auto; font-weight: 300; border-spacing: inherit">
+    <tr>
+      <th></th>
+      <th>Location</th>
+      <th>Reproduction Number<br> {@html math_inline("\\mathcal{R}_0")}</th>
+      <th>Incubation Period<br> {@html math_inline("T_{\\text{inc}}")} (in days)</th>
+      <th>Infectious Period<br> {@html math_inline("T_{\\text{inf}}")} (in days)</th>
+    </tr>
+    <tr>
+      <td width="27%"><a href = "https://cmmid.github.io/topics/covid19/current-patterns-transmission/wuhan-early-dynamics.html">Kucharski et. al</a></td>
+      <td>Wuhan </td>    
+      <td>3.0 (1.5 — 4.5)</td>
+      <td>5.2</td>
+      <td>2.9</td>
+    </tr>
+    <tr>
+      <td><a href = "https://www.nejm.org/doi/full/10.1056/NEJMoa2001316">Li, Leung and Leung</a></td>
+      <td>Wuhan </td>    
+      <td>2.2 (1.4 — 3.9)</td>
+      <td>5.2 (4.1 — 7.0)</td>
+      <td>2.3 (0.0 — 14.9)</td>
+    </tr>
+    <tr>
+      <td><a href = "https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(20)30260-9/fulltext">Wu et. al</a></td>
+      <td>Greater Wuhan </td>    
+      <td>2.68 (2.47 — 2.86)</td>
+      <td>6.1</td>
+      <td>2.3</td>
+    </tr>
+    <tr>
+      <td><a href = "https://www.who.int/news-room/detail/23-01-2020-statement-on-the-meeting-of-the-international-health-regulations-(2005)-emergency-committee-regarding-the-outbreak-of-novel-coronavirus-(2019-ncov)">WHO Initial Estimate</a></td>
+      <td>Hubei </td>    
+      <td>1.95 (1.4 — 2.5)</td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><a href = "https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf">WHO-China Joint Mission </a></td>
+      <td>Hubei </td>    
+      <td>2.25 (2.0 — 2.5)</td>
+      <td>5.5 (5.0 - 6.0)</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><a href = "https://www.biorxiv.org/content/10.1101/2020.01.25.919787v2">Liu et. al </a></td>
+      <td>Guangdong</td>
+      <td>4.5 (4.4 — 4.6)</td>
+      <td>4.8 (2.2 — 7.4) </td>
+      <td>2.9 (0 — 5.9)</td>
+    </tr>
+    <tr>
+      <td><a href = "https://academic.oup.com/jtm/advance-article/doi/10.1093/jtm/taaa030/5766334">Rocklöv, Sjödin and Wilder-Smith</a></td>
+      <td>Princess Diamond</td>
+      <td>14.8</td>
+      <td>5.0</td>
+      <td>10.0</td>
+    </tr>
+    <tr>
+      <td><a href = "https://www.eurosurveillance.org/content/10.2807/1560-7917.ES.2020.25.5.2000062">Backer, Klinkenberg, Wallinga</a></td>
+      <td>Wuhan</td>
+      <td></td>
+      <td>6.5 (5.6 — 7.9)</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><a href = "https://www.medrxiv.org/content/10.1101/2020.01.23.20018549v2.article-info">Read et. al</a></td>
+      <td>Wuhan</td>
+      <td>3.11 (2.39 — 4.13)</td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><a href = "https://www.medrxiv.org/content/10.1101/2020.03.03.20028423v1">Bi et. al</a></td>
+      <td>Shenzhen</td>
+      <td></td>
+      <td>4.8 (4.2 — 5.4)</td>
+      <td>1.5 (0 — 3.4)</td>
+      <td></td>
+    </tr>
 
-<!-- Input data -->
-<!-- <div style="margin-bottom: 30px">
+    <tr>
+      <td><a href = "https://www.mdpi.com/2077-0383/9/2/462">Tang et. al</a></td>
+      <td>China</td>
+      <td>6.47 (5.71 — 7.23)</td>
+      <td></td>
+      <td></td>
+    </tr>
 
-  <div class="center" style="padding: 10px; margin-top: 3px; width: 925px">
-    <div class="legendtext">Export parameters:</div>
-    <form>
-      <textarea type="textarea" rows="1" cols="5000" style="white-space: nowrap;  overflow: auto; width:100%; text-align: left" id="fname" name="fname">{state}</textarea>
-    </form>
+  </table>
   </div>
-</div>
--->
+
+
+  <p class="center">
+  See [<a href="https://academic.oup.com/jtm/advance-article/doi/10.1093/jtm/taaa021/5735319">Liu et. al</a>] detailed survey of current estimates of the reproduction number. Parameters for the diseases' clinical characteristics are taken from the following <a href="https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf">WHO Report</a>. 
+  </p>
+
+  <p class = "center">
+  <b> Model Details </b><br>
+  The clinical dynamics in this model are an elaboration on SEIR that simulates the disease's progression at a higher resolution, subdividing {@html math_inline("I,R")} into <i>mild</i> (patients who recover without the need for hospitalization), <i>moderate</i> (patients who require hospitalization but survive) and <i>fatal</i> (patients who require hospitalization and do not survive). Each of these variables follows its own trajectory to the final outcome, and the sum of these compartments add up to the values predicted by SEIR. Please refer to the source code for details. Note that we assume, for simplicity, that all fatalities come from hospitals, and that all fatal cases are admitted to hospitals immediately after the infectious period.
+  </p>
+
+  <!-- Input data -->
+  <!-- <div style="margin-bottom: 30px">
+
+    <div class="center" style="padding: 10px; margin-top: 3px; width: 925px">
+      <div class="legendtext">Export parameters:</div>
+      <form>
+        <textarea type="textarea" rows="1" cols="5000" style="white-space: nowrap;  overflow: auto; width:100%; text-align: left" id="fname" name="fname">{state}</textarea>
+      </form>
+    </div>
+  </div>
+  -->
+
+{/if}
