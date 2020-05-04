@@ -441,6 +441,10 @@
       return response.text();
     })
     .then(function(text) {
+      // TODO parse csv
+      // TODO verify within reasonable bounds
+      // TODO verify latest has recent date
+      // TODO calculate R0 from Rt
       console.log(text)
     })
     .catch(error => {
@@ -789,6 +793,7 @@
         selectedModel={selectedModel}
         icuCapacity={icuCapacity}
         log={!log}
+        firstBarDate = {firstBarDate}
         />
       <div>
         {#if selectedModel === MODEL_GOH}
@@ -862,6 +867,7 @@
             Pmax = {Pmax}
             P_all_historical = {P_all_historical}
             demo_mode = {demo_mode}
+            firstBarDate = {firstBarDate}
             bind:allActiveActionMarkers = {actionMarkers[selectedModel]}
             bind:actionMarkerData = {actionMarkerData}
             bind:Plock = {Plock}

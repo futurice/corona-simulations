@@ -21,6 +21,38 @@ export function formatPercent(proportion) {
     return `(${(100 * proportion).toFixed(2)}%)`
 }
 
+const MONTHS = [
+    'zero',
+    'Jan',
+    'Feb',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec'
+]
+
+export function getMonth(date) {
+    console.log(new Intl.DateTimeFormat('en', { month: 'numeric' }).format(date))
+    return MONTHS[new Intl.DateTimeFormat('en', { month: 'numeric' }).format(date)]
+}
+
+export function formatDate(date) {
+    const year = new Intl.DateTimeFormat('en', { year: 'numeric' }).format(date)
+    const month = new Intl.DateTimeFormat('en', { month: '2-digit' }).format(date)
+    const day = new Intl.DateTimeFormat('en', { day: '2-digit' }).format(date)
+    return `${day}.${month}.${year}`
+}
+
+export function getDate(firstBarDate, days) {
+    return formatDate(addDays(firstBarDate, days))
+}
+
 export function addDays(date, days) {
     var result = new Date(date);
     result.setDate(result.getDate() + days);

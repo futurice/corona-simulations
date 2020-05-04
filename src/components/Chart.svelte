@@ -4,7 +4,7 @@
   import { selectAll } from 'd3-selection'
   import { onMount } from 'svelte';
   import { createEventDispatcher } from 'svelte';
-  import { formatNumber, padding, MODEL_GOH } from '../utils.js';
+  import { formatNumber, padding, MODEL_GOH, formatDate, getDate, addDays, getMonth } from '../utils.js';
 
   const dispatch = createEventDispatcher();
 
@@ -27,6 +27,7 @@
   export let log = false;
   export let selectedModel;
   export let icuCapacity;
+  export let firstBarDate;
 
   function shouldWeDrawICUcapacity(selectedModel, stateMeta, ymax) {
     // Note that we need stateMeta and ymax as parameters in order to trigger re-render on certain user actions.
@@ -238,10 +239,25 @@
 
     <!-- x axis -->
     <g class="axis x-axis">
-      {#each xScaleTime.ticks() as i}
-        <g class="tick" transform="translate({xScaleTime(i)},{height})">
-          <text x="0" y="-4">{i == 0 ? "Day ":""}{i}</text>
-        </g>
+      {#each xScaleTime.ticks(100) as i}
+        <!-- Show actual date for day 0.
+        {#if i == 0}
+          <g class="tick" transform="translate({xScaleTime(i)},{height})">
+            <text x="0" y="-4">--{getDate(firstBarDate, i)}</text>
+          </g>
+        -->
+        {#if i%30 == 0}
+          {#if getDate(firstBarDate, i).endsWith("01.2021")}
+            <g class="tick" transform="translate({xScaleTime(i)},{height})">
+              <text x="0" y="-4">2021</text>
+            </g>
+          {:else}
+            <g class="tick" transform="translate({xScaleTime(i)},{height})">
+              <text x="0" y="-4">{getMonth(addDays(firstBarDate, i))}</text>
+            </g>
+          {/if}
+        {/if}
+        
       {/each}
     </g>
 

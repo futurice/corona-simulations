@@ -9,7 +9,7 @@
     import Icon from 'svelte-awesome';
     import { gear, trash } from 'svelte-awesome/icons';
 
-    import { math_inline, math_display, formatDelta, padding, SHOW_FUTURE } from '../utils.js';
+    import { math_inline, math_display, formatDelta, padding, SHOW_FUTURE, getDate } from '../utils.js';
     import { AM_NAME, AM_DAY, AM_EFFECT, AM_EXPANDED, ActionMarkerData } from '../action_marker_data.js';
 
     export let width;
@@ -26,6 +26,7 @@
     export let P_all_historical;
     export let demo_mode;
     export let flashMessage;
+    export let firstBarDate;
 
     function toggleConfig() {
         actionMarkerData[AM_EXPANDED] = !actionMarkerData[AM_EXPANDED]
@@ -52,6 +53,7 @@
 
     $: zIndex = actionMarkerData[AM_DAY] * 1000
     $: displayDay = actionMarkerData[AM_DAY] - (demo_mode === SHOW_FUTURE ? P_all_historical.length-1 : 0)
+    $: displayDate = getDate(firstBarDate, displayDay)
     $: adjustedR0 = getAdjustedR0(R0, allActiveActionMarkers, actionMarkerData)
     $: InterventionAmt = 1 - actionMarkerData[AM_EFFECT]
     $: xScaleTime = scaleLinear()
@@ -210,7 +212,7 @@
                 <div class="paneltext" style="height:20px; text-align: right">
 
                     <div class="paneltitle unselectable" style="top:0px; position: relative; text-align: left">
-                        {actionMarkerData[AM_NAME]} on day {displayDay}
+                        {actionMarkerData[AM_NAME]} on {displayDate}
                     </div>
 
                     {#if actionMarkerData.isConfigurable()}

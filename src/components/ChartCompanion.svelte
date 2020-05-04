@@ -1,7 +1,7 @@
 <script>
     import Checkbox from './Checkbox.svelte';
     import Arrow from './Arrow.svelte';
-    import { addDays, formatCount, formatPercent, formatDelta } from '../utils.js';
+    import { addDays, formatCount, formatPercent, formatDelta, getDate } from '../utils.js';
 
     const legendheight = 67
 
@@ -43,17 +43,6 @@
 
     function getDay(bar) {
         return Math.round(indexToTime(bar))
-    }
-
-    function formatDate(date) {
-        const year = new Intl.DateTimeFormat('en', { year: 'numeric' }).format(date)
-        const month = new Intl.DateTimeFormat('en', { month: 'numeric' }).format(date)
-        const day = new Intl.DateTimeFormat('en', { day: '2-digit' }).format(date)
-        return `${day}.${month}.${year}`
-    }
-
-    function getDate(days) {
-        return formatDate(addDays(firstBarDate, days))
     }
 
 </script>
@@ -106,7 +95,7 @@
 <ul style="margin-top:3px;">
     <li>{formatCount(P_all[P_all.length-1]['fatalities'])} fatalities in first {P_all.length} days.</li>
     {#if peakICUDay < P_all.length-50}
-        <li>Peak ICU on {getDate(peakICUDay)}.</li>
+        <li>Peak ICU on {getDate(firstBarDate, peakICUDay)}.</li>
         <li>{peakICUCount} ICU patients at peak.</li>
     {:else}
         <li>Peak possibly not reached!</li>
@@ -118,10 +107,10 @@
 </div>
 
 
-<div class="legendtext" style="position:absolute; left:-70px; top:-50px; width:150px; height: 100px; font-size: 13px; line-height:16px; font-weight: normal; text-align: center">
+<div class="legendtext" style="position:absolute; left:-70px; top:-35px; width:150px; height: 100px; font-size: 13px; line-height:16px; font-weight: normal; text-align: center">
 <b>Highlighted day</b>
-<br>Day {getDay(active_)}
-<br>{getDate(getDay(active_))}
+<!--<br>Day {getDay(active_)}-->
+<br>{getDate(firstBarDate, getDay(active_))}
 </div>
 
 {#each stateMeta as state,i}
