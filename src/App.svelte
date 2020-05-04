@@ -372,8 +372,6 @@
 
     }
 
-    
-
   });
 
   function lock_yaxis(){
@@ -428,6 +426,27 @@
   });
   
   $: p_num_ind = 40
+
+  function fetch_latest_R0_estimate() {
+    fetch("https://coronastoragemyvs.blob.core.windows.net/estimate-rt/latest_Rt.csv", { 
+      method: 'GET'
+    })
+    .then((response) => {
+      if (!response.ok) {
+        console.log(response)
+      }
+      return response
+    })
+    .then(function(response) {
+      return response.text();
+    })
+    .then(function(text) {
+      console.log(text)
+    })
+    .catch(error => {
+      showUserError(error)
+    });
+  }
 
 
   function get_icu_peak(P) {
