@@ -211,7 +211,7 @@
             <div class="caption" style="pointer-events: none; position: absolute; left:1px; top:0px; height: 60px; min-width:200px; border-left: 3px solid #777; padding: 5px 7px 7px 7px; ">      
                 <div class="paneltext" style="height:20px; text-align: right">
 
-                    <div class="paneltitle unselectable" style="top:0px; position: relative; text-align: left">
+                    <div class="paneltitle unselectable" style="top:0px; position: relative; text-align: left; white-space: nowrap;">
                         {actionMarkerData[AM_NAME]} on {displayDate}
                     </div>
 
