@@ -98,7 +98,8 @@
                "P_SEVERE": P_SEVERE})
 
   function toggleZoomStates() {
-    dt = (dt % 4) + 1
+    dt *= 2
+    if (dt > 4) dt = 1
   }
 
   function addActionMarker() {
@@ -118,7 +119,7 @@
     }
     // If we have too few values, augment with empty so that the Chart renders properly.
     while (augmented.length < 101*dt) {
-      augmented.push([0,0,0,0,0])
+      augmented.push(new UFState(0,0,0,0,0,0))
     }
     return augmented
   }
@@ -299,7 +300,6 @@
   $: lock             = false
   $: debugHelp        = debugHelper([])
   $: flashMessage     = ''
-
 
 
 
