@@ -1107,7 +1107,7 @@
   <p class="center">
     As you know, a model is only as good as its input parameters. Although we have done a lot of research to provide sensible default values,
     you probably disagree with some of our choices. That's why we wanted to provide you the possibility of tuning parameters by yourself.
-    You can also set your own action points to model the effect of government interventions.
+    You can also set your own action points to model the effects of different policy changes.
   </p>
   <p class="center">
     At this time <i>no other</i> website provides a service like this. For example, other Coronavirus modelling websites
@@ -1117,23 +1117,13 @@
   </p>
 
   <p class="center">
-    <b>Authors</b>
-  </p>
-  <p class="center">
-    Corosim was created by Futurice on top of Gabriel Goh's Epidemic Calculator.
-  </p>
-  <p class="center">
-    For any enquiries, contact Atte Juvonen at futurice.com.
-  </p>
-
-  <p class="center">
     <b>Model Details</b>
   </p>
   <p class="center" style="padding-bottom: 16.5px;">
     Corosim uses Gabriel Goh's implementation of a
     <b><a href="https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SEIR_model">SEIR</a></b> model    
     (<b>S</b>usceptible → <b>E</b>xposed → <b>I</b>nfected → <b>R</b>emoved).
-    This is a classical infectius disease model, commonly used to this day in the frontlines of research.
+    This is a classical infectious disease model, commonly used to this day in the front lines of research.
     For example, the Finnish health authority
     <a href="https://thl.fi/fi/-/koronaepidemian-mallinnus-ihmiskontaktien-rajoittaminen-vaikuttaa-epidemian-kestoon-ja-paivittaisten-tartuntojen-maaraan">
       THL uses a similar SEIR model for their official Coronavirus forecasts.
@@ -1161,6 +1151,16 @@
     <li>ICU bed predictions of this model are probably <i>too low</i></li>
     <li>Fatality predictions of this model are probably <i>too low if icu capacity is exceeded</i></li>
   </ul>
+
+  <p class="center">
+    <b>Authors</b>
+  </p>
+  <p class="center">
+    Corosim was created by Futurice on top of Gabriel Goh's Epidemic Calculator.
+  </p>
+  <p class="center">
+    For any enquiries, contact Atte Juvonen at futurice.com.
+  </p>
   
 
   <!-- Input data -->
