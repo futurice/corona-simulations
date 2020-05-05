@@ -9,7 +9,7 @@
   import { format } from 'd3-format';
   import { event } from 'd3-selection';
   import Icon from 'svelte-awesome';
-  import { search, plus, exclamationCircle } from 'svelte-awesome/icons';
+  import { search, plus, exclamationCircle, times } from 'svelte-awesome/icons';
   import katex from 'katex';
 
   // Custom Svelte components
@@ -101,6 +101,10 @@
   function toggleZoomStates() {
     dt *= 2
     if (dt > 4) dt = 1
+  }
+
+  function closePopup() {
+    popupHTML = ''
   }
 
   function addActionMarker() {
@@ -301,6 +305,7 @@
   $: lock             = false
   $: debugHelp        = debugHelper([])
   $: flashMessage     = ''
+  $: popupHTML        = ''
 
 
 
@@ -719,6 +724,7 @@
   <div style="flex: 0 0 270px; width:270px;">
     <div style="height: 50px;">
       
+      <!-- Deprecated scenario dropdown selector. -->
       {#if display_scenario_dropdown}
         <div class="legendtext" style="font-size: 14px; line-height:16px; font-weight: bold; color: #777;">
           Select scenario and model:
@@ -731,16 +737,18 @@
         </select>
       {/if}
 
+      <!-- Deprecated toggle for hiding historical estimates. -->
       {#if display_toggle_for_historical_estimates}
-      <div style="position: font-family: nyt-franklin,helvetica,arial,sans-serif; font-size: 13px; margin-bottom: 10px; margin-top: 10px; margin-left: 2px;">
-        <div class="tick" style="position: relative; color: #AAA; pointer-events:all;">
-          <Checkbox color="#BBB" bind:checked={showHistory}/><div style="position: relative; top: 4px; left:20px; color: #777;">Display historical estimates</div>
+        <div style="position: font-family: nyt-franklin,helvetica,arial,sans-serif; font-size: 13px; margin-bottom: 10px; margin-top: 10px; margin-left: 2px;">
+          <div class="tick" style="position: relative; color: #AAA; pointer-events:all;">
+            <Checkbox color="#BBB" bind:checked={showHistory}/><div style="position: relative; top: 4px; left:20px; color: #777;">Display historical estimates</div>
+          </div>
         </div>
-      </div>
       {/if}
 
     </div>
 
+    <!-- ChartCompanion (scenario outcome and highlighted day, left side of chart). -->
     <div style="position:relative; top:100px; right:-115px">
       <ChartCompanion bind:stateMeta = {stateMeta}
         N = {N}
@@ -782,12 +790,30 @@
 
     <div style="position:relative; top:60px; left: 10px" >
 
+      <!-- Big overlay text about "fetching" or "error" when dealing with custom scenarios. -->
       {#if selectedModel === MODEL_CUSTOM && customScenarioStatus !== ''}
         <div style="position: absolute; top: 100px; left: 100px; font-size: 40px;">
           {customScenarioStatus}
         </div>
       {/if}
 
+      <!-- Large popup when user clicks "learn more". -->
+      {#if popupHTML !== ''}
+        <div style="position: absolute; top: -55px; left: 0px; width: {width-10}px; height: {height+65}px; background-color: white; border: 1px solid #CCC; border-radius: 5px; z-index: 999999;">
+          <div on:click={closePopup} title="Close">
+            <Icon data={times}
+              scale=3
+              class="clickableIcons"
+              style="color: #CCC; position: absolute; right: 20px; top: 20px;"
+              />
+          </div>
+          <div style="position: absolute; top: 50px; left: 50px; font-weight: 300; font-family: nyt-franklin,helvetica,arial,sans-serif; color:#666; font-size: 16.5px; text-align: justify; line-height: 24px">
+            {@html popupHTML}
+          </div>
+        </div>
+      {/if}
+
+      <!-- The actual chart with bars and stuff. -->
       <Chart bind:active={active}
         states = {P_bars} 
         stateMeta = {stateMeta}
@@ -801,6 +827,8 @@
         log={!log}
         firstBarDate = {firstBarDate}
         />
+
+      <!-- Buttons on thee right side of chart: zoom and add. -->
       <div>
         {#if selectedModel === MODEL_GOH}
         <div on:click={addActionMarker} title="Add new action marker">
@@ -821,85 +849,89 @@
       </div>
     </div>
 
-      {#if allow_x_axis_resizing}
-        <div id="xAxisDrag"
-           style="{allow_x_axis_resizing ? "cursor:col-resize;" : ""}
-                  pointer-events: all;
-                  position: absolute;
-                  top:{height+80}px;
-                  left:{0}px;
-                  width:{780}px;
-                  background-color:#222;
-                  opacity: 0;
-                  height:25px;">
-        </div>
-      {/if}
-
-      <div id="yAxisDrag"
-           style="cursor:row-resize;
-                  pointer-events: all;
-                  position: absolute;
-                  top:{55}px;
-                  left:{0}px;
-                  width:{20}px;
-                  background-color:#222;
-                  opacity: 0;
-                  height:425px;">
+    <!-- Deprecated x axis zoom. -->
+    {#if allow_x_axis_resizing}
+      <div id="xAxisDrag"
+          style="{allow_x_axis_resizing ? "cursor:col-resize;" : ""}
+                pointer-events: all;
+                position: absolute;
+                top:{height+80}px;
+                left:{0}px;
+                width:{780}px;
+                background-color:#222;
+                opacity: 0;
+                height:25px;">
       </div>
+    {/if}
 
-      {#if demo_mode !== SHOW_FUTURE}
-        <HistoryMarker
+    <!-- Y axis zoom. -->
+    <div id="yAxisDrag"
+          style="cursor:row-resize;
+                pointer-events: all;
+                position: absolute;
+                top:{55}px;
+                left:{0}px;
+                width:{20}px;
+                background-color:#222;
+                opacity: 0;
+                height:425px;">
+    </div>
+
+    <!-- History Marker. -->
+    {#if demo_mode !== SHOW_FUTURE}
+      <HistoryMarker
+        width = {width}
+        height = {height}
+        R0 = {R0}
+        tmax = {tmax}
+        Pmax = {Pmax}
+        lastHistoricDay = {lastHistoricDay}
+        bind:cutoffHistoricDay = {cutoffHistoricDay}
+        bind:Plock = {Plock}
+        bind:lock = {lock}
+        bind:lock_yaxis = {lock_yaxis}
+        bind:flashMessage = {flashMessage}
+      />
+    {/if}
+
+    <!-- Action Markers. -->
+    {#each actionMarkers[selectedModel] as actionMarkerData}
+      {#if actionMarkerData[AM_DAY] < tmax}
+        <ActionMarker
           width = {width}
           height = {height}
           R0 = {R0}
           tmax = {tmax}
           Pmax = {Pmax}
-          lastHistoricDay = {lastHistoricDay}
-          bind:cutoffHistoricDay = {cutoffHistoricDay}
+          P_all_historical = {P_all_historical}
+          demo_mode = {demo_mode}
+          firstBarDate = {firstBarDate}
+          bind:allActiveActionMarkers = {actionMarkers[selectedModel]}
+          bind:actionMarkerData = {actionMarkerData}
           bind:Plock = {Plock}
           bind:lock = {lock}
           bind:lock_yaxis = {lock_yaxis}
           bind:flashMessage = {flashMessage}
         />
       {/if}
+    {/each}
 
-      {#each actionMarkers[selectedModel] as actionMarkerData}
-        {#if actionMarkerData[AM_DAY] < tmax}
-          <ActionMarker
-            width = {width}
-            height = {height}
-            R0 = {R0}
-            tmax = {tmax}
-            Pmax = {Pmax}
-            P_all_historical = {P_all_historical}
-            demo_mode = {demo_mode}
-            firstBarDate = {firstBarDate}
-            bind:allActiveActionMarkers = {actionMarkers[selectedModel]}
-            bind:actionMarkerData = {actionMarkerData}
-            bind:Plock = {Plock}
-            bind:lock = {lock}
-            bind:lock_yaxis = {lock_yaxis}
-            bind:flashMessage = {flashMessage}
-          />
-        {/if}
-      {/each}
-
-      <!-- Milestones -->
-      <div style="pointer-events: none;
-                  position: absolute;
-                  top:{height+84}px;
-                  left:{0}px;
-                  width:{780}px;
-                  opacity: 1.0;
-                  height:25px;
-                  cursor:col-resize">
-            {#each milestones as milestone}
-              <div style="position:absolute; left: {xScaleTime(milestone[0])+8}px; top: -30px;">
-                <span style="opacity: 0.3"><Arrow height=30 arrowhead="#circle" dasharray = "2 1"/></span>
-                  <div class="tick" style="position: relative; left: 0px; top: 35px; max-width: 130px; color: #BBB; background-color: white; padding-left: 4px; padding-right: 4px">{@html milestone[1]}</div>
-              </div>
-            {/each}
-      </div>
+    <!-- Milestones -->
+    <div style="pointer-events: none;
+                position: absolute;
+                top:{height+84}px;
+                left:{0}px;
+                width:{780}px;
+                opacity: 1.0;
+                height:25px;
+                cursor:col-resize">
+          {#each milestones as milestone}
+            <div style="position:absolute; left: {xScaleTime(milestone[0])+8}px; top: -30px;">
+              <span style="opacity: 0.3"><Arrow height=30 arrowhead="#circle" dasharray = "2 1"/></span>
+                <div class="tick" style="position: relative; left: 0px; top: 35px; max-width: 130px; color: #BBB; background-color: white; padding-left: 4px; padding-right: 4px">{@html milestone[1]}</div>
+            </div>
+          {/each}
+    </div>
 
    </div>
 
@@ -918,9 +950,10 @@
         <ParameterKnob
           description = "Basic Reproduction Number {math_inline('\\mathcal{R}_0')}"
           bind:value = {R0}
+          bind:popupHTML = {popupHTML}
           defaultValue = {defaultParameters["R0"]}
           minValue = 0.01
-          maxValue = 10
+          maxValue = 5
           stepValue = 0.01
           isDefaultValueAutomaticallyGeneratedFromData = true
           />
@@ -929,124 +962,134 @@
       <div class="column">
 
         <ParameterKnob
-            description = 'Length of incubation period {math_inline("T_{\\text{inc}}")}'
-            bind:value = {D_incbation}
-            defaultValue = {defaultParameters["days_from_incubation_to_infectious"]}
-            minValue = 0.15
-            maxValue = 24
-            stepValue = 0.0001
-            unitsDescriptor = 'days'
-          />
+          description = 'Length of incubation period {math_inline("T_{\\text{inc}}")}'
+          bind:value = {D_incbation}
+          bind:popupHTML = {popupHTML}
+          defaultValue = {defaultParameters["days_from_incubation_to_infectious"]}
+          minValue = 0.15
+          maxValue = 24
+          stepValue = 0.0001
+          unitsDescriptor = 'days'
+        />
 
         <!-- TODO explain why tuning this up causes the epidemic to spread slower. -->
         <ParameterKnob
-            description = 'Duration patient is infectious {math_inline("T_{\\text{inf}}")}'
-            bind:value = {D_infectious}
-            defaultValue = {defaultParameters["days_from_infectious_to_not_infectious"]}
-            minValue = 0
-            maxValue = 24
-            stepValue = 0.01
-            unitsDescriptor = 'days'
-          />
+          description = 'Duration patient is infectious {math_inline("T_{\\text{inf}}")}'
+          bind:value = {D_infectious}
+          bind:popupHTML = {popupHTML}
+          defaultValue = {defaultParameters["days_from_infectious_to_not_infectious"]}
+          minValue = 0
+          maxValue = 24
+          stepValue = 0.01
+          unitsDescriptor = 'days'
+        />
 
       </div>
 
       <div class="column">
 
         <ParameterKnob
-            description = 'Infected fatality rate'
-            bind:value = {CFR}
-            defaultValue = {defaultParameters["fatality_rate"]}
-            minValue = 0
-            maxValue = 0.05
-            stepValue = 0.001
-            isPercentage = true
-            unitsDescriptor = '%'
-          />
+          description = 'Infected fatality rate'
+          bind:value = {CFR}
+          bind:popupHTML = {popupHTML}
+          defaultValue = {defaultParameters["fatality_rate"]}
+          minValue = 0
+          maxValue = 0.05
+          stepValue = 0.001
+          isPercentage = true
+          unitsDescriptor = '%'
+        />
 
         <ParameterKnob
-            description = 'Time from end of incubation to death'
-            bind:value = {Time_to_death}
-            defaultValue = {defaultParameters["days_from_incubation_to_death"]}
-            minValue = {D_infectious + 0.1}
-            maxValue = 100
-            stepValue = 0.01
-            unitsDescriptor = 'days'
-          />
+          description = 'Time from end of incubation to death'
+          bind:value = {Time_to_death}
+          bind:popupHTML = {popupHTML}
+          defaultValue = {defaultParameters["days_from_incubation_to_death"]}
+          minValue = {D_infectious + 0.1}
+          maxValue = 100
+          stepValue = 0.01
+          unitsDescriptor = 'days'
+        />
 
       </div>
 
       <div class="column">
 
         <ParameterKnob
-            description = 'Length of hospital stay'
-            bind:value = {D_recovery_severe}
-            defaultValue = {defaultParameters["days_in_hospital"]}
-            minValue = 0.1
-            maxValue = 100
-            stepValue = 0.01
-            unitsDescriptor = 'days'
-          />
+          description = 'Length of hospital stay'
+          bind:value = {D_recovery_severe}
+          bind:popupHTML = {popupHTML}
+          defaultValue = {defaultParameters["days_in_hospital"]}
+          minValue = 0.1
+          maxValue = 100
+          stepValue = 0.01
+          unitsDescriptor = 'days'
+        />
 
         <ParameterKnob
-            description = 'Recovery time for mild cases'
-            bind:value = {D_recovery_mild}
-            defaultValue = {defaultParameters["days_in_mild_recovering_state"]}
-            minValue = 0.5
-            maxValue = 100
-            stepValue = 0.01
-            unitsDescriptor = 'days'
-          />
+          description = 'Recovery time for mild cases'
+          bind:value = {D_recovery_mild}
+          bind:popupHTML = {popupHTML}
+          defaultValue = {defaultParameters["days_in_mild_recovering_state"]}
+          minValue = 0.5
+          maxValue = 100
+          stepValue = 0.01
+          unitsDescriptor = 'days'
+        />
 
       </div>
 
       <div class="column">
 
         <ParameterKnob
-            description = 'Hospitalization rate'
-            bind:value = {P_SEVERE}
-            defaultValue = {defaultParameters["hospitalization_rate"]}
-            minValue = 0
-            maxValue = 0.2
-            stepValue = 0.0001
-            isPercentage = true
-            unitsDescriptor = '%'
-          />
+          description = 'Hospitalization rate'
+          bind:value = {P_SEVERE}
+          bind:popupHTML = {popupHTML}
+          defaultValue = {defaultParameters["hospitalization_rate"]}
+          minValue = 0
+          maxValue = 0.2
+          stepValue = 0.0001
+          isPercentage = true
+          unitsDescriptor = '%'
+        />
 
         <ParameterKnob
-            description = 'Time to hospitalization'
-            bind:value = {D_hospital_lag}
-            defaultValue = {defaultParameters["days_in_severe_recovering_state_before_hospital"]}
-            minValue = 0.5
-            maxValue = 100
-            stepValue = 0.01
-            unitsDescriptor = 'days'
-          />
+          description = 'Time to hospitalization'
+          bind:value = {D_hospital_lag}
+          bind:popupHTML = {popupHTML}
+          defaultValue = {defaultParameters["days_in_severe_recovering_state_before_hospital"]}
+          minValue = 0.5
+          maxValue = 100
+          stepValue = 0.01
+          unitsDescriptor = 'days'
+        />
   
       </div>
 
       <div class="column">
 
         <ParameterKnob
-            description = 'ICU rate'
-            bind:value = {P_ICU}
-            defaultValue = {defaultParameters["icu_rate_from_hospitalized"]}
-            minValue = 0
-            maxValue = 1
-            stepValue = 0.01
-            isPercentage = true
-            unitsDescriptor = '%'
-          />
+          description = 'ICU rate'
+          bind:value = {P_ICU}
+          bind:popupHTML = {popupHTML}
+          defaultValue = {defaultParameters["icu_rate_from_hospitalized"]}
+          minValue = 0
+          maxValue = 1
+          stepValue = 0.01
+          isPercentage = true
+          unitsDescriptor = '%'
+        />
 
         <ParameterKnob
-            description = 'ICU capacity'
-            bind:value = {icuCapacity}
-            defaultValue = {defaultParameters["icu_capacity"]}
-            minValue = 0
-            maxValue = 10000
-            stepValue = 10
-            isInteger = true
-          />
+          description = 'ICU capacity'
+          bind:value = {icuCapacity}
+          bind:popupHTML = {popupHTML}
+          defaultValue = {defaultParameters["icu_capacity"]}
+          minValue = 0
+          maxValue = 10000
+          stepValue = 10
+          isInteger = true
+        />
 
       </div>
 

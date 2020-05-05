@@ -7,6 +7,7 @@
 
     export let description;
     export let value;
+    export let popupHTML;
     export let minValue;
     export let maxValue;
     export let stepValue;
@@ -17,6 +18,15 @@
     export let isDefaultValueAutomaticallyGeneratedFromData = false;
 
     $: valueFormatted = isInteger ? value : (isPercentage ? (100*value).toFixed(2) : value.toFixed(2))
+
+    function displayPopup() {
+        popupHTML = `<p><b>${description}</b></p>
+                     <p>TODO explain this parameter.</p>
+                     <p><b>Should not be confused with</b></p>
+                     <p>TODO discuss similar parameters which are slightly different.</p>
+                     <p><b>Justification for default value</b></p>
+                     <p>TODO.</p>`
+    }
 
 </script>
 
@@ -68,7 +78,7 @@
         {@html description}
         <!-- Measure of contagiousness: the number of secondary infections each infected individual produces. -->
 
-        <div on:click={() => {}} title="Learn more">
+        <div on:click={displayPopup} title="Learn more">
             <Icon data={question}
             scale=1.0
             class="clickableIcons"
