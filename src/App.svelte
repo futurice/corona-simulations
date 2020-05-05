@@ -19,6 +19,7 @@
   import Arrow from './components/Arrow.svelte';
   import HistoryMarker from './components/HistoryMarker.svelte';
   import ActionMarker from './components/ActionMarker.svelte';
+  import ParameterKnob from './components/ParameterKnob.svelte';
 
   // Custom utilities
   import { ActionMarkerData, AM_DAY } from './action_marker_data.js';
@@ -528,6 +529,11 @@
 
   :global(html) {
       overflow-y: scroll;
+
+      /* Any browser which supports CSS3
+      filter: blur(10px);
+      filter: url("blur.svg#gaussian_blur");
+      -webkit-filter: blur(10px); */
   }
 
   h2 {
@@ -608,7 +614,6 @@
 
   .paneltext{
     position:relative;
-    height:130px;
   }
 
   .paneltitle{
@@ -692,6 +697,7 @@
   }
 
   :global(.clickableIcons:hover) {
+    cursor: pointer;
     color: #777 !important;
   }
 
@@ -767,7 +773,7 @@
                 ">
       <Icon data={exclamationCircle}
         scale=1.5
-        style="color: #f0027f; position: absolute; cursor: hand;"
+        style="color: #f0027f; position: absolute; cursor: pointer;"
         />
       <span style="position: absolute; left: 30px; top: 3px;">
         {flashMessage}
@@ -801,7 +807,7 @@
           <Icon data={plus}
             scale=2.5
             class="clickableIcons"
-            style="color: #CCC; position: absolute; right: 70px; top: 20px; cursor: hand;"
+            style="color: #CCC; position: absolute; right: 70px; top: 20px;"
             />
         </div>
         {/if}
@@ -809,7 +815,7 @@
           <Icon data={search}
             scale=2.5
             class="clickableIcons"
-            style="color: #CCC; position: absolute; right: 70px; bottom: 0px; cursor: hand;"
+            style="color: #CCC; position: absolute; right: 70px; bottom: 0px;"
             />
         </div>
       </div>
@@ -902,73 +908,145 @@
 
 <div style="height:220px;">
   <div class="minorTitle">
-    <div style="margin: 0px 0px 5px 4px" class="minorTitleColumn">Parameter configuration for selected scenario/model</div>
+    <div style="margin: 0px 0px 5px 4px" class="minorTitleColumn">Parameter configuration</div>
   </div>
   <div class = "row">
 
     {#if selectedModel === MODEL_GOH}
 
       <div class="column">
-        <div class="paneltext">
-        <div class="paneltitle">Basic Reproduction Number {@html math_inline("\\mathcal{R}_0")} </div>
-        <div class="paneldesc">Measure of contagiousness: the number of secondary infections each infected individual produces. <br></div>
-        </div>
-        <div class="slidertext">{R0}</div>
-        <input class="range" type=range bind:value={R0} min=0.01 max=10 step=0.01> 
+        <ParameterKnob
+          description = "Basic Reproduction Number {math_inline('\\mathcal{R}_0')}"
+          bind:value = {R0}
+          defaultValue = {defaultParameters["R0"]}
+          minValue = 0.01
+          maxValue = 10
+          stepValue = 0.01
+          isDefaultValueAutomaticallyGeneratedFromData = true
+          />
       </div> 
 
       <div class="column">
-        <div class="paneltitle">Transmission Times</div>
-        <div class="paneldesc" style="height:30px">Length of incubation period, {@html math_inline("T_{\\text{inc}}")}.<br></div>
-        <div class="slidertext">{(D_incbation).toFixed(2)} days</div>
-        <input class="range" style="margin-bottom: 8px"type=range bind:value={D_incbation} min={0.15} max=24 step=0.0001>
-        <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Duration patient is infectious, {@html math_inline("T_{\\text{inf}}")}.<br></div>
-        <div class="slidertext">{D_infectious} Days</div>
-        <input class="range" type=range bind:value={D_infectious} min={0} max=24 step=0.01>
-      </div>
 
-      <div style="flex: 0 0 20; width:20px"></div>
+        <ParameterKnob
+            description = 'Length of incubation period {math_inline("T_{\\text{inc}}")}'
+            bind:value = {D_incbation}
+            defaultValue = {defaultParameters["days_from_incubation_to_infectious"]}
+            minValue = 0.15
+            maxValue = 24
+            stepValue = 0.0001
+            unitsDescriptor = 'days'
+          />
 
-      <div class="column">
-        <div class="paneltitle">Mortality Statistics</div>
-        <div class="paneldesc" style="height:30px">Infected fatality rate.<br></div>
-        <div class="slidertext">{(CFR*100).toFixed(2)} %</div>
-        <input class="range" style="margin-bottom: 8px" type=range bind:value={CFR} min={0} max=0.05 step=0.0001>
-        <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Time from end of incubation to death.<br></div>
-        <div class="slidertext">{Time_to_death} Days</div>
-        <input class="range" type=range bind:value={Time_to_death} min={(D_infectious)+0.1} max=100 step=0.01>
-      </div>
+        <!-- TODO explain why tuning this up causes the epidemic to spread slower. -->
+        <ParameterKnob
+            description = 'Duration patient is infectious {math_inline("T_{\\text{inf}}")}'
+            bind:value = {D_infectious}
+            defaultValue = {defaultParameters["days_from_infectious_to_not_infectious"]}
+            minValue = 0
+            maxValue = 24
+            stepValue = 0.01
+            unitsDescriptor = 'days'
+          />
 
-      <div class="column">
-        <div class="paneltitle">Recovery Times</div>
-        <div class="paneldesc" style="height:30px">Length of hospital stay<br></div>
-        <div class="slidertext">{D_recovery_severe} Days</div>
-        <input class="range" style="margin-bottom: 8px" type=range bind:value={D_recovery_severe} min={0.1} max=100 step=0.01>
-        <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Recovery time for mild cases<br></div>
-        <div class="slidertext">{D_recovery_mild} Days</div>
-        <input class="range" type=range bind:value={D_recovery_mild} min={0.5} max=100 step=0.01>
       </div>
 
       <div class="column">
-        <div class="paneltitle">Care statistics</div>
-        <div class="paneldesc" style="height:30px">Hospitalization rate.<br></div>
-        <div class="slidertext">{(P_SEVERE*100).toFixed(2)} %</div>
-        <input class="range" style="margin-bottom: 8px" type=range bind:value={P_SEVERE} min={0} max=1 step=0.0001>      
-        <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">Time to hospitalization.<br></div>
-        <div class="slidertext">{D_hospital_lag} Days</div>
-        <input class="range" type=range bind:value={D_hospital_lag} min={0.5} max=100 step=0.01>
+
+        <ParameterKnob
+            description = 'Infected fatality rate'
+            bind:value = {CFR}
+            defaultValue = {defaultParameters["fatality_rate"]}
+            minValue = 0
+            maxValue = 0.05
+            stepValue = 0.001
+            isPercentage = true
+            unitsDescriptor = '%'
+          />
+
+        <ParameterKnob
+            description = 'Time from end of incubation to death'
+            bind:value = {Time_to_death}
+            defaultValue = {defaultParameters["days_from_incubation_to_death"]}
+            minValue = {D_infectious + 0.1}
+            maxValue = 100
+            stepValue = 0.01
+            unitsDescriptor = 'days'
+          />
+
       </div>
 
       <div class="column">
-        <div class="paneltitle">ICU visualization</div>
 
-        <div class="paneldesc" style="height:30px; border-top: 0px solid #EEE;">ICU rate<br></div> 
-        <div class="slidertext">{P_ICU}</div>
-        <input class="range" style="margin-bottom: 8px" type=range bind:value={P_ICU} min=0 max=1 step=0.01>
+        <ParameterKnob
+            description = 'Length of hospital stay'
+            bind:value = {D_recovery_severe}
+            defaultValue = {defaultParameters["days_in_hospital"]}
+            minValue = 0.1
+            maxValue = 100
+            stepValue = 0.01
+            unitsDescriptor = 'days'
+          />
 
-        <div class="paneldesc" style="height:29px; border-top: 1px solid #EEE; padding-top: 10px">ICU capacity<br></div> 
-        <div class="slidertext">{icuCapacity === 0 ? 'Hidden' : icuCapacity}</div>
-        <input class="range" type=range bind:value={icuCapacity} min=0 max=10000 step=10>
+        <ParameterKnob
+            description = 'Recovery time for mild cases'
+            bind:value = {D_recovery_mild}
+            defaultValue = {defaultParameters["days_in_mild_recovering_state"]}
+            minValue = 0.5
+            maxValue = 100
+            stepValue = 0.01
+            unitsDescriptor = 'days'
+          />
+
+      </div>
+
+      <div class="column">
+
+        <ParameterKnob
+            description = 'Hospitalization rate'
+            bind:value = {P_SEVERE}
+            defaultValue = {defaultParameters["hospitalization_rate"]}
+            minValue = 0
+            maxValue = 0.2
+            stepValue = 0.0001
+            isPercentage = true
+            unitsDescriptor = '%'
+          />
+
+        <ParameterKnob
+            description = 'Time to hospitalization'
+            bind:value = {D_hospital_lag}
+            defaultValue = {defaultParameters["days_in_severe_recovering_state_before_hospital"]}
+            minValue = 0.5
+            maxValue = 100
+            stepValue = 0.01
+            unitsDescriptor = 'days'
+          />
+  
+      </div>
+
+      <div class="column">
+
+        <ParameterKnob
+            description = 'ICU rate'
+            bind:value = {P_ICU}
+            defaultValue = {defaultParameters["icu_rate_from_hospitalized"]}
+            minValue = 0
+            maxValue = 1
+            stepValue = 0.01
+            isPercentage = true
+            unitsDescriptor = '%'
+          />
+
+        <ParameterKnob
+            description = 'ICU capacity'
+            bind:value = {icuCapacity}
+            defaultValue = {defaultParameters["icu_capacity"]}
+            minValue = 0
+            maxValue = 10000
+            stepValue = 10
+            isInteger = true
+          />
 
       </div>
 

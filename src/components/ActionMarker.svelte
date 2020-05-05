@@ -246,7 +246,7 @@
                 <Icon data={gear}
                     scale=1.0
                     class="clickableIcons"
-                    style="color: #CCC; position: absolute; cursor: hand;"
+                    style="color: #CCC; position: absolute;"
                 />
                 <span style="position: absolute; left: 20px;">{actionMarkerData[AM_EXPANDED] ? "Hide config" : "Configure"}</span>
             </div>
@@ -256,7 +256,7 @@
                     <Icon data={trash}
                         scale=1.0
                         class="clickableIcons"
-                        style="color: #CCC; position: absolute; cursor: hand; right: 0px;"
+                        style="color: #CCC; position: absolute; right: 0px;"
                     />
                 </div>
                 <div style="background-color: #FFF;">

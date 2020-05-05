@@ -38,7 +38,6 @@ const MONTHS = [
 ]
 
 export function getMonth(date) {
-    console.log(new Intl.DateTimeFormat('en', { month: 'numeric' }).format(date))
     return MONTHS[new Intl.DateTimeFormat('en', { month: 'numeric' }).format(date)]
 }
 
