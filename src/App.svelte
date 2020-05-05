@@ -1094,121 +1094,74 @@
 
 
 {#if selectedModel === MODEL_GOH}
-  <p class = "center">
-  This is a fork of Gabriel Goh's fantastic Epidemic Calculator.
+  <p class="center">
+    <b>Brief introduction</b>
   </p>
-
-  <p class = "center">
-  This calculator implements a classical infectious disease model &mdash <b><a href="https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SEIR_model">SEIR</a> </b>(<b>S</b>usceptible → <b>E</b>xposed → <b>I</b>nfected → <b>R</b>emoved), an idealized model of spread still used in frontlines of research e.g. [<a href="https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(20)30260-9/fulltext">Wu, et. al</a>, <a href = "https://cmmid.github.io/topics/covid19/current-patterns-transmission/wuhan-early-dynamics.html">Kucharski et. al</a>]. The dynamics of this model are characterized by a set of four ordinary differential equations that correspond to the stages of the disease's progression:
-  <span style="color:#777">{@html ode_eqn}</span>
+  <p class="center">
+    Corosim combines historical estimates & model predictions to provide a complete overview of the Coronavirus epidemic in Finland.
+    This means you can use Corosim to answer questions such as "how many Finns have been infected so far" or "when will the epidemic peak".
+    Historical estimates are updated daily from data provided by <a href="https://github.com/HS-Datadesk/koronavirus-avoindata">Helsingin Sanomat</a>.
+    However, we don't obsess over confirmed cases. We attempt to provide an accurate picture of the epidemic, acknowledging the fact that
+    many infections (and even many deaths) are excluded from the official statistics.
   </p>
-
-
-  <p class = "center">
-  A sampling of the estimates for epidemic parameters are presented below:
+  <p class="center">
+    As you know, a model is only as good as its input parameters. Although we have done a lot of research to provide sensible default values,
+    you probably disagree with some of our choices. That's why we wanted to provide you the possibility of tuning parameters by yourself.
+    You can also set your own action points to model the effect of government interventions.
   </p>
-
-  <div class="center">
-  <table style="width:100%; margin:auto; font-weight: 300; border-spacing: inherit">
-    <tr>
-      <th></th>
-      <th>Location</th>
-      <th>Reproduction Number<br> {@html math_inline("\\mathcal{R}_0")}</th>
-      <th>Incubation Period<br> {@html math_inline("T_{\\text{inc}}")} (in days)</th>
-      <th>Infectious Period<br> {@html math_inline("T_{\\text{inf}}")} (in days)</th>
-    </tr>
-    <tr>
-      <td width="27%"><a href = "https://cmmid.github.io/topics/covid19/current-patterns-transmission/wuhan-early-dynamics.html">Kucharski et. al</a></td>
-      <td>Wuhan </td>    
-      <td>3.0 (1.5 — 4.5)</td>
-      <td>5.2</td>
-      <td>2.9</td>
-    </tr>
-    <tr>
-      <td><a href = "https://www.nejm.org/doi/full/10.1056/NEJMoa2001316">Li, Leung and Leung</a></td>
-      <td>Wuhan </td>    
-      <td>2.2 (1.4 — 3.9)</td>
-      <td>5.2 (4.1 — 7.0)</td>
-      <td>2.3 (0.0 — 14.9)</td>
-    </tr>
-    <tr>
-      <td><a href = "https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(20)30260-9/fulltext">Wu et. al</a></td>
-      <td>Greater Wuhan </td>    
-      <td>2.68 (2.47 — 2.86)</td>
-      <td>6.1</td>
-      <td>2.3</td>
-    </tr>
-    <tr>
-      <td><a href = "https://www.who.int/news-room/detail/23-01-2020-statement-on-the-meeting-of-the-international-health-regulations-(2005)-emergency-committee-regarding-the-outbreak-of-novel-coronavirus-(2019-ncov)">WHO Initial Estimate</a></td>
-      <td>Hubei </td>    
-      <td>1.95 (1.4 — 2.5)</td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <td><a href = "https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf">WHO-China Joint Mission </a></td>
-      <td>Hubei </td>    
-      <td>2.25 (2.0 — 2.5)</td>
-      <td>5.5 (5.0 - 6.0)</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td><a href = "https://www.biorxiv.org/content/10.1101/2020.01.25.919787v2">Liu et. al </a></td>
-      <td>Guangdong</td>
-      <td>4.5 (4.4 — 4.6)</td>
-      <td>4.8 (2.2 — 7.4) </td>
-      <td>2.9 (0 — 5.9)</td>
-    </tr>
-    <tr>
-      <td><a href = "https://academic.oup.com/jtm/advance-article/doi/10.1093/jtm/taaa030/5766334">Rocklöv, Sjödin and Wilder-Smith</a></td>
-      <td>Princess Diamond</td>
-      <td>14.8</td>
-      <td>5.0</td>
-      <td>10.0</td>
-    </tr>
-    <tr>
-      <td><a href = "https://www.eurosurveillance.org/content/10.2807/1560-7917.ES.2020.25.5.2000062">Backer, Klinkenberg, Wallinga</a></td>
-      <td>Wuhan</td>
-      <td></td>
-      <td>6.5 (5.6 — 7.9)</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td><a href = "https://www.medrxiv.org/content/10.1101/2020.01.23.20018549v2.article-info">Read et. al</a></td>
-      <td>Wuhan</td>
-      <td>3.11 (2.39 — 4.13)</td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <td><a href = "https://www.medrxiv.org/content/10.1101/2020.03.03.20028423v1">Bi et. al</a></td>
-      <td>Shenzhen</td>
-      <td></td>
-      <td>4.8 (4.2 — 5.4)</td>
-      <td>1.5 (0 — 3.4)</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td><a href = "https://www.mdpi.com/2077-0383/9/2/462">Tang et. al</a></td>
-      <td>China</td>
-      <td>6.47 (5.71 — 7.23)</td>
-      <td></td>
-      <td></td>
-    </tr>
-
-  </table>
-  </div>
-
+  <p class="center">
+    At this time <i>no other</i> website provides a service like this. For example, other Coronavirus modelling websites
+    typically begin the simulation from a theoretical "day zero" which can not be configured according to estimates of the current situation
+    (typically you can only adjust the number of infected). We have gone long past day zero &#8212; we are in the middle of the epidemic.
+    Doesn't it make sense to start the simulation from the most recent estimate of the current situation? That's what Corosim does.
+  </p>
 
   <p class="center">
-  See [<a href="https://academic.oup.com/jtm/advance-article/doi/10.1093/jtm/taaa021/5735319">Liu et. al</a>] detailed survey of current estimates of the reproduction number. Parameters for the diseases' clinical characteristics are taken from the following <a href="https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf">WHO Report</a>. 
+    <b>Authors</b>
+  </p>
+  <p class="center">
+    Corosim was created by Futurice on top of Gabriel Goh's Epidemic Calculator.
+  </p>
+  <p class="center">
+    For any enquiries, contact Atte Juvonen at futurice.com.
   </p>
 
-  <p class = "center">
-  <b> Model Details </b><br>
-  The clinical dynamics in this model are an elaboration on SEIR that simulates the disease's progression at a higher resolution, subdividing {@html math_inline("I,R")} into <i>mild</i> (patients who recover without the need for hospitalization), <i>moderate</i> (patients who require hospitalization but survive) and <i>fatal</i> (patients who require hospitalization and do not survive). Each of these variables follows its own trajectory to the final outcome, and the sum of these compartments add up to the values predicted by SEIR. Please refer to the source code for details. Note that we assume, for simplicity, that all fatalities come from hospitals, and that all fatal cases are admitted to hospitals immediately after the infectious period.
+  <p class="center">
+    <b>Model Details</b>
   </p>
+  <p class="center" style="padding-bottom: 16.5px;">
+    Corosim uses Gabriel Goh's implementation of a
+    <b><a href="https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SEIR_model">SEIR</a></b> model    
+    (<b>S</b>usceptible → <b>E</b>xposed → <b>I</b>nfected → <b>R</b>emoved).
+    This is a classical infectius disease model, commonly used to this day in the frontlines of research.
+    For example, the Finnish health authority
+    <a href="https://thl.fi/fi/-/koronaepidemian-mallinnus-ihmiskontaktien-rajoittaminen-vaikuttaa-epidemian-kestoon-ja-paivittaisten-tartuntojen-maaraan">
+      THL uses a similar SEIR model for their official Coronavirus forecasts.
+    </a>
+    The dynamics of this model are characterized by a set of four ordinary differential equations that correspond to the stages of the disease's progression:
+    <span style="color:#777">{@html ode_eqn}</span>
+    The clinical dynamics in this model are an elaboration on SEIR that simulates the disease's progression at a higher resolution,
+    subdividing {@html math_inline("I,R")} into <i>mild</i> (patients who recover without the need for hospitalization), <i>moderate</i>
+    (patients who require hospitalization but survive) and <i>fatal</i> (patients who require hospitalization and do not survive).
+    Each of these variables follows its own trajectory to the final outcome, and the sum of these compartments add up to the values
+    predicted by SEIR.
+    <br><br>
+    Note that we make the following assumptions for simplicity:
+  </p>
+  <ul class="center" style="padding-left: 200px;">
+    <li>all fatalities are assumed to come from hospitals</li>
+    <li>all fatal cases are assumed to be admitted to hospitals immediately after the infectious period</li>
+    <li>icu duration is assumed to be the same as hospitalization duration</li>
+    <li>exceeding icu capacity is assumed to not affect the fatality rate</li>
+  </ul>
+  <p class="center" style="padding-bottom: 16.5px;">
+    In light of these simplifying assumptions and other factors, we note the following:
+  </p>
+  <ul class="center" style="padding-left: 200px;">
+    <li>ICU bed predictions of this model are probably <i>too low</i></li>
+    <li>Fatality predictions of this model are probably <i>too low if icu capacity is exceeded</i></li>
+  </ul>
+  
 
   <!-- Input data -->
   <!-- <div style="margin-bottom: 30px">
