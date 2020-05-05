@@ -49,6 +49,11 @@
     return Array(n).fill().map((_, i) => i);
   }
 
+  function get_R0_from_Rt(Rt, goh_states_fin) {
+    const prop_susceptible = goh_states_fin[goh_states_fin.length-1][0]
+    return Rt * prop_susceptible
+  }
+
   // This is needed because when we zoom out, Chart needs every nth datapoint from P.
   function get_every_nth(P, n) {
     var arr = []
@@ -66,15 +71,10 @@
   //let custom_scenario_url_prefix = 'http://localhost:5000/'
   let custom_scenario_url_postfix = '-outcome_1.json'
 
-
-  $: latestRtEstimateValue = Number.parseFloat(latestRtEstimate[0]["Rt"])
-  $: latestRtEstimateDate  = latestRtEstimate[0]["date"]
-
   $: Time_to_death     = defaultParameters["days_from_incubation_to_death"]
   $: N                 = defaultParameters["initial_population_count"]
   $: logN              = Math.log(N)
   $: I0                = 1
-  $: R0                = latestRtEstimateValue
   $: D_incbation       = defaultParameters["days_from_incubation_to_infectious"]  
   $: D_infectious      = defaultParameters["days_from_infectious_to_not_infectious"]
   $: D_recovery_mild   = defaultParameters["days_in_mild_recovering_state"]
@@ -91,7 +91,8 @@
 
 
 
-  // Default parameters are "activated" on page load with the same mechanism that export uses ("share your model").
+  // "share your model" ?
+  /*
   $: state = location.protocol + '//' + location.host + location.pathname + "?" + queryString.stringify({"Time_to_death":Time_to_death,
                "logN":logN,
                "I0":I0,
@@ -103,6 +104,7 @@
                "CFR":CFR,
                "D_hospital_lag":D_hospital_lag,
                "P_SEVERE": P_SEVERE})
+               */
 
   function toggleZoomStates() {
     dt *= 2
@@ -273,11 +275,15 @@
   $: firstBarDate     = showHistory ? firstHistoricalDate : addDays(firstHistoricalDate, goh_states_fin_before_slicing.length - 1)
 
   $: P_all_historical_before_slicing = map_goh_states_into_UFStates(goh_states_fin_before_slicing, N, P_ICU)
-  $: lastHistoricDay  = P_all_historical_before_slicing.length-1
-  $: cutoffHistoricDay = cutoffHistoricDay ? cutoffHistoricDay : lastHistoricDay+1
-  $: P_all_historical = P_all_historical_before_slicing.slice(0, cutoffHistoricDay)
-  $: goh_states_fin = goh_states_fin_before_slicing.slice(0, cutoffHistoricDay)
-  $: lastHistoricBar  = getlastHistoricBar(demo_mode, P_all_historical, dt)
+  $: lastHistoricDay       = P_all_historical_before_slicing.length-1
+  $: cutoffHistoricDay     = cutoffHistoricDay ? cutoffHistoricDay : lastHistoricDay+1
+  $: P_all_historical      = P_all_historical_before_slicing.slice(0, cutoffHistoricDay)
+  $: goh_states_fin        = goh_states_fin_before_slicing.slice(0, cutoffHistoricDay)
+  $: latestRtEstimateValue = Number.parseFloat(latestRtEstimate[0]["Rt"])
+  $: latestRtEstimateDate  = latestRtEstimate[0]["date"]
+  $: latestR0EstimateValue = get_R0_from_Rt(latestRtEstimateValue, goh_states_fin)
+  $: R0                    = latestR0EstimateValue
+  $: lastHistoricBar       = getlastHistoricBar(demo_mode, P_all_historical, dt)
 
   $: actionMarkers    = actionMarkerHelper(P_all_historical, custom_params)
   $: stateMeta        = getDefaultStateMeta()
@@ -931,7 +937,7 @@
           description = "Basic Reproduction Number {math_inline('\\mathcal{R}_0')}"
           bind:value = {R0}
           bind:popupHTML = {popupHTML}
-          defaultValue = {latestRtEstimateValue}
+          defaultValue = {latestR0EstimateValue}
           minValue = 0.01
           maxValue = 5
           stepValue = 0.01
