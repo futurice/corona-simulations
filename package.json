@@ -25,13 +25,16 @@
     "katex": "^0.11.1",
     "ndarray": "^1.0.18",
     "ndarray-scratch": "^1.2.0",
+    "node-fetch": "^2.6.0",
     "numpy-parser": "^1.2.3",
     "query-string": "^6.11.1",
     "sirv-cli": "^0.4.4",
     "svelte-awesome": "^2.2.1"
   },
   "scripts": {
-    "build": "rollup -c",
+    "update-data": "node update-data.js",
+    "svelte-build": "rollup -c",
+    "build": "npm-run-all update-data svelte-build",
     "autobuild": "rollup -c -w",
     "dev": "run-p start:dev autobuild",
     "start": "sirv public --single",

@@ -40,7 +40,7 @@
   import berkeley_states from './../data/berkeley6_states.json';
   import berkeley_params from './../data/berkeley6_params.json'; 
   import finnishHistoricalEstimates from './../data/hardcodedHistoricalEstimates.csv';
-
+  import latestRtEstimate from './../data/latest_Rt.csv';
 
 
 
@@ -66,11 +66,15 @@
   //let custom_scenario_url_prefix = 'http://localhost:5000/'
   let custom_scenario_url_postfix = '-outcome_1.json'
 
+
+  $: latestRtEstimateValue = Number.parseFloat(latestRtEstimate[0]["Rt"])
+  $: latestRtEstimateDate  = latestRtEstimate[0]["date"]
+
   $: Time_to_death     = defaultParameters["days_from_incubation_to_death"]
   $: N                 = defaultParameters["initial_population_count"]
   $: logN              = Math.log(N)
   $: I0                = 1
-  $: R0                = defaultParameters["R0"]
+  $: R0                = latestRtEstimateValue
   $: D_incbation       = defaultParameters["days_from_incubation_to_infectious"]  
   $: D_infectious      = defaultParameters["days_from_infectious_to_not_infectious"]
   $: D_recovery_mild   = defaultParameters["days_in_mild_recovering_state"]
@@ -84,6 +88,8 @@
   $: P_SEVERE          = defaultParameters["hospitalization_rate"]
   $: P_ICU             = defaultParameters["icu_rate_from_hospitalized"]
   $: icuCapacity       = defaultParameters["icu_capacity"]
+
+
 
   // Default parameters are "activated" on page load with the same mechanism that export uses ("share your model").
   $: state = location.protocol + '//' + location.host + location.pathname + "?" + queryString.stringify({"Time_to_death":Time_to_death,
@@ -432,32 +438,6 @@
   });
   
   $: p_num_ind = 40
-
-  function fetch_latest_R0_estimate() {
-    fetch("https://coronastoragemyvs.blob.core.windows.net/estimate-rt/latest_Rt.csv", { 
-      method: 'GET'
-    })
-    .then((response) => {
-      if (!response.ok) {
-        console.log(response)
-      }
-      return response
-    })
-    .then(function(response) {
-      return response.text();
-    })
-    .then(function(text) {
-      // TODO parse csv
-      // TODO verify within reasonable bounds
-      // TODO verify latest has recent date
-      // TODO calculate R0 from Rt
-      console.log(text)
-    })
-    .catch(error => {
-      showUserError(error)
-    });
-  }
-
 
   function get_icu_peak(P) {
 
@@ -951,7 +931,7 @@
           description = "Basic Reproduction Number {math_inline('\\mathcal{R}_0')}"
           bind:value = {R0}
           bind:popupHTML = {popupHTML}
-          defaultValue = {defaultParameters["R0"]}
+          defaultValue = {latestRtEstimateValue}
           minValue = 0.01
           maxValue = 5
           stepValue = 0.01
@@ -995,7 +975,7 @@
           defaultValue = {defaultParameters["fatality_rate"]}
           minValue = 0
           maxValue = 0.05
-          stepValue = 0.001
+          stepValue = 0.0001
           isPercentage = true
           unitsDescriptor = '%'
         />
