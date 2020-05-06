@@ -1178,8 +1178,8 @@
         this model is {@html math_inline('\\mathcal{R}_0')}. It's constantly changing and it's specific to the population which
         you are trying to model (meaning, the {@html math_inline('\\mathcal{R}_0')} for Italy will be different than the
         {@html math_inline('\\mathcal{R}_0')} for Finland). For these reasons a hardcoded default value for {@html math_inline('\\mathcal{R}_0')}
-        would become stale in a matter of days. The default value for {@html math_inline('\\mathcal{R}_0')} in Corosim is updated automatically
-        every day based on the most recent Finnish data.</li>
+        would become stale in a matter of days. Instead of using a hardcoded value, the default value for {@html math_inline('\\mathcal{R}_0')}
+        in Corosim is updated automatically every day based on the most recent Finnish data.</li>
     <li>User-facing states are different (e.g. infected vs. infectious). The old Epidemic Calculator is a great educational tool about
         the progression of epidemics in general, but our focus was on practical real-world questions related to this epidemic right now.
         The states we have chosen to visualize are relevant for practical questions, such as "how many people are infected" or
