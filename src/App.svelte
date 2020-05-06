@@ -785,7 +785,7 @@
 
       <!-- Large popup when user clicks "learn more". -->
       {#if popupHTML !== ''}
-        <div style="position: absolute; top: -55px; left: 0px; width: {width-10}px; height: {height+65}px; background-color: white; border: 1px solid #CCC; border-radius: 5px; z-index: 999999;">
+        <div style="position: absolute; top: -55px; left: 0px; width: {width-10}px; min-height: {height+65}px; background-color: white; border: 1px solid #CCC; border-radius: 5px; z-index: 999999;">
           <div on:click={closePopup} title="Close">
             <Icon data={times}
               scale=3
@@ -793,7 +793,7 @@
               style="color: #CCC; position: absolute; right: 20px; top: 20px;"
               />
           </div>
-          <div style="position: absolute; top: 50px; left: 50px; font-weight: 300; font-family: nyt-franklin,helvetica,arial,sans-serif; color:#666; font-size: 16.5px; text-align: justify; line-height: 24px">
+          <div style="position: relative; top: 20px; left: 50px; width: 85%; font-weight: 300; font-family: nyt-franklin,helvetica,arial,sans-serif; color:#666; font-size: 14px; text-align: justify; line-height: 24px">
             {@html popupHTML}
           </div>
         </div>
@@ -923,16 +923,16 @@
 
 </div>
 
-
-<div style="height:220px;">
-  <div class="minorTitle">
-    <div style="margin: 0px 0px 5px 4px" class="minorTitleColumn">Parameter configuration</div>
-  </div>
-  <div class = "row">
+<p class="center">
+  <b>Parameter configuration</b>
+</p>
+<div style="padding-bottom: 10px;">
+  
+  <div class="row">
 
     {#if selectedModel === MODEL_GOH}
 
-      <div class="column">
+      <div class="column" style="margin-left: 0;">
         <ParameterKnob
           description = "Basic Reproduction Number {math_inline('\\mathcal{R}_0')}"
           bind:value = {R0}
@@ -942,6 +942,9 @@
           maxValue = 5
           stepValue = 0.01
           isDefaultValueAutomaticallyGeneratedFromData = true
+          longformDescription = "{math_inline('\\mathcal{R}_0')} describes the number of infections that a typical infected person would be expected to cause in a population where everyone is susceptible to the disease. In other words, {math_inline('\\mathcal{R}_0')} is a metric which describes how easily a specific virus can spread in a specific population. Note that {math_inline('\\mathcal{R}_0')} is not just a property of the virus: the behavior of individuals within a population also affects how easily a virus can spread. For example, if {math_inline('\\mathcal{R}_0=2')}, then one infected person would be expected to infect 2 other people on average (in a population where everyone is susceptible)."
+          longformDoNotConfuseWith = "{math_inline('\\mathcal{R}_t')}, the <i>effective</i> reproduction number, describes the same thing, except for the assumption that everyone is susceptible to the virus. In the beginning of the epidemic, both of these metrics show values very close to each other. However, as more and more people have had the disease, they have (presumably) developed an immunity towards it. This makes it increasingly harder for the virus to spread, causing {math_inline('\\mathcal{R}_0')} and {math_inline('\\mathcal{R}_t')} to diverge from each other further. {math_inline('\\mathcal{R}_t == \\mathcal{R}_0 * p')}, where p is proportion of susceptible population."
+          longformDefaultValueJustification = ''
           />
       </div> 
 
@@ -1089,9 +1092,6 @@
 
   </div>
 </div>
-
-<div style="position: relative; height: 12px"></div>
-
 
 {#if selectedModel === MODEL_GOH}
   <p class="center">

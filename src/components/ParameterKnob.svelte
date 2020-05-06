@@ -17,15 +17,19 @@
     export let isPercentage = false;
     export let isDefaultValueAutomaticallyGeneratedFromData = false;
 
+    export let longformDescription = 'TODO explain this parameter.'
+    export let longformDoNotConfuseWith = 'TODO discuss similar parameters which are slightly different.'
+    export let longformDefaultValueJustification = 'TODO.'
+
     $: valueFormatted = isInteger ? value : (isPercentage ? (100*value).toFixed(2) : value.toFixed(2))
 
     function displayPopup() {
         popupHTML = `<p><b>${description}</b></p>
-                     <p>TODO explain this parameter.</p>
+                     <p>${longformDescription}</p>
                      <p><b>Should not be confused with</b></p>
-                     <p>TODO discuss similar parameters which are slightly different.</p>
+                     <p>${longformDoNotConfuseWith}</p>
                      <p><b>Justification for default value</b></p>
-                     <p>TODO.</p>`
+                     <p>${longformDefaultValueJustification}</p>`
     }
 
 </script>
