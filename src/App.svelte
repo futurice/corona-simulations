@@ -1093,6 +1093,10 @@
   </div>
 </div>
 
+<p class="center" style="color: red;">
+  <b>WORK IN PROGRESS / SOME FEATURES NOT FINISHED</b>
+</p>
+
 {#if selectedModel === MODEL_GOH}
   <p class="center">
     <b>Introduction</b>
