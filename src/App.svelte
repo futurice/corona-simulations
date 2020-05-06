@@ -1124,11 +1124,12 @@
     <b><a href="https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SEIR_model">SEIR</a></b> model    
     (<b>S</b>usceptible → <b>E</b>xposed → <b>I</b>nfected → <b>R</b>emoved).
     This is a classical infectious disease model, commonly used to this day in the front lines of research.
-    For example, the Finnish health authority
+    For example, the Finnish health authority THL
     <a href="https://thl.fi/fi/-/koronaepidemian-mallinnus-ihmiskontaktien-rajoittaminen-vaikuttaa-epidemian-kestoon-ja-paivittaisten-tartuntojen-maaraan">
-      THL uses a similar SEIR model for their official Coronavirus forecasts.</a> One key difference between Corosim and THL's model is that
+      uses a similar SEIR model for their official Coronavirus forecasts.</a> One key difference between Corosim and THL's model is that
       THL's model is initialized to a theoretical "day zero", whereas Corosim is initialized to the latest historical estimate.
-      Various other differences between these models exist as well (we do not know what exactly, because THL has not published their model).
+      This is certainly not the only difference between these models &#8212; unfortunately THL has not published their model,
+      so we can only speculate what those differences might be.
     
   </p>
   <p class="center" style="padding-bottom: 16.5px;">
@@ -1191,7 +1192,9 @@
         two different strategies, you need to manually zoom out and eyeball the peak, fatalities, etc. Corosim provides a scenario outcome summary
         of the most crucial metrics.</li>
   </ul>
-  
+  <p class="center">
+    <a href="https://github.com/futurice/corona-simulations">Source code available on GitHub.</a>
+  </p>
 
   <!-- Input data -->
   <!-- <div style="margin-bottom: 30px">
