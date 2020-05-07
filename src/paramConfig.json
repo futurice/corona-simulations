@@ -134,8 +134,8 @@
         "maxValue": 10000,
         "stepValue": 10,
         "unitsDescriptor": "",
-        "isInteger": false,
-        "isPercentage": true,
+        "isInteger": true,
+        "isPercentage": false,
         "longformDescription": "Maximum number of patients simultaneously in ICU units around the country.",
         "longformDoNotConfuseWith": "",
         "longformDefaultValueJustification": "Based on assumption of expanded capacity. TODO references."
