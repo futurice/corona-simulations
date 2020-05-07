@@ -76,11 +76,5 @@ export function math_display(str) {
 
 export const padding = { top: 20, right: 0, bottom: 20, left: 25 };
 
-export const SHOW_HISTORICAL = 0
-export const SHOW_FUTURE = 1
-export const SHOW_HISTORICAL_AND_FUTURE = 2
-
 export const MODEL_GOH = 'goh'
-export const MODEL_BERKELEY = 'berkeley'
-export const MODEL_REINA = 'reina'
 export const MODEL_CUSTOM = 'customScenario'

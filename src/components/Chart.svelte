@@ -20,7 +20,6 @@
   export let stateMeta;
   export let tmax;
   export let xmax;
-  export let vline;
   export let timestep;
   export let N;
   export let ymax;
@@ -130,7 +129,6 @@
     }
   })()
   export let active;
-  export let checked;
 
   // var data = [[2   , 2  ], [5   , 2  ], [18  , 4  ], [28  , 6  ], [43  , 8  ], [61  , 12 ], [95  , 16 ], [139 , 19 ], [245 , 26 ], [388 , 34 ], [593 , 43 ], [978 , 54 ], [1501, 66 ], [2336, 77 ], [2922, 92 ], [3513, 107], [4747, 124]]
   var data = []

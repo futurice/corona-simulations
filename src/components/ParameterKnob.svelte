@@ -5,31 +5,36 @@
 
     import { math_inline, math_display, padding } from '../utils.js';
 
-    export let description;
+    export let p;
     export let value;
     export let popupHTML;
-    export let minValue;
-    export let maxValue;
-    export let stepValue;
-    export let defaultValue;
-    export let unitsDescriptor = '';
-    export let isInteger = false;
-    export let isPercentage = false;
-    export let isDefaultValueAutomaticallyGeneratedFromData = false;
 
-    export let longformDescription = 'TODO explain this parameter.'
-    export let longformDoNotConfuseWith = 'TODO discuss similar parameters which are slightly different.'
-    export let longformDefaultValueJustification = 'TODO.'
+    export let specialCaseAddToDisplayValue = 0;
+    
+    $: displayValue = value + specialCaseAddToDisplayValue
+    $: valueFormatted = p.isInteger ? displayValue : (p.isPercentage ? (100*displayValue).toFixed(2) : displayValue.toFixed(2))
 
-    $: valueFormatted = isInteger ? value : (isPercentage ? (100*value).toFixed(2) : value.toFixed(2))
+    function stylizeExpressions(raw) {
+        return raw.replace(/{R0}|{Rt}|{Tinc}|{Tinf}/gi, function(matched){
+            if (matched === "{R0}") return math_inline('\\mathcal{R}_0')
+            if (matched === "{Rt}") return math_inline('\\mathcal{R}_t')
+            if (matched === "{Tinc}") return math_inline("T_{\\text{inc}}")
+            if (matched === "{Tinf}") return math_inline("T_{\\text{inf}}")
+            return matched
+        });
+    }
+
+    function f(chapterTitle, chapterText) {
+        if (chapterTitle === '' || chapterText === '') {
+            return ""
+        }
+        return `<p><b>${stylizeExpressions(chapterTitle)}</b></p><p>${stylizeExpressions(chapterText)}</p>`
+    }
 
     function displayPopup() {
-        popupHTML = `<p><b>${description}</b></p>
-                     <p>${longformDescription}</p>
-                     <p><b>Should not be confused with</b></p>
-                     <p>${longformDoNotConfuseWith}</p>
-                     <p><b>Justification for default value</b></p>
-                     <p>${longformDefaultValueJustification}</p>`
+        popupHTML = `${f(p.description, p.longformDescription)}
+                     ${f("Should not be confused with", p.longformDoNotConfuseWith)}
+                     ${f("Justification for default value", p.longformDefaultValueJustification)}`
     }
 
 </script>
@@ -79,8 +84,8 @@
 
 <div class="paneltext">
     <div class="paneldesc" style="min-height: 35px;">
-        {@html description}
-        <!-- Measure of contagiousness: the number of secondary infections each infected individual produces. -->
+
+        {@html stylizeExpressions(p.description)}
 
         <div on:click={displayPopup} title="Learn more">
             <Icon data={question}
@@ -91,11 +96,11 @@
         </div>
 
         <!-- Default value 'D' button (or flask, if default value is automatically generated from data) -->
-        {#if isDefaultValueAutomaticallyGeneratedFromData}
-            <div on:click={() => value = defaultValue} title="Estimate from data">
+        {#if p.isDefaultValueAutomaticallyGeneratedFromData}
+            <div on:click={() => value = p.defaultValue} title="Estimate from data">
 
                 <!-- This if/else is a workaround to a Svelte bug which would otherwise prevent us from changing the color of the SVG. -->
-                {#if value === defaultValue}
+                {#if value === p.defaultValue}
                     <Icon data={flask} scale=0.8 class="flaskIcon" style="color: #003399; position: absolute; right: 0px; top: 20px;" />
                 {:else}
                     <Icon data={flask} scale=0.8 class="flaskIcon" style="color: #CCC; position: absolute; right: 0px; top: 20px;" />
@@ -103,9 +108,9 @@
 
             </div>
         {:else}
-            <div on:click={() => value = defaultValue} title="Default value" style="font-size: 16px;">
+            <div on:click={() => value = p.defaultValue} title="Default value" style="font-size: 16px;">
                 <button class="clickableIcons unselectable"
-                        style="color: {value === defaultValue ? '#777' : '#CCC'};
+                        style="color: {value === p.defaultValue ? '#777' : '#CCC'};
                                position: absolute;
                                right: 0px;
                                top: 20px;
@@ -121,6 +126,6 @@
     </div>
 </div>
 <div class="slidertext">
-    {valueFormatted} {unitsDescriptor}
+    {valueFormatted} {p.unitsDescriptor}
 </div>
-<input class="range" type=range bind:value={value} min={minValue} max={maxValue} step={stepValue}> 
+<input class="range" type=range bind:value={value} min={p.minValue} max={p.maxValue} step={p.stepValue}> 

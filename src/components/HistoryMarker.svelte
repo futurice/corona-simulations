@@ -9,7 +9,7 @@
     import Icon from 'svelte-awesome';
     import { gear, trash } from 'svelte-awesome/icons';
 
-    import { math_inline, math_display, formatDelta, padding, SHOW_FUTURE } from '../utils.js';
+    import { math_inline, math_display, formatDelta, padding } from '../utils.js';
     import { AM_NAME, AM_DAY, AM_EFFECT, AM_EXPANDED, ActionMarkerData } from '../action_marker_data.js';
 
     export let width;

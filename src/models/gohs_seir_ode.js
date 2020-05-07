@@ -1,6 +1,5 @@
 import { UFState } from '../user_facing_states.js';
 import { ActionMarkerData, AM_DAY, AM_EFFECT } from '../action_marker_data.js';
-import { SHOW_FUTURE } from '../utils.js';
 
 var Integrators = {
     Euler    : [[1]],
@@ -27,7 +26,7 @@ var integrate=(m,f,y,t,h)=>{
     return r;
 }
 
-export function get_solution_from_gohs_seir_ode(demo_mode, actionMarkersForGoh, historical_goh_states, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR) {
+export function get_solution_from_gohs_seir_ode(actionMarkersForGoh, historical_goh_states, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, Time_to_death, P_SEVERE, P_ICU, CFR) {
 
     var interpolation_steps = 40
     var days_to_simulate = 400
@@ -76,10 +75,10 @@ export function get_solution_from_gohs_seir_ode(demo_mode, actionMarkersForGoh, 
         var dMild     =  p_mild*gamma*I   - (1/D_recovery_mild)*Mild
         var dSevere   =  p_severe*gamma*I - (1/D_hospital_lag)*Severe
         var dSevere_H =  (1/D_hospital_lag)*Severe - (1/D_recovery_severe)*Severe_H
-        var dFatal    =  p_fatal*gamma*I  - (1/D_death)*Fatal
+        var dFatal    =  p_fatal*gamma*I  - (1/Time_to_death)*Fatal
         var dR_Mild   =  (1/D_recovery_mild)*Mild
         var dR_Severe =  (1/D_recovery_severe)*Severe_H
-        var dR_Fatal  =  (1/D_death)*Fatal
+        var dR_Fatal  =  (1/Time_to_death)*Fatal
 
         //      0   1   2   3      4        5          6       7        8          9
         return [dS, dE, dI, dMild, dSevere, dSevere_H, dFatal, dR_Mild, dR_Severe, dR_Fatal]
@@ -103,14 +102,9 @@ export function get_solution_from_gohs_seir_ode(demo_mode, actionMarkersForGoh, 
 
     const uf_states = map_goh_states_into_UFStates(goh_states, N, P_ICU)
 
-    if (demo_mode !== SHOW_FUTURE) {
-        // This is typical case.
-        // We need to remove first element from P_all_goh because the end historical state
-        // is used as the start state for the predictions.
-        return uf_states.slice(1)
-    } else {
-        return uf_states
-    }
+    // We need to remove first element from P_all_goh because the end historical state
+    // is used as the start state for the predictions.
+    return uf_states.slice(1)
 }
     
 
@@ -184,7 +178,8 @@ export function map_goh_states_into_UFStates(goh_states, N, P_ICU) {
 
 export function goh_default_action_markers() {
     return [
-        new ActionMarkerData(128, "Open schools", 0.13),
-        new ActionMarkerData(186, "Medical intervention", -0.1)
+        new ActionMarkerData(93, "Open society", 0.6),
+        new ActionMarkerData(123, "Summer heat", -0.2),
+        new ActionMarkerData(165, "Schools open", 0.13),
     ]
 }

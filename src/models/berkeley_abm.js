@@ -1,7 +1,7 @@
 import { UFState } from '../user_facing_states.js';
 import { ActionMarkerData } from '../action_marker_data.js';
 
-export function temphack(berkeley_states, berkeley_params, N) {
+export function parse_berkeley(berkeley_states, berkeley_params, N) {
     var bah = [] 
     for (var i=0; i<berkeley_states.length; i++) {
         var b = berkeley_states[i]  

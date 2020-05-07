@@ -9,7 +9,7 @@
   import { format } from 'd3-format';
   import { event } from 'd3-selection';
   import Icon from 'svelte-awesome';
-  import { search, plus, exclamationCircle, times } from 'svelte-awesome/icons';
+  import { search, plus, exclamationCircle, times, question } from 'svelte-awesome/icons';
   import katex from 'katex';
 
   // Custom Svelte components
@@ -23,22 +23,15 @@
 
   // Custom utilities
   import { ActionMarkerData, AM_DAY } from './action_marker_data.js';
-  import defaultParameters from '../default_parameters.js';
   import { UFState, getDefaultStateMeta } from './user_facing_states.js';
   import { get_solution_from_gohs_seir_ode, map_goh_states_into_UFStates, goh_default_action_markers } from './models/gohs_seir_ode.js';
-  import { map_berkeley_states_into_UFStates, temphack, get_berkeley_action_markers } from './models/berkeley_abm.js';
+  import { map_berkeley_states_into_UFStates, parse_berkeley, get_berkeley_action_markers } from './models/berkeley_abm.js';
   import { loadFinnishHistoricalEstimates } from './models/historical_estimates.js';
-  import { addDays,
-           formatCount, formatDelta,
-           SHOW_HISTORICAL, SHOW_FUTURE, SHOW_HISTORICAL_AND_FUTURE,
-           MODEL_GOH, MODEL_BERKELEY, MODEL_REINA, MODEL_CUSTOM,
-         } from './utils.js';
+  import { addDays, formatCount, formatDelta, MODEL_GOH, MODEL_CUSTOM } from './utils.js';
   import { math_inline, math_display, padding } from './utils.js';
 
   // Static data imports
-  import finnishCoronaData from './../data/finnishCoronaData.json';
-  import berkeley_states from './../data/berkeley6_states.json';
-  import berkeley_params from './../data/berkeley6_params.json'; 
+  import paramConfig from './paramConfig.json';
   import finnishHistoricalEstimates from './../data/hardcodedHistoricalEstimates.csv';
   import latestRtEstimate from './../data/latest_Rt.csv';
 
@@ -63,31 +56,69 @@
     return arr
   }
 
-  let allow_x_axis_resizing = false // x axis "drag resizing" was replaced by magnifying glass toggle
   let display_scenario_dropdown = false
-  let display_toggle_for_historical_estimates = false
-
   let custom_scenario_url_prefix = 'https://coronastoragemyvs.blob.core.windows.net/coviducb/'
-  //let custom_scenario_url_prefix = 'http://localhost:5000/'
   let custom_scenario_url_postfix = '-outcome_1.json'
 
-  $: Time_to_death     = defaultParameters["days_from_incubation_to_death"]
-  $: N                 = defaultParameters["initial_population_count"]
+  // R0 paramConfig is stored at a separate object because its default value is updated by a reactive function.
+  // Do not refactor into paramConfig.
+  let paramConfigR0 = {
+    description: `Basic Reproduction Number {R0}`,
+    isDefaultValueAutomaticallyGeneratedFromData: true,
+    defaultValue: 2, // Will be overwritten by a reactive function.
+    minValue: 0.01,
+    maxValue: 5,
+    stepValue: 0.01,
+    unitsDescriptor: '',
+    isInteger: false,
+    isPercentage: false,
+    longformDescription: `{R0} describes the number of infections that
+                          a typical infected person would be expected to cause in a population where
+                          everyone is susceptible to the disease. In other words,
+                          {R0} is a metric which describes how easily a
+                          specific virus can spread in a specific population. Note that
+                          {R0} is not just a property of the virus:
+                          the behavior of individuals within a population also affects how easily
+                          a virus can spread. For example, if ${math_inline('\\mathcal{R}_0=2')},
+                          then one infected person would be expected to infect 2 other people
+                          on average (in a population where everyone is susceptible).`,
+    longformDoNotConfuseWith: `{Rt}, the <i>effective</i> reproduction number,
+                               describes the same thing, except for the assumption that everyone is susceptible
+                               to the virus. In the beginning of the epidemic, both of these metrics show values
+                               very close to each other. However, as more and more people have had the disease,
+                               they have (presumably) developed an immunity towards it. This makes it increasingly
+                               harder for the virus to spread, causing {R0} and
+                               {Rt} to diverge from each other further.
+                               ${math_inline('\\mathcal{R}_t == \\mathcal{R}_0 * p')},
+                               where p is proportion of susceptible population."`,
+    longformDefaultValueJustification: `<img src="latest_Rt.png" alt="Rt estimates over time" title="Rt estimates over time"/>
+
+                                        `
+
+  }
+
+  function setDefaultParamsR0(latestR0EstimateValue, latestRtEstimateDate) {
+    paramConfigR0.defaultValue = latestR0EstimateValue
+    // TODO put date thing there as well
+  }
+
+
+  $: N                 = 5538328 // 2020 Finnish population count
   $: logN              = Math.log(N)
   $: I0                = 1
-  $: D_incbation       = defaultParameters["days_from_incubation_to_infectious"]  
-  $: D_infectious      = defaultParameters["days_from_infectious_to_not_infectious"]
-  $: D_recovery_mild   = defaultParameters["days_in_mild_recovering_state"]
-  $: D_recovery_severe = defaultParameters["days_in_hospital"]
-  $: D_hospital_lag    = defaultParameters["days_in_severe_recovering_state_before_hospital"]
-  $: D_death           = Time_to_death - D_infectious 
-  $: CFR               = defaultParameters["fatality_rate"]
+  $: D_incbation       = paramConfig["days_from_incubation_to_infectious"].defaultValue
+  $: D_infectious      = paramConfig["days_from_infectious_to_not_infectious"].defaultValue
+  $: D_recovery_mild   = paramConfig["days_in_mild_recovering_state"].defaultValue
+  $: D_recovery_severe = paramConfig["days_in_hospital"].defaultValue
+  $: D_hospital_lag    = paramConfig["days_in_severe_recovering_state_before_hospital"].defaultValue
+  $: Time_to_death     = paramConfig["days_from_end_of_infectious_to_death"].defaultValue
+  $: CFR               = paramConfig["fatality_rate"].defaultValue
   $: Time              = 220
   $: Xmax              = 110000
   $: dt                = 2
-  $: P_SEVERE          = defaultParameters["hospitalization_rate"]
-  $: P_ICU             = defaultParameters["icu_rate_from_hospitalized"]
-  $: icuCapacity       = defaultParameters["icu_capacity"]
+  $: P_SEVERE          = paramConfig["hospitalization_rate"].defaultValue
+  $: P_ICU             = paramConfig["icu_rate_from_hospitalized"].defaultValue
+  $: icuCapacity       = paramConfig["icu_capacity"].defaultValue
 
 
 
@@ -115,13 +146,22 @@
     popupHTML = ''
   }
 
+  function popupExplainHistoricalEstimates() {
+    popupHTML = `
+      <p><b>Historical Estimates</b></p>
+      <p>
+      Bla bla
+      </p>
+    `
+  }
+
   function addActionMarker() {
     actionMarkers[selectedModel].push(new ActionMarkerData(99*dt, undefined, -0.1, true))
     actionMarkers = actionMarkers // Trigger re-render
   }
 
-  function getlastHistoricBar(demo_mode, P_all_historical, dt) {
-    if (!P_all_historical || demo_mode === SHOW_FUTURE) return 0
+  function getlastHistoricBar(P_all_historical, dt) {
+    if (!P_all_historical) return 0
     return get_every_nth(P_all_historical, dt).length - 1 // TODO optimize this to be more efficient
   }
 
@@ -172,14 +212,6 @@
 
   /********************************** Generate state (choose which model to run, run it with user specified parameters, etc.) *********************************/
 
-  function chooseP(demo_mode, P_all_historical, P_all_future) {
-    var P_chosen = []
-    if (demo_mode === SHOW_HISTORICAL) P_chosen = P_all_historical
-    if (demo_mode === SHOW_FUTURE) P_chosen = P_all_future
-    if (demo_mode === SHOW_HISTORICAL_AND_FUTURE) P_chosen = P_all_historical.concat(P_all_future)
-    return P_chosen
-  }
-
   function debugHelper([... vars]) {
     if (vars.length == 0) return
     console.log('*** DEBUG ***')
@@ -220,16 +252,14 @@
 
   function parseCustomScenario(json) {
     customScenarioStatus = '' // Clear out "Fetching..." message
-    P_all_fetched = temphack(json["scenario_states"], json["scenario_params"], N)
+    P_all_fetched = parse_berkeley(json["scenario_states"], json["scenario_params"], N)
     custom_params = {...json["scenario_params"], ...json["parameters"]}
     actionMarkers = actionMarkerHelper(P_all_historical, custom_params)
   }
 
-  function get_solution(demo_mode, selectedModel, P_all_fetched, actionMarkers, goh_states_fin, berkeley_states, berkeley_params, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR) {
+  function get_solution(selectedModel, P_all_fetched, actionMarkers, goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, Time_to_death, P_SEVERE, P_ICU, CFR) {
     if (selectedModel === MODEL_GOH) {
-      return get_solution_from_gohs_seir_ode(demo_mode, actionMarkers[selectedModel], goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, D_death, P_SEVERE, P_ICU, CFR)
-    } else if (selectedModel === MODEL_BERKELEY) {
-      return temphack(berkeley_states, berkeley_params, N)
+      return get_solution_from_gohs_seir_ode(actionMarkers[selectedModel], goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, Time_to_death, P_SEVERE, P_ICU, CFR)
     } else if (selectedModel === MODEL_CUSTOM) {
       return P_all_fetched
     } else {
@@ -252,8 +282,6 @@
         }
       }
     }
-    m[MODEL_BERKELEY] = get_berkeley_action_markers(P_all_historical.length, berkeley_params)
-    m[MODEL_REINA] = []
     if (custom_params['0']) {
       m[MODEL_CUSTOM] = get_berkeley_action_markers(P_all_historical.length, custom_params)
     } else if (!m[MODEL_CUSTOM]) {
@@ -267,12 +295,9 @@
   let custom_params   = {} // Empty "parameters object" as placeholder until we get data.
 
   $: selectedModel    = customScenarioGUID ? MODEL_CUSTOM : MODEL_GOH
-  $: selectedParams   = selectedModel === MODEL_BERKELEY ? berkeley_params : custom_params
-  $: showHistory      = true
-  $: demo_mode        = showHistory ? SHOW_HISTORICAL_AND_FUTURE : SHOW_FUTURE
 
   $: [firstHistoricalDate, goh_states_fin_before_slicing] = loadFinnishHistoricalEstimates(finnishHistoricalEstimates, N)
-  $: firstBarDate     = showHistory ? firstHistoricalDate : addDays(firstHistoricalDate, goh_states_fin_before_slicing.length - 1)
+  $: firstBarDate     = firstHistoricalDate
 
   $: P_all_historical_before_slicing = map_goh_states_into_UFStates(goh_states_fin_before_slicing, N, P_ICU)
   $: lastHistoricDay       = P_all_historical_before_slicing.length-1
@@ -283,19 +308,17 @@
   $: latestRtEstimateDate  = latestRtEstimate[0]["date"]
   $: latestR0EstimateValue = get_R0_from_Rt(latestRtEstimateValue, goh_states_fin)
   $: R0                    = latestR0EstimateValue
-  $: lastHistoricBar       = getlastHistoricBar(demo_mode, P_all_historical, dt)
+  $: setDefaultParamsR0(latestR0EstimateValue, latestRtEstimateDate)
+  $: lastHistoricBar       = getlastHistoricBar(P_all_historical, dt)
 
   $: actionMarkers    = actionMarkerHelper(P_all_historical, custom_params)
   $: stateMeta        = getDefaultStateMeta()
 
   $: P_all_future     = get_solution(
-                          demo_mode,
                           selectedModel,
                           P_all_fetched,
                           actionMarkers,
                           goh_states_fin,
-                          berkeley_states,
-                          berkeley_params,
                           dt,
                           N,
                           I0,
@@ -305,11 +328,11 @@
                           D_recovery_mild,
                           D_hospital_lag,
                           D_recovery_severe,
-                          D_death, P_SEVERE,
+                          Time_to_death, P_SEVERE,
                           P_ICU,
                           CFR
                         )
-  $: P_all            = with_enough_days(chooseP(demo_mode, P_all_historical, P_all_future, dt), dt)
+  $: P_all            = with_enough_days(P_all_historical.concat(P_all_future), dt)
   $: P_bars           = get_every_nth(take_slice_from_beginning(P_all, dt), dt)
   $: timestep         = dt
   $: tmax             = dt*101
@@ -368,11 +391,6 @@
     var drag_callback_y = drag_y()
     drag_callback_y(selectAll("#yAxisDrag"))
 
-    if (allow_x_axis_resizing) {
-      var drag_callback_x = drag_x()
-      drag_callback_x(selectAll("#xAxisDrag"))
-    }
-
     // TODO what is this? Is it for "share your model" links?
     if (typeof window !== 'undefined') {
       parsed = queryString.parse(window.location.search)
@@ -419,20 +437,16 @@
 
   window.addEventListener('mouseup', unlock_yaxis);
 
-  function activeHelper(active, demo_mode, P_all_historical, dt, lastHistoricBar) {
+  function activeHelper(active, lastHistoricBar) {
     if (active >= 0) {
       // Case: User hovers over a bar or has locked a bar.
       return active
-    }
-    if (demo_mode === SHOW_FUTURE) {
-      // Case: Historical data is not shown, default to showing first predicted bar.
-      return 0
     }
     return lastHistoricBar
   }
 
   $: active  = 0
-  $: active_ = activeHelper(active, demo_mode, P_all_historical, dt, lastHistoricBar)
+  $: active_ = activeHelper(active, lastHistoricBar)
 
   var Tinc_s = "\\color{#CCC}{T^{-1}_{\\text{inc}}} "
   var Tinf_s = "\\color{#CCC}{T^{-1}_{\\text{inf}}}"
@@ -467,7 +481,7 @@
 
   $: [peakICUDay, peakICUCount] = get_icu_peak(P_all)
 
-  // Reminder: milestone for peak ICU is different than actual peak ICU, because
+  // Note: milestone for peak ICU is different than actual peak ICU, because
   // milestones are chosen from timestepped days, whereas "scenario outcome icu peak" is from all days.
   // So don't merge these by refactoring.
   function get_milestones(P) {
@@ -512,11 +526,11 @@
 
 </script>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.css" integrity="sha384-bsHo4/LA+lkZv61JspMDQB9QP1TtO4IgOf2yYS+J6VdAYLVyx1c3XKcsHh0Vy8Ws" crossorigin="anonymous">
+<link rel="stylesheet" href="katex.css">
 
 <style>
   .small { font: italic 6px Source Code Pro; }
-  @import url('https://fonts.googleapis.com/css?family=Source+Code+Pro&display=swap');
+  @import url('sourcecodepro.css');
 
   :global(html) {
       overflow-y: scroll;
@@ -717,19 +731,8 @@
         </div>
         <select id="model-selection" bind:value={selectedModel}>
           <option value={MODEL_GOH} >Finland | Goh's SEIR ODE (live)</option>
-          <option value={MODEL_BERKELEY} >Finland | Berkeley ABM (precomputed)</option>
-          <option value={MODEL_REINA} disabled >Uusimaa | REINA ABM (precomputed)</option>
           <option value={MODEL_CUSTOM} disabled={customScenarioGUID ? false : true} >Custom scenario (precomputed)</option>
         </select>
-      {/if}
-
-      <!-- Deprecated toggle for hiding historical estimates. -->
-      {#if display_toggle_for_historical_estimates}
-        <div style="position: font-family: nyt-franklin,helvetica,arial,sans-serif; font-size: 13px; margin-bottom: 10px; margin-top: 10px; margin-left: 2px;">
-          <div class="tick" style="position: relative; color: #AAA; pointer-events:all;">
-            <Checkbox color="#BBB" bind:checked={showHistory}/><div style="position: relative; top: 4px; left:20px; color: #777;">Display historical estimates</div>
-          </div>
-        </div>
       {/if}
 
     </div>
@@ -783,22 +786,6 @@
         </div>
       {/if}
 
-      <!-- Large popup when user clicks "learn more". -->
-      {#if popupHTML !== ''}
-        <div style="position: absolute; top: -55px; left: 0px; width: {width-10}px; min-height: {height+65}px; background-color: white; border: 1px solid #CCC; border-radius: 5px; z-index: 999999;">
-          <div on:click={closePopup} title="Close">
-            <Icon data={times}
-              scale=3
-              class="clickableIcons"
-              style="color: #CCC; position: absolute; right: 20px; top: 20px;"
-              />
-          </div>
-          <div style="position: relative; top: 20px; left: 50px; width: 85%; font-weight: 300; font-family: nyt-franklin,helvetica,arial,sans-serif; color:#666; font-size: 14px; text-align: justify; line-height: 24px">
-            {@html popupHTML}
-          </div>
-        </div>
-      {/if}
-
       <!-- The actual chart with bars and stuff. -->
       <Chart bind:active={active}
         states = {P_bars} 
@@ -835,21 +822,6 @@
       </div>
     </div>
 
-    <!-- Deprecated x axis zoom. -->
-    {#if allow_x_axis_resizing}
-      <div id="xAxisDrag"
-          style="{allow_x_axis_resizing ? "cursor:col-resize;" : ""}
-                pointer-events: all;
-                position: absolute;
-                top:{height+80}px;
-                left:{0}px;
-                width:{780}px;
-                background-color:#222;
-                opacity: 0;
-                height:25px;">
-      </div>
-    {/if}
-
     <!-- Y axis zoom. -->
     <div id="yAxisDrag"
           style="cursor:row-resize;
@@ -864,21 +836,19 @@
     </div>
 
     <!-- History Marker. -->
-    {#if demo_mode !== SHOW_FUTURE}
-      <HistoryMarker
-        width = {width}
-        height = {height}
-        R0 = {R0}
-        tmax = {tmax}
-        Pmax = {Pmax}
-        lastHistoricDay = {lastHistoricDay}
-        bind:cutoffHistoricDay = {cutoffHistoricDay}
-        bind:Plock = {Plock}
-        bind:lock = {lock}
-        bind:lock_yaxis = {lock_yaxis}
-        bind:flashMessage = {flashMessage}
-      />
-    {/if}
+    <HistoryMarker
+      width = {width}
+      height = {height}
+      R0 = {R0}
+      tmax = {tmax}
+      Pmax = {Pmax}
+      lastHistoricDay = {lastHistoricDay}
+      bind:cutoffHistoricDay = {cutoffHistoricDay}
+      bind:Plock = {Plock}
+      bind:lock = {lock}
+      bind:lock_yaxis = {lock_yaxis}
+      bind:flashMessage = {flashMessage}
+    />
 
     <!-- Action Markers. -->
     {#each actionMarkers[selectedModel] as actionMarkerData}
@@ -890,7 +860,6 @@
           tmax = {tmax}
           Pmax = {Pmax}
           P_all_historical = {P_all_historical}
-          demo_mode = {demo_mode}
           firstBarDate = {firstBarDate}
           bind:allActiveActionMarkers = {actionMarkers[selectedModel]}
           bind:actionMarkerData = {actionMarkerData}
@@ -926,6 +895,36 @@
 <p class="center">
   <b>Parameter configuration</b>
 </p>
+
+<!-- Large popup when user clicks a question mark icon. -->
+{#if popupHTML !== ''}
+  <div class="center" style="padding-bottom: 0px;">
+    <div style="position: absolute; width: 950px; background-color: white; border: 1px solid #CCC; border-radius: 5px; z-index: 999999;">
+      <div on:click={closePopup} title="Close">
+        <Icon data={times}
+          scale=3
+          class="clickableIcons"
+          style="color: #CCC; position: absolute; right: 20px; top: 20px;"
+          />
+      </div>
+      <div style="position: relative;
+                  top: 20px;
+                  padding-bottom: 20px;
+                  left: 50px;
+                  width: 85%;
+                  font-weight: 300;
+                  font-family: nyt-franklin,helvetica,arial,sans-serif;
+                  color:#666;
+                  font-size: 16.5px;
+                  text-align: justify;
+                  line-height: 24px">
+        {@html popupHTML}
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Parameter Knobs -->
 <div style="padding-bottom: 10px;">
   
   <div class="row">
@@ -933,160 +932,34 @@
     {#if selectedModel === MODEL_GOH}
 
       <div class="column" style="margin-left: 0;">
-        <ParameterKnob
-          description = "Basic Reproduction Number {math_inline('\\mathcal{R}_0')}"
-          bind:value = {R0}
-          bind:popupHTML = {popupHTML}
-          defaultValue = {latestR0EstimateValue}
-          minValue = 0.01
-          maxValue = 5
-          stepValue = 0.01
-          isDefaultValueAutomaticallyGeneratedFromData = true
-          longformDescription = "{math_inline('\\mathcal{R}_0')} describes the number of infections that a typical infected person would be expected to cause in a population where everyone is susceptible to the disease. In other words, {math_inline('\\mathcal{R}_0')} is a metric which describes how easily a specific virus can spread in a specific population. Note that {math_inline('\\mathcal{R}_0')} is not just a property of the virus: the behavior of individuals within a population also affects how easily a virus can spread. For example, if {math_inline('\\mathcal{R}_0=2')}, then one infected person would be expected to infect 2 other people on average (in a population where everyone is susceptible)."
-          longformDoNotConfuseWith = "{math_inline('\\mathcal{R}_t')}, the <i>effective</i> reproduction number, describes the same thing, except for the assumption that everyone is susceptible to the virus. In the beginning of the epidemic, both of these metrics show values very close to each other. However, as more and more people have had the disease, they have (presumably) developed an immunity towards it. This makes it increasingly harder for the virus to spread, causing {math_inline('\\mathcal{R}_0')} and {math_inline('\\mathcal{R}_t')} to diverge from each other further. {math_inline('\\mathcal{R}_t == \\mathcal{R}_0 * p')}, where p is proportion of susceptible population."
-          longformDefaultValueJustification = ''
-          />
-      </div> 
-
-      <div class="column">
-
-        <ParameterKnob
-          description = 'Length of incubation period {math_inline("T_{\\text{inc}}")}'
-          bind:value = {D_incbation}
-          bind:popupHTML = {popupHTML}
-          defaultValue = {defaultParameters["days_from_incubation_to_infectious"]}
-          minValue = 0.15
-          maxValue = 24
-          stepValue = 0.0001
-          unitsDescriptor = 'days'
-        />
-
-        <!-- TODO explain why tuning this up causes the epidemic to spread slower. -->
-        <ParameterKnob
-          description = 'Duration patient is infectious {math_inline("T_{\\text{inf}}")}'
-          bind:value = {D_infectious}
-          bind:popupHTML = {popupHTML}
-          defaultValue = {defaultParameters["days_from_infectious_to_not_infectious"]}
-          minValue = 0
-          maxValue = 24
-          stepValue = 0.01
-          unitsDescriptor = 'days'
-        />
-
+        <ParameterKnob p = {paramConfigR0} bind:value = {R0} bind:popupHTML = {popupHTML} />
       </div>
-
       <div class="column">
-
-        <ParameterKnob
-          description = 'Infected fatality rate'
-          bind:value = {CFR}
-          bind:popupHTML = {popupHTML}
-          defaultValue = {defaultParameters["fatality_rate"]}
-          minValue = 0
-          maxValue = 0.05
-          stepValue = 0.0001
-          isPercentage = true
-          unitsDescriptor = '%'
-        />
-
-        <ParameterKnob
-          description = 'Time from end of incubation to death'
-          bind:value = {Time_to_death}
-          bind:popupHTML = {popupHTML}
-          defaultValue = {defaultParameters["days_from_incubation_to_death"]}
-          minValue = {D_infectious + 0.1}
-          maxValue = 100
-          stepValue = 0.01
-          unitsDescriptor = 'days'
-        />
-
+        <ParameterKnob p = {paramConfig["days_from_incubation_to_infectious"]} bind:value = {D_incbation} bind:popupHTML = {popupHTML} />
+        <ParameterKnob p = {paramConfig["days_from_infectious_to_not_infectious"]} bind:value = {D_infectious} bind:popupHTML = {popupHTML} />
       </div>
-
       <div class="column">
-
-        <ParameterKnob
-          description = 'Length of hospital stay'
-          bind:value = {D_recovery_severe}
-          bind:popupHTML = {popupHTML}
-          defaultValue = {defaultParameters["days_in_hospital"]}
-          minValue = 0.1
-          maxValue = 100
-          stepValue = 0.01
-          unitsDescriptor = 'days'
-        />
-
-        <ParameterKnob
-          description = 'Recovery time for mild cases'
-          bind:value = {D_recovery_mild}
-          bind:popupHTML = {popupHTML}
-          defaultValue = {defaultParameters["days_in_mild_recovering_state"]}
-          minValue = 0.5
-          maxValue = 100
-          stepValue = 0.01
-          unitsDescriptor = 'days'
-        />
-
+        <ParameterKnob p = {paramConfig["fatality_rate"]} bind:value = {CFR} bind:popupHTML = {popupHTML} />
+        <ParameterKnob p = {paramConfig["days_from_end_of_infectious_to_death"]} bind:value = {Time_to_death} specialCaseAddToDisplayValue = {D_incbation + D_infectious} bind:popupHTML = {popupHTML} />
       </div>
-
       <div class="column">
-
-        <ParameterKnob
-          description = 'Hospitalization rate'
-          bind:value = {P_SEVERE}
-          bind:popupHTML = {popupHTML}
-          defaultValue = {defaultParameters["hospitalization_rate"]}
-          minValue = 0
-          maxValue = 0.2
-          stepValue = 0.0001
-          isPercentage = true
-          unitsDescriptor = '%'
-        />
-
-        <ParameterKnob
-          description = 'Time to hospitalization'
-          bind:value = {D_hospital_lag}
-          bind:popupHTML = {popupHTML}
-          defaultValue = {defaultParameters["days_in_severe_recovering_state_before_hospital"]}
-          minValue = 0.5
-          maxValue = 100
-          stepValue = 0.01
-          unitsDescriptor = 'days'
-        />
-  
+        <ParameterKnob p = {paramConfig["days_in_hospital"]} bind:value = {D_recovery_severe} bind:popupHTML = {popupHTML} />
+        <ParameterKnob p = {paramConfig["days_in_mild_recovering_state"]} bind:value = {D_recovery_mild} bind:popupHTML = {popupHTML} />
       </div>
-
       <div class="column">
-
-        <ParameterKnob
-          description = 'ICU rate'
-          bind:value = {P_ICU}
-          bind:popupHTML = {popupHTML}
-          defaultValue = {defaultParameters["icu_rate_from_hospitalized"]}
-          minValue = 0
-          maxValue = 1
-          stepValue = 0.01
-          isPercentage = true
-          unitsDescriptor = '%'
-        />
-
-        <ParameterKnob
-          description = 'ICU capacity'
-          bind:value = {icuCapacity}
-          bind:popupHTML = {popupHTML}
-          defaultValue = {defaultParameters["icu_capacity"]}
-          minValue = 0
-          maxValue = 10000
-          stepValue = 10
-          isInteger = true
-        />
-
+        <ParameterKnob p = {paramConfig["hospitalization_rate"]} bind:value = {P_SEVERE} bind:popupHTML = {popupHTML} />
+        <ParameterKnob p = {paramConfig["days_in_severe_recovering_state_before_hospital"]} bind:value = {D_hospital_lag} bind:popupHTML = {popupHTML} />
+      </div>
+      <div class="column">
+        <ParameterKnob p = {paramConfig["icu_rate_from_hospitalized"]} bind:value = {P_ICU} bind:popupHTML = {popupHTML} />
+        <ParameterKnob p = {paramConfig["icu_capacity"]} bind:value = {icuCapacity} bind:popupHTML = {popupHTML} />
       </div>
 
     {/if}
 
     {#if selectedModel !== MODEL_GOH}
       <div>
-        <p style="white-space: pre-wrap; color: #777; line-height: 17px;">{@html JSON.stringify(selectedParams, null, 4)}</p>
+        <p style="white-space: pre-wrap; color: #777; line-height: 17px;">{@html JSON.stringify(custom_params, null, 4)}</p>
       </div>
     {/if}
 
@@ -1101,13 +974,20 @@
   <p class="center">
     <b>Introduction</b>
   </p>
-  <p class="center">
+  <div class="center">
     Corosim combines historical estimates & model predictions to provide a complete overview of the Coronavirus epidemic in Finland.
     This means you can use Corosim to get some insight towards questions such as "how many Finns have been infected so far" or "when will the epidemic peak".
     Historical estimates are updated daily based on data provided by <a href="https://github.com/HS-Datadesk/koronavirus-avoindata">Helsingin Sanomat</a>.
     However, we don't obsess over confirmed cases. We attempt to provide an accurate picture of the epidemic, acknowledging the fact that
     many infections (and even many deaths) are excluded from the official statistics.
-  </p>
+    <span on:click={popupExplainHistoricalEstimates} title="How historical estimates are created">
+            <Icon data={question}
+            scale=1.0
+            class="clickableIcons"
+            style="cursor: pointer; color: #CCC; "
+            />
+    </span>
+  </div>
   <p class="center">
     As you know, a model is only as good as its input parameters. Although we have done a lot of research to provide sensible default values,
     you probably disagree with some of our choices. That's why we wanted to provide you the possibility of tuning parameters by yourself.

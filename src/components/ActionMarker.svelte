@@ -9,7 +9,7 @@
     import Icon from 'svelte-awesome';
     import { gear, trash } from 'svelte-awesome/icons';
 
-    import { math_inline, math_display, formatDelta, padding, SHOW_FUTURE, getDate } from '../utils.js';
+    import { math_inline, math_display, formatDelta, padding, getDate } from '../utils.js';
     import { AM_NAME, AM_DAY, AM_EFFECT, AM_EXPANDED, ActionMarkerData } from '../action_marker_data.js';
 
     export let width;
@@ -24,7 +24,6 @@
     export let lock;
     export let lock_yaxis;
     export let P_all_historical;
-    export let demo_mode;
     export let flashMessage;
     export let firstBarDate;
 
@@ -45,14 +44,13 @@
         return adjustedR0
     }
 
-    function getLeftPx(actionMarkerData, demo_mode, P_all_historical, tmax) {
+    function getLeftPx(actionMarkerData, P_all_historical, tmax) {
         // Note: tmax must be in parameters to trigger re-render correctly.
-        const adjustedDays = actionMarkerData[AM_DAY] - (demo_mode === SHOW_FUTURE ? P_all_historical.length-1 : 0)
-        return xScaleTime(adjustedDays)
+        return xScaleTime(actionMarkerData[AM_DAY])
     }
 
     $: zIndex = actionMarkerData[AM_DAY] * 1000
-    $: displayDay = actionMarkerData[AM_DAY] - (demo_mode === SHOW_FUTURE ? P_all_historical.length-1 : 0)
+    $: displayDay = actionMarkerData[AM_DAY]
     $: displayDate = getDate(firstBarDate, displayDay)
     $: adjustedR0 = getAdjustedR0(R0, allActiveActionMarkers, actionMarkerData)
     $: InterventionAmt = 1 - actionMarkerData[AM_EFFECT]
@@ -62,7 +60,7 @@
     $: xScaleTimeInv = scaleLinear()
                         .domain([0, width])
                         .range([0, tmax]);
-    $: leftPx = getLeftPx(actionMarkerData, demo_mode, P_all_historical, tmax)
+    $: leftPx = getLeftPx(actionMarkerData, P_all_historical, tmax)
 
     var drag_intervention = function (){
         var dragstarty = 0
@@ -79,7 +77,7 @@
             if (actionMarkerData.isConfigurable()) {
                 const draggedX = InterventionTimeStart + xScaleTimeInv(event.x - dragstarty)
                 const minX = P_all_historical.length
-                const maxX = tmax-1 + (demo_mode === SHOW_FUTURE ? P_all_historical.length-1 : 0)
+                const maxX = tmax-1
                 if (draggedX < minX-3) {
                     flashMessage = 'Action markers affect model predictions, not historical estimates.'
                 } else {
@@ -171,7 +169,7 @@
 
 </style>
 
-<div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none; z-index: {zIndex};">
+<div style="position: absolute; width:{width+15}px; height: {height}px; position: absolute; top:100px; left:10px; pointer-events: none; z-index: {zIndex};" title={actionMarkerData[AM_NAME]}>
 
     <!-- Drag (clicking anywhere on this div will trigger drag, no other events) -->
     <div id={actionMarkerData.id} style="pointer-events: all;
