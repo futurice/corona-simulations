@@ -91,8 +91,8 @@
                                `,
     longformDefaultValueJustification: `The default value for {R0} is estimated from confirmed case counts.
                                         This default value is not hardoded, it is updated daily as new data comes in.
-                                        We exclude the most recent 5 days from computation, because cases often recorded
-                                        with a delay of several days.
+                                        We exclude the most recent 5 days from computation, because of delays
+                                        in recording new cases.<br>
                                         
                                         <img src="latest_Rt.png" alt="Rt estimates over time" title="Rt estimates over time"/>
 
