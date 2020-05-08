@@ -83,20 +83,6 @@
         "longformDoNotConfuseWith": "TODO",
         "longformDefaultValueJustification": "TODO"
     },
-    "days_in_severe_recovering_state_before_hospital": {
-        "description": "Time to hospitalization",
-        "isDefaultValueAutomaticallyGeneratedFromData": false,
-        "defaultValue": 11,
-        "minValue": 0.5,
-        "maxValue": 100,
-        "stepValue": 0.01,
-        "unitsDescriptor": "days",
-        "isInteger": false,
-        "isPercentage": false,
-        "longformDescription": "TODO",
-        "longformDoNotConfuseWith": "TODO",
-        "longformDefaultValueJustification": "TODO"
-    },
     "icu_rate_from_hospitalized": {
         "description": "ICU rate",
         "isDefaultValueAutomaticallyGeneratedFromData": false,

@@ -26,10 +26,10 @@ var integrate=(m,f,y,t,h)=>{
     return r;
 }
 
-export function get_solution_from_gohs_seir_ode(actionMarkersForGoh, historical_goh_states, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, P_SEVERE, P_ICU, CFR) {
+export function get_solution_from_gohs_seir_ode(actionMarkersForGoh, historical_goh_states, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital, P_SEVERE, P_ICU, CFR) {
 
     // This used to be a slider in the original Epidemic Calculator.
-    const D_death = D_hospital_lag + D_recovery_severe
+    const D_death = D_hospital
 
     var interpolation_steps = 40
     var days_to_simulate = 400
@@ -76,11 +76,11 @@ export function get_solution_from_gohs_seir_ode(actionMarkersForGoh, historical_
         var dE        =  beta*I*S - a*E
         var dI        =  a*E - gamma*I
         var dMild     =  p_mild*gamma*I   - (1/D_recovery_mild)*Mild
-        var dSevere   =  p_severe*gamma*I - (1/D_hospital_lag)*Severe
-        var dSevere_H =  (1/D_hospital_lag)*Severe - (1/D_recovery_severe)*Severe_H
+        var dSevere   =  0 // Modified from Goh's original model: hospitalizations go to hospital without delay.
+        var dSevere_H =  p_severe*gamma*I - (1/D_hospital)*Severe_H
         var dFatal    =  p_fatal*gamma*I  - (1/D_death)*Fatal
         var dR_Mild   =  (1/D_recovery_mild)*Mild
-        var dR_Severe =  (1/D_recovery_severe)*Severe_H
+        var dR_Severe =  (1/D_hospital)*Severe_H
         var dR_Fatal  =  (1/D_death)*Fatal
 
         //      0   1   2   3      4        5          6       7        8          9
@@ -108,19 +108,6 @@ export function get_solution_from_gohs_seir_ode(actionMarkersForGoh, historical_
     // We need to remove first element from P_all_goh because the end historical state
     // is used as the start state for the predictions.
     return uf_states.slice(1)
-}
-    
-
-function tempDebug(goh_states, N) {
-    for (var i=0; i<30; i++) {
-        const exposed = ' exposed: ' + Math.round(N*goh_states[i][1])
-        const infectious = ', infectious: ' + Math.round(N*goh_states[i][2])
-        const mild = ' mild: ' + Math.round(N*goh_states[i][3])
-        const severeHome = ', severeHome: ' + Math.round(N*goh_states[i][4])
-        const infected = ', infected: ' + Math.round(N * (goh_states[i][1] + goh_states[i][2] + goh_states[i][3] + goh_states[i][4]))
-        const propRecovering = ', proportion of mild from infected: ' + (Math.round(N*(goh_states[i][3])) / Math.round(N * (goh_states[i][1] + goh_states[i][2] + goh_states[i][3] + goh_states[i][4])))
-        console.log('i='+i+exposed+infectious+mild+severeHome+infected+propRecovering)
-    }
 }
 
 /** This was the original mapping from Goh model's internal states into the chartable states.

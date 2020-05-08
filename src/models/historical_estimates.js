@@ -46,9 +46,9 @@ export function loadFinnishHistoricalEstimates(fin, N) {
         goh_states.push([
             susceptible / N,
             h('Exposed') / N,
-            h('Infectious') / N,
+            h('Infectious') / N + h('SevereHome') / N, // See the comment below.
             h('Mild') / N,
-            h('SevereHome') / N,
+            0, // Everyone from "severe_home" state moved to infectious (because we effectively removed this state from Goh's model)
             h('HospitalWillRecover') / N,
             h('HospitalFatal') / N,
             h('RecoveredMild') / N,

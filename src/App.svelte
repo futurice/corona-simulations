@@ -125,8 +125,7 @@
   $: D_incbation       = paramConfig["days_from_incubation_to_infectious"].defaultValue
   $: D_infectious      = paramConfig["days_from_infectious_to_not_infectious"].defaultValue
   $: D_recovery_mild   = paramConfig["days_in_mild_recovering_state"].defaultValue
-  $: D_recovery_severe = paramConfig["days_in_hospital"].defaultValue
-  $: D_hospital_lag    = paramConfig["days_in_severe_recovering_state_before_hospital"].defaultValue
+  $: D_hospital        = paramConfig["days_in_hospital"].defaultValue
   $: CFR               = paramConfig["fatality_rate"].defaultValue
   $: Time              = 220
   $: Xmax              = 110000
@@ -268,9 +267,9 @@
     actionMarkers = actionMarkerHelper(P_all_historical, custom_params)
   }
 
-  function get_solution(selectedModel, P_all_fetched, actionMarkers, goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, P_SEVERE, P_ICU, CFR) {
+  function get_solution(selectedModel, P_all_fetched, actionMarkers, goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital, P_SEVERE, P_ICU, CFR) {
     if (selectedModel === MODEL_GOH) {
-      return get_solution_from_gohs_seir_ode(actionMarkers[selectedModel], goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, P_SEVERE, P_ICU, CFR)
+      return get_solution_from_gohs_seir_ode(actionMarkers[selectedModel], goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital, P_SEVERE, P_ICU, CFR)
     } else if (selectedModel === MODEL_CUSTOM) {
       return P_all_fetched
     } else {
@@ -337,8 +336,7 @@
                           D_incbation,
                           D_infectious,
                           D_recovery_mild,
-                          D_hospital_lag,
-                          D_recovery_severe,
+                          D_hospital,
                           P_SEVERE,
                           P_ICU,
                           CFR
@@ -925,12 +923,11 @@
         <ParameterKnob p = {paramConfig["fatality_rate"]} bind:value = {CFR} bind:popupHTML = {popupHTML} />
       </div>
       <div class="column">
-        <ParameterKnob p = {paramConfig["days_in_hospital"]} bind:value = {D_recovery_severe} bind:popupHTML = {popupHTML} />
+        <ParameterKnob p = {paramConfig["days_in_hospital"]} bind:value = {D_hospital} bind:popupHTML = {popupHTML} />
         <ParameterKnob p = {paramConfig["days_in_mild_recovering_state"]} bind:value = {D_recovery_mild} bind:popupHTML = {popupHTML} />
       </div>
       <div class="column">
         <ParameterKnob p = {paramConfig["hospitalization_rate"]} bind:value = {P_SEVERE} bind:popupHTML = {popupHTML} />
-        <ParameterKnob p = {paramConfig["days_in_severe_recovering_state_before_hospital"]} bind:value = {D_hospital_lag} bind:popupHTML = {popupHTML} />
       </div>
       <div class="column">
         <ParameterKnob p = {paramConfig["icu_rate_from_hospitalized"]} bind:value = {P_ICU} bind:popupHTML = {popupHTML} />
