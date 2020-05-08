@@ -49,7 +49,21 @@
         return xScaleTime(actionMarkerData[AM_DAY])
     }
 
-    $: zIndex = actionMarkerData[AM_DAY] * 1000
+    function getZIndex(actionMarkerData) {
+        // Action markers on the right should go on top of markers on the left
+        var z = actionMarkerData[AM_DAY] * 1000
+        // If configuration is expanded, bring towards front.
+        if (actionMarkerData[AM_EXPANDED]) {
+            z += 1000000
+        }
+        // If actionmarker is being dragged, bring as front as possible.
+        if (actionMarkerData['dragging']) {
+            z += 10000000
+        }
+        return z
+    }
+
+    $: zIndex = getZIndex(actionMarkerData)
     $: displayDay = actionMarkerData[AM_DAY]
     $: displayDate = getDate(firstBarDate, displayDay)
     $: adjustedR0 = getAdjustedR0(R0, allActiveActionMarkers, actionMarkerData)
@@ -84,11 +98,13 @@
                     flashMessage = ''
                 }
                 actionMarkerData[AM_DAY] = Math.round(Math.min(maxX, Math.max(minX, draggedX)))
+                actionMarkerData['dragging'] = true
             }
         }
 
         var dragend = function (d) {
             lock = false
+            actionMarkerData['dragging'] = false
         }
 
         return drag().on("drag", dragged).on("start", dragstarted).on("end", dragend)
