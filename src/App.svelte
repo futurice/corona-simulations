@@ -920,14 +920,12 @@
         <ParameterKnob p = {paramConfig["days_from_infectious_to_not_infectious"]} bind:value = {D_infectious} bind:popupHTML = {popupHTML} />
       </div>
       <div class="column">
-        <ParameterKnob p = {paramConfig["fatality_rate"]} bind:value = {CFR} bind:popupHTML = {popupHTML} />
-      </div>
-      <div class="column">
         <ParameterKnob p = {paramConfig["days_in_hospital"]} bind:value = {D_hospital} bind:popupHTML = {popupHTML} />
         <ParameterKnob p = {paramConfig["days_in_mild_recovering_state"]} bind:value = {D_recovery_mild} bind:popupHTML = {popupHTML} />
       </div>
       <div class="column">
-        <ParameterKnob p = {paramConfig["hospitalization_rate"]} bind:value = {P_SEVERE} bind:popupHTML = {popupHTML} />
+        <ParameterKnob p = {paramConfig["hospitalization_rate"]} bind:value = {P_SEVERE} specialCaseAddToDisplayValue = {CFR} bind:popupHTML = {popupHTML} />
+        <ParameterKnob p = {paramConfig["fatality_rate"]} bind:value = {CFR} bind:popupHTML = {popupHTML} />
       </div>
       <div class="column">
         <ParameterKnob p = {paramConfig["icu_rate_from_hospitalized"]} bind:value = {P_ICU} bind:popupHTML = {popupHTML} />
@@ -1015,8 +1013,8 @@
   </p>
   <ul class="center" style="width: 800px;">
     <li>all fatalities are assumed to come from hospitals</li>
-    <li>all fatal cases are assumed to be admitted to hospitals immediately after the infectious period</li>
-    <li>icu duration is assumed to be the same as hospitalization duration</li>
+    <li>all hospitalizations are assumed to occur immediately after the infectious period</li>
+    <li>hospitalization duration is assumed to be the same for regular ward, icu, and fatalities</li>
     <li>exceeding icu capacity is assumed to not affect the fatality rate</li>
   </ul>
   <p class="center" style="padding-bottom: 16.5px;">
@@ -1057,10 +1055,17 @@
     <li>Multiple action markers. The old Epidemic Calculator only has a single action marker, labeled "intervention" and it can
         only reduce the transmission of the virus, not increase it. What if you wanted to model the effect of <i>stopping</i> an intervention? How about
         modelling multiple policy changes? You can do those things with Corosim.</li>
-    <li>Various design and UX improvements (real dates, more tooltips, reduced clutter, etc.) </li>
     <li>Scenario outcome summary. The old Epidemic Calculator does not have an easy way summarize an outcome. If you want to compare
         two different strategies, you need to manually zoom out and eyeball the peak, fatalities, etc. Corosim provides a scenario outcome summary
         of the most crucial metrics.</li>
+    <li>Small changes to the model itself: hospitalizations go to hospital without delay and fatalities are affected by the
+        same hospitalization time as recovering patients. These simplifications were motivated by a desire to make the parameterization
+        easier to communicate to the end user. For example, in the original Epidemic Calculator there is a parameter labelled
+        "Length of hospital stay", but it actually affects only those patients who eventually survive, not those who eventually die.
+        We noticed similar issues with parameters "Time to hospitalization" and "Case fatality rate". In the original Epidemic Calculator,
+        case fatality rate actually affects the hospitalization rate, but this effect is hidden from the end user.</li>
+    <li>Various design and UX improvements (real dates, more tooltips, reduced clutter, etc.) </li>
+    
   </ul>
   <p class="center">
     <a href="https://github.com/futurice/corona-simulations">Source code available on GitHub.</a>

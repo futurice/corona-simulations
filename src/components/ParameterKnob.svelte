@@ -85,7 +85,9 @@
 <div class="paneltext">
     <div class="paneldesc" style="min-height: 35px;">
 
-        {@html stylizeExpressions(p.description)}
+        <div style="position: absolute; margin-right: 10px;">
+            {@html stylizeExpressions(p.description)}
+        </div>
 
         <div on:click={displayPopup} title="Learn more">
             <Icon data={question}

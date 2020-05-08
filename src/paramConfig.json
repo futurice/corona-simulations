@@ -51,8 +51,8 @@
         "unitsDescriptor": "days",
         "isInteger": false,
         "isPercentage": false,
-        "longformDescription": "TODO",
-        "longformDoNotConfuseWith": "TODO",
+        "longformDescription": "Average number of days in hospital (excluding population who spend 0 days in hospital).",
+        "longformDoNotConfuseWith": "In the original Epidemic Calculator, length of hospital stay affected only those patients who eventually survived, not those who eventually died. In Corosim this slider affects all hospitalizations.",
         "longformDefaultValueJustification": "TODO"
     },
     "days_in_mild_recovering_state": {
@@ -72,15 +72,16 @@
     "hospitalization_rate": {
         "description": "Hospitalization rate",
         "isDefaultValueAutomaticallyGeneratedFromData": false,
-        "defaultValue": 0.028,
+        "defaultValue": 0.022,
+        "BEFORE YOU CHANGE DEFAULT VALUE, PLEASE READ THE LONG FORM DESCRIPTION!": true,
         "minValue": 0,
         "maxValue": 0.2,
         "stepValue": 0.0001,
         "unitsDescriptor": "%",
         "isInteger": false,
         "isPercentage": true,
-        "longformDescription": "TODO",
-        "longformDoNotConfuseWith": "TODO",
+        "longformDescription": "Hospitalization as a percentage of all infections.",
+        "longformDoNotConfuseWith": "In the original Epidemic Calculator there is a slider with the same name, but it actually affects only those hospitalizations who eventually survive. The true hospitalization rate in the Epidemic Calculator is actually the displayed hospitalization rate plus infected fatality rate (which is labelled 'case fatality rate'). In Corosim, if you move the 'infected fatality rate' slider, you will notice that it affects hospitalizaton rate as well. This is because we assume all fatalities to occur in hospitals, which means hospitalization rate must always be at least as high as infected fatality rate. We are enforcing this constraint by actually storing this value in a different form than how it is displayed: the stored value is the hospitalization rate for patients who end up surviving, whereas the displayed value is a sum of that and fatality rate.",
         "longformDefaultValueJustification": "TODO"
     },
     "icu_rate_from_hospitalized": {
