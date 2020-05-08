@@ -42,7 +42,7 @@ Epidemic models can be divided into compartmentalized models and agent-based mod
 
 ## A word about architecture
 
-Corosim is designed as a fully static webpage. Data is updated at build-time every 3 hours. Computation for the model occurs live in the browser. Benefits of these design choices:
+Corosim is designed as a fully static web app. Data is updated at build-time every 3 hours. Computation for the model occurs live in the browser. Benefits of these design choices include:
 - Immediate results. End users can tune parameters and action markers and see the results immediately. Users don't have to send a formal request to a silo "can you please run this simulation for us" and wait 1 week for the silo to produce a PDF describing results.
 - Infinitely scalable. This software will work just fine no matter how many simultaneous users you get.
 - Costs $0 to host.

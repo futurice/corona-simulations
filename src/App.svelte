@@ -1009,20 +1009,13 @@
     Each of these variables follows its own trajectory to the final outcome, and the sum of these compartments add up to the values
     predicted by SEIR.
     <br><br>
-    Note that we make the following assumptions for simplicity:
+    Note that the model is a simplification of reality in many ways:
   </p>
   <ul class="center" style="width: 800px;">
     <li>all fatalities are assumed to come from hospitals</li>
     <li>all hospitalizations are assumed to occur immediately after the infectious period</li>
     <li>hospitalization duration is assumed to be the same for regular ward, icu, and fatalities</li>
-    <li>exceeding icu capacity is assumed to not affect the fatality rate</li>
-  </ul>
-  <p class="center" style="padding-bottom: 16.5px;">
-    In light of these simplifying assumptions and other factors, we note the following:
-  </p>
-  <ul class="center" style="width: 800px;">
-    <li>ICU bed predictions of this model are probably <i>too low</i></li>
-    <li>Fatality predictions of this model are probably <i>too low if icu capacity is exceeded</i></li>
+    <li>icu capacity is just a visual indicator, exceeding capacity has no effect on fatalities</li>
   </ul>
 
   <p class="center">
