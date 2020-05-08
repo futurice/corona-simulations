@@ -166,7 +166,20 @@
     popupHTML = `
       <p><b>Historical Estimates</b></p>
       <p>
-      Bla bla
+      TODO
+      </p>
+    `
+  }
+
+  function popupExplainHowToUse() {
+    popupHTML = `
+      <p><b>How to tune parameters</b></p>
+      <p>
+      TODO
+      </p>
+      <p><b>How to use action markers</b></p>
+      <p>
+      TODO
       </p>
     `
   }
@@ -993,11 +1006,18 @@
             />
     </span>
   </div>
-  <p class="center">
+  <div class="center">
     As you know, a model is only as good as its input parameters. Although we have done a lot of research to provide sensible default values,
     you probably disagree with some of our choices. That's why we wanted to provide you the possibility of tuning parameters by yourself.
     You can also set your own action points to model the effects of different policy changes.
-  </p>
+    <span on:click={popupExplainHowToUse} title="How to use Corosim">
+            <Icon data={question}
+            scale=1.0
+            class="clickableIcons"
+            style="cursor: pointer; color: #CCC; "
+            />
+    </span>
+  </div>
   <p class="center">
     At this time <i>no other</i> website provides a service like this. For example, other Coronavirus modelling websites
     typically begin the simulation from a theoretical "day zero" which can not be configured according to estimates of the current situation

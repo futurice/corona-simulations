@@ -192,6 +192,10 @@
             </div>
             <div style="position: absolute; left: {leftPx+13}px; top: 0px; width: 200px; text-align: left; margin-top: 10px; margin-left: 10px; font-weight: normal; font-size: 20px; font-family: nyt-franklin,helvetica,arial,sans-serif;">
                 Model predictions
+                <br>
+                <span style="font-size: 12px;">
+                    {@html math_inline("→ \\mathcal{R}_0=" + R0.toFixed(2))}
+                </span>
             </div>
 
 </div>
