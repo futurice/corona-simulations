@@ -53,7 +53,7 @@
         "isInteger": false,
         "isPercentage": false,
         "longformDescription": "For the fatalities, this represents the average number of days between becoming infected and dying.",
-        "longformDoNotConfuseWith": "The original Epidemic Calculator has a similar slider, but it represents the time from the end of the incubation period to death. We thought that this might be confusing to end users, so Corosim's time to death represents average time from moment of infection to death. Note that this value must always be higher than incubation time plus infectious time. Internally, this is enforced by actually storing this value in a different form than how it is displayed: the stored value is actually the time from end of infectious to death. This is the reason why changing the values for incubation and infectious period actually cause the default value for this value to change.",
+        "longformDoNotConfuseWith": "The original Epidemic Calculator has a similar slider, but it represents the time from the end of the incubation period to death. We thought that this might be confusing to end users, so Corosim's time to death represents average time from moment of infection to death. Note that this value must always be higher than incubation time plus infectious time. Internally, this is enforced by actually storing this value in a different form than how it is displayed: the stored value is actually the time from end of infectious to death. This is the reason why changing the values for incubation and infectious period actually affects the displayed value for time to death.",
         "longformDefaultValueJustification": "TODO"
     },
     "days_in_hospital": {

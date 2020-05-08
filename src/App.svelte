@@ -27,7 +27,7 @@
   import { get_solution_from_gohs_seir_ode, map_goh_states_into_UFStates, goh_default_action_markers } from './models/gohs_seir_ode.js';
   import { map_berkeley_states_into_UFStates, parse_berkeley, get_berkeley_action_markers } from './models/berkeley_abm.js';
   import { loadFinnishHistoricalEstimates } from './models/historical_estimates.js';
-  import { addDays, formatCount, formatDelta, MODEL_GOH, MODEL_CUSTOM } from './utils.js';
+  import { getDate, addDays, formatCount, formatDelta, MODEL_GOH, MODEL_CUSTOM } from './utils.js';
   import { math_inline, math_display, padding } from './utils.js';
 
   // Static data imports
@@ -90,7 +90,7 @@
                                harder for the virus to spread, causing {Rt} to diverge lower from {R0}.
                                `,
     longformDefaultValueJustification: `The default value for {R0} is estimated from confirmed case counts.
-                                        This default value is not hardoded, it is updated daily as new data comes in.
+                                        This default value is not hardcoded, it is updated daily as new data comes in.
                                         We exclude the most recent 5 days from computation, because of delays
                                         in recording new cases.<br>
                                         
@@ -497,47 +497,29 @@
 
   $: [peakICUDay, peakICUCount] = get_icu_peak(P_all)
 
-  // Note: milestone for peak ICU is different than actual peak ICU, because
-  // milestones are chosen from timestepped days, whereas "scenario outcome icu peak" is from all days.
-  // So don't merge these by refactoring.
-  function get_milestones(P) {
-
-    function argmax(k) {
-      var maxVal = 0
-      var maxValIndex = 0
-      for (var i=0; i<P.length; i+=dt) {
-        const val = P[i][k]
-        if (val > maxVal) {
-          maxVal = val
-          maxValIndex = i
-        }
-      }
-      return maxValIndex
-    }
+  function get_milestones(P, firstBarDate, cutoffHistoricDay, dt) {
 
     var milestones = []
-    for (var i = 0; i < P.length; i+=dt) {
+    
+    // First death milestone
+    for (var i = 0; i < P.length; i+=1) {
       if (P[i]['fatalities'] >= 0.5) {
-        if (i == 0) {
-          // If first death occurs on first day, the initial conditions for the visualization
-          // are in the middle of the epidemic. In that case we don't want to draw this milestone.
-          break
-        }
         milestones.push([i, "First death"])
         break
       }
     }
     
-    const bar_peak_hosp = argmax('icu')
-    if (bar_peak_hosp < 100*dt) {
-      // If peak hospitalization occurs on last day of zoomed in area, there is likely a higher peak beyond the visible area.
-      // In that case we don't want to draw this milestone.
-      milestones.push([bar_peak_hosp, "Peak: " + format(",")(Math.round(P[bar_peak_hosp]['icu'])) + " ICU"])
-    }
+    // Peak ICU milestone
+    milestones.push([peakICUDay, "Peak: " + format(",")(peakICUCount) + " ICU"])
+
+    // Historical date offset milestone
+    const lastHistoricDate = getDate(firstBarDate, cutoffHistoricDay-1)
+    milestones.push([cutoffHistoricDay-1, lastHistoricDate])
+
     return milestones
   }
 
-  $: milestones = get_milestones(P_all)
+  $: milestones = get_milestones(P_all, firstBarDate, cutoffHistoricDay, dt)
   $: log = true
 
 </script>
@@ -935,6 +917,8 @@
                   text-align: justify;
                   line-height: 24px">
         {@html popupHTML}
+        <button on:click={closePopup} style="color: #666; font-size: 20px; cursor: pointer; padding: 10px; background: none; border: 1px solid #CCC;"><b>OK</b></button>
+        <br><br>
       </div>
     </div>
   </div>

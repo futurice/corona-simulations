@@ -2,7 +2,7 @@
 
 Deployed & explained here:
 
-https://futu-corosim-proto.netlify.com/
+https://corosim.fi/
 
 ## Initial setup
 
