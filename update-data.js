@@ -1,6 +1,10 @@
 const fetch = require('node-fetch');
 const fs = require('fs');
 
+// Do not remove this import! We want to load paramConfig.json at build time so that if somebody
+// has accidentally broken the JSON by manual editing, build process is halted.
+const paramConfig = require('./src/paramConfig.json');
+
 function write(relativePath, content) {
     fs.writeFile(relativePath, content, function(err) {
         if(err) {
