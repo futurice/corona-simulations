@@ -516,6 +516,11 @@
     const lastHistoricDate = getDate(firstBarDate, cutoffHistoricDay-1)
     milestones.push([cutoffHistoricDay-1, lastHistoricDate])
 
+    // Filter out milestones which are outside the currently zoomed in area
+    milestones = milestones.filter(milestone => {
+      return milestone[0] < 100*dt
+    })
+
     return milestones
   }
 
