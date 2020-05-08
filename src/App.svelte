@@ -44,7 +44,7 @@
 
   function get_R0_from_Rt(Rt, goh_states_fin) {
     const prop_susceptible = goh_states_fin[goh_states_fin.length-1][0]
-    return (Rt / prop_susceptible).toFixed(2)
+    return parseFloat((Rt / prop_susceptible).toFixed(2))
   }
 
   // This is needed because when we zoom out, Chart needs every nth datapoint from P.
