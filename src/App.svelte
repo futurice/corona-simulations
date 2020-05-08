@@ -127,7 +127,6 @@
   $: D_recovery_mild   = paramConfig["days_in_mild_recovering_state"].defaultValue
   $: D_recovery_severe = paramConfig["days_in_hospital"].defaultValue
   $: D_hospital_lag    = paramConfig["days_in_severe_recovering_state_before_hospital"].defaultValue
-  $: Time_to_death     = paramConfig["days_from_end_of_infectious_to_death"].defaultValue
   $: CFR               = paramConfig["fatality_rate"].defaultValue
   $: Time              = 220
   $: Xmax              = 110000
@@ -135,23 +134,6 @@
   $: P_SEVERE          = paramConfig["hospitalization_rate"].defaultValue
   $: P_ICU             = paramConfig["icu_rate_from_hospitalized"].defaultValue
   $: icuCapacity       = paramConfig["icu_capacity"].defaultValue
-
-
-
-  // "share your model" ?
-  /*
-  $: state = location.protocol + '//' + location.host + location.pathname + "?" + queryString.stringify({"Time_to_death":Time_to_death,
-               "logN":logN,
-               "I0":I0,
-               "R0":R0,
-               "D_incbation":D_incbation,
-               "D_infectious":D_infectious,
-               "D_recovery_mild":D_recovery_mild,
-               "D_recovery_severe":D_recovery_severe,
-               "CFR":CFR,
-               "D_hospital_lag":D_hospital_lag,
-               "P_SEVERE": P_SEVERE})
-               */
 
   function toggleZoomStates() {
     dt *= 2
@@ -286,9 +268,9 @@
     actionMarkers = actionMarkerHelper(P_all_historical, custom_params)
   }
 
-  function get_solution(selectedModel, P_all_fetched, actionMarkers, goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, Time_to_death, P_SEVERE, P_ICU, CFR) {
+  function get_solution(selectedModel, P_all_fetched, actionMarkers, goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, P_SEVERE, P_ICU, CFR) {
     if (selectedModel === MODEL_GOH) {
-      return get_solution_from_gohs_seir_ode(actionMarkers[selectedModel], goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, Time_to_death, P_SEVERE, P_ICU, CFR)
+      return get_solution_from_gohs_seir_ode(actionMarkers[selectedModel], goh_states_fin, dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, P_SEVERE, P_ICU, CFR)
     } else if (selectedModel === MODEL_CUSTOM) {
       return P_all_fetched
     } else {
@@ -357,7 +339,7 @@
                           D_recovery_mild,
                           D_hospital_lag,
                           D_recovery_severe,
-                          Time_to_death, P_SEVERE,
+                          P_SEVERE,
                           P_ICU,
                           CFR
                         )
@@ -419,23 +401,6 @@
 
     var drag_callback_y = drag_y()
     drag_callback_y(selectAll("#yAxisDrag"))
-
-    // TODO what is this? Is it for "share your model" links?
-    if (typeof window !== 'undefined') {
-      parsed = queryString.parse(window.location.search)
-      if (!(parsed.logN === undefined)) {logN = parsed.logN}
-      if (!(parsed.I0 === undefined)) {I0 = parseFloat(parsed.I0)}
-      if (!(parsed.R0 === undefined)) {R0 = parseFloat(parsed.R0)}
-      if (!(parsed.D_incbation === undefined)) {D_incbation = parseFloat(parsed.D_incbation)}
-      if (!(parsed.D_infectious === undefined)) {D_infectious = parseFloat(parsed.D_infectious)}
-      if (!(parsed.D_recovery_mild === undefined)) {D_recovery_mild = parseFloat(parsed.D_recovery_mild)}
-      if (!(parsed.D_recovery_severe === undefined)) {D_recovery_severe = parseFloat(parsed.D_recovery_severe)}
-      if (!(parsed.CFR === undefined)) {CFR = parseFloat(parsed.CFR)}
-      if (!(parsed.D_hospital_lag === undefined)) {D_hospital_lag = parseFloat(parsed.D_hospital_lag)}
-      if (!(parsed.P_SEVERE === undefined)) {P_SEVERE = parseFloat(parsed.P_SEVERE)}
-      if (!(parsed.Time_to_death === undefined)) {Time_to_death = parseFloat(parsed.Time_to_death)}
-
-    }
 
   });
 
@@ -958,7 +923,6 @@
       </div>
       <div class="column">
         <ParameterKnob p = {paramConfig["fatality_rate"]} bind:value = {CFR} bind:popupHTML = {popupHTML} />
-        <ParameterKnob p = {paramConfig["days_from_end_of_infectious_to_death"]} bind:value = {Time_to_death} specialCaseAddToDisplayValue = {D_incbation + D_infectious} bind:popupHTML = {popupHTML} />
       </div>
       <div class="column">
         <ParameterKnob p = {paramConfig["days_in_hospital"]} bind:value = {D_recovery_severe} bind:popupHTML = {popupHTML} />

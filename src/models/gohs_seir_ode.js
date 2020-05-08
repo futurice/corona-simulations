@@ -26,7 +26,10 @@ var integrate=(m,f,y,t,h)=>{
     return r;
 }
 
-export function get_solution_from_gohs_seir_ode(actionMarkersForGoh, historical_goh_states, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, Time_to_death, P_SEVERE, P_ICU, CFR) {
+export function get_solution_from_gohs_seir_ode(actionMarkersForGoh, historical_goh_states, real_dt, N, I0, R0, D_incbation, D_infectious, D_recovery_mild, D_hospital_lag, D_recovery_severe, P_SEVERE, P_ICU, CFR) {
+
+    // This used to be a slider in the original Epidemic Calculator.
+    const D_death = D_hospital_lag + D_recovery_severe
 
     var interpolation_steps = 40
     var days_to_simulate = 400
@@ -75,10 +78,10 @@ export function get_solution_from_gohs_seir_ode(actionMarkersForGoh, historical_
         var dMild     =  p_mild*gamma*I   - (1/D_recovery_mild)*Mild
         var dSevere   =  p_severe*gamma*I - (1/D_hospital_lag)*Severe
         var dSevere_H =  (1/D_hospital_lag)*Severe - (1/D_recovery_severe)*Severe_H
-        var dFatal    =  p_fatal*gamma*I  - (1/Time_to_death)*Fatal
+        var dFatal    =  p_fatal*gamma*I  - (1/D_death)*Fatal
         var dR_Mild   =  (1/D_recovery_mild)*Mild
         var dR_Severe =  (1/D_recovery_severe)*Severe_H
-        var dR_Fatal  =  (1/Time_to_death)*Fatal
+        var dR_Fatal  =  (1/D_death)*Fatal
 
         //      0   1   2   3      4        5          6       7        8          9
         return [dS, dE, dI, dMild, dSevere, dSevere_H, dFatal, dR_Mild, dR_Severe, dR_Fatal]

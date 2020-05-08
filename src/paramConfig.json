@@ -41,21 +41,6 @@
         "longformDoNotConfuseWith": "Case fatality rate. TODO.",
         "longformDefaultValueJustification": "https://www.thelancet.com/journals/laninf/article/PIIS1473-3099%2820%2930243-7/fulltext"
     },
-    "days_from_end_of_infectious_to_death": {
-        "description": "Time to death",
-        "isDefaultValueAutomaticallyGeneratedFromData": false,
-        "defaultValue": 15.1,
-        "BEFORE YOU CHANGE DEFAULT VALUE, PLEASE READ THE LONG FORM DESCRIPTION!": true,
-        "minValue": 0.1,
-        "maxValue": 50,
-        "stepValue": 0.01,
-        "unitsDescriptor": "days",
-        "isInteger": false,
-        "isPercentage": false,
-        "longformDescription": "For the fatalities, this represents the average number of days between becoming infected and dying.",
-        "longformDoNotConfuseWith": "The original Epidemic Calculator has a similar slider, but it represents the time from the end of the incubation period to death. We thought that this might be confusing to end users, so Corosim's time to death represents average time from moment of infection to death. Note that this value must always be higher than incubation time plus infectious time. Internally, this is enforced by actually storing this value in a different form than how it is displayed: the stored value is actually the time from end of infectious to death. This is the reason why changing the values for incubation and infectious period actually affects the displayed value for time to death.",
-        "longformDefaultValueJustification": "TODO"
-    },
     "days_in_hospital": {
         "description": "Length of hospital stay",
         "isDefaultValueAutomaticallyGeneratedFromData": false,
