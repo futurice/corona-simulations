@@ -2,6 +2,11 @@ function isValidDate(d) {
     return d instanceof Date && !isNaN(d);
 }
 
+export function createFinnishHistoricalEstimates() {
+    
+}
+
+// Deprecated function for loading hardcoded historical estimates.
 export function loadFinnishHistoricalEstimates(fin, N) {
     // This function returns these 2.
     var first_date = new Date()

@@ -44,7 +44,7 @@
 
   function get_R0_from_Rt(Rt, goh_states_fin) {
     const prop_susceptible = goh_states_fin[goh_states_fin.length-1][0]
-    return Rt / prop_susceptible
+    return (Rt / prop_susceptible).toFixed(2)
   }
 
   // This is needed because when we zoom out, Chart needs every nth datapoint from P.
@@ -317,7 +317,7 @@
   $: latestRtEstimateValue = Number.parseFloat(latestRtEstimate[0]["Rt"])
   $: latestRtEstimateDate  = latestRtEstimate[0]["date"]
   $: latestR0EstimateValue = get_R0_from_Rt(latestRtEstimateValue, goh_states_fin)
-  $: R0                    = latestR0EstimateValue
+  $: R0                    = R0 ? R0 : latestR0EstimateValue
   $: setDefaultParamsR0(latestR0EstimateValue, latestRtEstimateDate)
   $: lastHistoricBar       = getlastHistoricBar(P_all_historical, dt)
 
