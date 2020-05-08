@@ -41,6 +41,10 @@ export function getMonth(date) {
     return MONTHS[new Intl.DateTimeFormat('en', { month: 'numeric' }).format(date)]
 }
 
+export function getDayFromDate(date) {
+    return new Intl.DateTimeFormat('en', { day: 'numeric' }).format(date)
+}
+
 export function formatDate(date) {
     const year = new Intl.DateTimeFormat('en', { year: 'numeric' }).format(date)
     const month = new Intl.DateTimeFormat('en', { month: '2-digit' }).format(date)

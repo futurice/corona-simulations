@@ -4,7 +4,7 @@
   import { selectAll } from 'd3-selection'
   import { onMount } from 'svelte';
   import { createEventDispatcher } from 'svelte';
-  import { formatNumber, padding, MODEL_GOH, formatDate, getDate, addDays, getMonth } from '../utils.js';
+  import { formatNumber, padding, MODEL_GOH, formatDate, getDate, addDays, getMonth, getDayFromDate } from '../utils.js';
 
   const dispatch = createEventDispatcher();
 
@@ -130,6 +130,9 @@
   })()
   export let active;
 
+  $: xLabelOffset = Number.parseInt(getDayFromDate(firstBarDate)) - 18
+  $: console.log(xLabelOffset)
+
   // var data = [[2   , 2  ], [5   , 2  ], [18  , 4  ], [28  , 6  ], [43  , 8  ], [61  , 12 ], [95  , 16 ], [139 , 19 ], [245 , 26 ], [388 , 34 ], [593 , 43 ], [978 , 54 ], [1501, 66 ], [2336, 77 ], [2922, 92 ], [3513, 107], [4747, 124]]
   var data = []
 </script>
@@ -246,11 +249,11 @@
         -->
         {#if i%30 == 0}
           {#if getDate(firstBarDate, i).endsWith("01.2021")}
-            <g class="tick" transform="translate({xScaleTime(i)},{height})">
+            <g class="tick" transform="translate({xScaleTime(i - xLabelOffset)},{height})">
               <text x="0" y="-4">2021</text>
             </g>
           {:else}
-            <g class="tick" transform="translate({xScaleTime(i)},{height})">
+            <g class="tick" transform="translate({xScaleTime(i - (i > 0 ? xLabelOffset : 0))},{height})">
               <text x="0" y="-4">{getMonth(addDays(firstBarDate, i))}</text>
             </g>
           {/if}
