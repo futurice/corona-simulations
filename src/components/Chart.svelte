@@ -130,11 +130,10 @@
   })()
   export let active;
 
+  // This is used to align the names of months on the axis to be roughly at center of those months.
+  // If you tune this, remember to use different zoom settings during testing.
   $: xLabelOffset = Number.parseInt(getDayFromDate(firstBarDate)) - 18
-  $: console.log(xLabelOffset)
 
-  // var data = [[2   , 2  ], [5   , 2  ], [18  , 4  ], [28  , 6  ], [43  , 8  ], [61  , 12 ], [95  , 16 ], [139 , 19 ], [245 , 26 ], [388 , 34 ], [593 , 43 ], [978 , 54 ], [1501, 66 ], [2336, 77 ], [2922, 92 ], [3513, 107], [4747, 124]]
-  var data = []
 </script>
 
 <style>
@@ -241,12 +240,14 @@
     <!-- x axis -->
     <g class="axis x-axis">
       {#each xScaleTime.ticks(100) as i}
+
         <!-- Show actual date for day 0.
         {#if i == 0}
           <g class="tick" transform="translate({xScaleTime(i)},{height})">
             <text x="0" y="-4">--{getDate(firstBarDate, i)}</text>
           </g>
         -->
+        
         {#if i%30 == 0}
           {#if getDate(firstBarDate, i).endsWith("01.2021")}
             <g class="tick" transform="translate({xScaleTime(i - xLabelOffset)},{height})">
@@ -291,50 +292,9 @@
                 style="fill:{stateMeta[j]['color']}; opacity:{active == i ? 0.9: 0.6}">     
               </rect>
             {/if}
-          {:else}
-          <!-- This commented out block is for log scale.
-                <rect
-                on:mouseover={() => showTip(i)}
-                on:mouseout={() => showTip(-1)}
-                on:click={() => {lock = !lock; active_lock = indexToTime(i) }}
-                class="bar"
-                x="{xScale(i) + 2}"
-                y="{(function () { 
-                        var z = yScale( sum(y[i].slice(0,j+1), checked) ); 
-                        return Math.min(isNaN(z) ? 0: z, height - padding.top)
-                      })()  
-                    }"
-                width="{barWidth}"
-                height="{(function () {
-                  var top = yScaleL( sum(y[i].slice(0,j+1),checked) + 0.0001 )
-                  var btm = yScaleL( sum(y[i].slice(0,j),checked) + 0.0001)
-                  var z = top - btm; 
-                  if (z + yScale( sum(y[i].slice(0,j+1), checked) ) > height - padding.top) {
-                    return top
-                  } else {
-                    return Math.max(isNaN(z) ? 0 : z,0)
-                  }})()}" 
-                style="fill:{colors[j]};
-                       opacity:{active == i ? 0.9: 0.6}">     
-              </rect> -->
           {/if}
         {/each}
 
-      {/each}
-    </g>
-
-    <g class='bars'>
-      {#each range(data.length) as i}
-        <rect
-          class="bar"
-          x="{xScale( i+28 ) + 2}"
-          y="{yScale( data[i][1] )}"
-          width="{barWidth}"
-          height="{height - padding.bottom - yScale( data[i][1] )}"
-          style="fill:black; 
-                 opacity: 0.5;
-                 box-shadow: 4px 10px 5px 2px rgba(0,0,0,0.75);">     
-        </rect>
       {/each}
     </g>
 

@@ -200,8 +200,7 @@
                                 height:{height+19}px;">
 
         <div style="flex: 0 0 160px;
-                    min-width:200px;
-                    max-width:200px;
+                    min-width:220px;
                     position:relative;
                     top:-67px;
                     height: 74px;
@@ -222,7 +221,7 @@
                 </div>
             {/if}
 
-            <div class="caption" style="pointer-events: none; position: absolute; left:1px; top:0px; height: 60px; min-width:200px; border-left: 3px solid #777; padding: 5px 7px 7px 7px; ">      
+            <div class="caption" style="pointer-events: none; position: absolute; left:1px; top:0px; height: 60px; min-width:220px; border-left: 3px solid #777; padding: 5px 7px 7px 7px; ">      
                 <div class="paneltext" style="height:20px; text-align: right">
 
                     <div class="paneltitle unselectable" style="top:0px; position: relative; text-align: left; white-space: nowrap;">

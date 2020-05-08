@@ -75,7 +75,7 @@
     longformDescription: `Informally, {R0} describes how easily a virus can spread in a population.
                           Note that {R0} is not just a property of the virus: the behavior of individuals
                           within a population also affects how easily a virus can spread. To be specific,
-                          R0 describes the number of new infections expected to be caused by a typical infected
+                          {R0} describes the number of new infections expected to be caused by a typical infected
                           person within a population <i>where everyone is susceptible to the disease</i>.
                           For example, if ${math_inline('\\mathcal{R}_0=2')}, then one infected person
                           would be expected to infect 2 other people (on average, if everyone in the
