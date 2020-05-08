@@ -37,8 +37,8 @@
         "unitsDescriptor": "%",
         "isInteger": false,
         "isPercentage": true,
-        "longformDescription": "TODO.",
-        "longformDoNotConfuseWith": "Case fatality rate. TODO.",
+        "longformDescription": "Percentage of fatalities from all infections (including undiagnosed infections).",
+        "longformDoNotConfuseWith": "Newspapers often refer to <i>case</i> fatality rate, which sometimes refer to percentage of fatalities from confirmed cases, and sometimes to percentage of fatalities from closed cases. In the original Epidemic Calculator this parameter was titled 'case fatality rate', but it was in fact referring to infected fatality rate (confirmed cases are not plotted in neither Epidemic Calculator nor Corosim). ",
         "longformDefaultValueJustification": "https://www.thelancet.com/journals/laninf/article/PIIS1473-3099%2820%2930243-7/fulltext"
     },
     "days_in_hospital": {

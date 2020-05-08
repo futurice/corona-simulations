@@ -4,6 +4,18 @@ Deployed & explained here:
 
 https://corosim.fi/
 
+## For context, a word about epidemic models
+
+Epidemic models can be divided into compartmentalized models and agent-based models. Generally speaking, agent-based models are often stochastic and simulate individual agents ("Jack meets... *rolls dice*... 6 people today") whereas compartmentalized models are often deterministic and simulate groups of people rather than individuals ("today we have 1000 infected... *increases by 10%*... tomorrow we have 1100 infected). Agent-based models are often simple on math side, but require significant efforts in software engineering and computational power. Compartmentalized models require more math (typically differential equations), but they are simple to write in terms of software engineering, and they don't require a lot of computational power. Agent-based models are closer to reality, which makes them easier to extend to different use cases. Corosim implements a compartmentalized model.
+
+## A word about architecture
+
+Corosim is designed as a fully static webpage. Data is updated at build-time every 3 hours. Computation for the model occurs live in the browser. Benefits of these design choices:
+- Immediate results. End users can tune parameters and action markers and see the results immediately. Users don't have to send a formal request to a silo "can you please run this simulation for us" and wait 1 week for the silo to produce a PDF describing results.
+- Infinitely scalable. This software will work just fine no matter how many simultaneous users you get.
+- Costs $0 to host.
+- Does not break on its own (because data is fetched at build-time, not run-time, Corosim will not break even if the APIs break.)
+
 ## Initial setup
 
 ```bash
@@ -35,4 +47,3 @@ Production build begins by fetching the latest data. If successful, it proceeds 
 
 - The `master` branch is automatically built and deployed every 3 hours, using [GitHub workflows and Netlify build hooks](https://ericjinks.com/blog/2019/netlify-scheduled-build/).
 - In addition, commits trigger a production deployment.
-- Note that there are currently **no tests**, so you can break the production build! If that happens, keep calm and rollback.
