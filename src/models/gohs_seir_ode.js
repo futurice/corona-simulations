@@ -168,8 +168,8 @@ export function map_goh_states_into_UFStates(goh_states, N, P_ICU) {
 
 export function goh_default_action_markers() {
     return [
-        new ActionMarkerData(93, "Lift restrictions", 1.4),
-        new ActionMarkerData(123, "Heatwave begins", -0.2),
+        new ActionMarkerData(108, "Lift restrictions", 1.4),
+        new ActionMarkerData(136, "Heatwave begins", -0.2),
         new ActionMarkerData(165, "Schools open", 0.13),
     ]
 }
