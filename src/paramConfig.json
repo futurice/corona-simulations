@@ -113,7 +113,7 @@
         "longformDefaultValueJustification": "TODO"
     },
     "icu_rate_from_hospitalized": {
-        "description": "ICU rate",
+        "description": "ICU rate<br>(visualization only)",
         "isDefaultValueAutomaticallyGeneratedFromData": false,
         "defaultValue": 0.3,
         "minValue": 0,
@@ -127,7 +127,7 @@
         "longformDefaultValueJustification": "TODO"
     },
     "icu_capacity": {
-        "description": "ICU capacity",
+        "description": "ICU capacity<br>(visualization only)",
         "isDefaultValueAutomaticallyGeneratedFromData": false,
         "defaultValue": 700,
         "minValue": 0,

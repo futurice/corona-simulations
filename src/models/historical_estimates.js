@@ -112,8 +112,6 @@ export function createHistoricalEstimates(hs_parsed, N, D_incbation, D_infectiou
         ]
     })
 
-    //console.log(goh_states)
-
     // Map goh states into user facing states.
     var uf_states = map_goh_states_into_UFStates(goh_states, N, 0)
     for (var day=0; day<days; day++) {

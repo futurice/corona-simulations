@@ -130,4 +130,4 @@
 <div class="slidertext">
     {valueFormatted} {p.unitsDescriptor}
 </div>
-<input class="range" type=range bind:value={value} min={p.minValue} max={p.maxValue} step={p.stepValue}> 
+<input class="range" type=range bind:value={value} min={p.minValue} max={p.maxValue} step={p.stepValue}>
