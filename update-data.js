@@ -68,6 +68,7 @@ async function callbackHSConfirmedCasesAndDeaths(response) {
         // Initialize parsed
         var parsed = { }
         parsed['epidemyStartDate'] = epidemyStartDate
+        parsed['days'] = days
         const thingsToCount = ["newConfirmedCases", "cumulativeConfirmedCases", "newConfirmedDeaths", "cumulativeConfirmedDeaths", "activeHospitalizations", "activeICU"]
         for (var i=0; i<thingsToCount.length; i++) {
             const thing = thingsToCount[i]

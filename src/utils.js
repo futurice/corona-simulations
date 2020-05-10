@@ -21,6 +21,10 @@ export function formatPercent(proportion) {
     return `(${(100 * proportion).toFixed(2)}%)`
 }
 
+export function isValidDate(d) {
+    return d instanceof Date && !isNaN(d);
+}
+
 const MONTHS = [
     'zero',
     'Jan',

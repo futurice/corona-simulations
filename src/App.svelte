@@ -24,19 +24,17 @@
   // Custom utilities
   import { ActionMarkerData, AM_DAY } from './action_marker_data.js';
   import { UFState, getDefaultStateMeta } from './user_facing_states.js';
-  import { get_solution_from_gohs_seir_ode, map_goh_states_into_UFStates, goh_default_action_markers } from './models/gohs_seir_ode.js';
+  import { get_solution_from_gohs_seir_ode, goh_default_action_markers } from './models/gohs_seir_ode.js';
   import { map_berkeley_states_into_UFStates, parse_berkeley, get_berkeley_action_markers } from './models/berkeley_abm.js';
-  import { loadFinnishHistoricalEstimates } from './models/historical_estimates.js';
+  import { loadHardcodedHistoricalEstimates, createHistoricalEstimates } from './models/historical_estimates.js';
   import { getDate, addDays, formatCount, formatDelta, MODEL_GOH, MODEL_CUSTOM } from './utils.js';
   import { math_inline, math_display, padding } from './utils.js';
 
   // Static data imports
   import paramConfig from './paramConfig.json';
-  import finnishHistoricalEstimates from './../data/hardcodedHistoricalEstimates.csv';
+  import hs_parsed from '../data/hs_parsed.json';
+  import hardcodedHistoricalEstimates from './../data/hardcodedHistoricalEstimates.csv';
   import latestRtEstimate from './../data/latest_Rt.csv';
-
-
-
 
   function range(n){
     return Array(n).fill().map((_, i) => i);
@@ -47,7 +45,7 @@
     return parseFloat((Rt / prop_susceptible).toFixed(2))
   }
 
-  // This is needed because when we zoom out, Chart needs every nth datapoint from P.
+  // Motivation: when we zoom out, Chart needs every nth datapoint from P.
   function get_every_nth(P, n) {
     var arr = []
     for (var i=0; i<P.length; i+=n) {
@@ -122,6 +120,8 @@
   $: N                 = 5538328 // 2020 Finnish population count
   $: logN              = Math.log(N)
   $: I0                = 1
+  $: undetected_infections = paramConfig["undetected_infections"].defaultValue
+  $: unrecorded_deaths = paramConfig["unrecorded_deaths"].defaultValue
   $: D_incbation       = paramConfig["days_from_incubation_to_infectious"].defaultValue
   $: D_infectious      = paramConfig["days_from_infectious_to_not_infectious"].defaultValue
   $: D_recovery_mild   = paramConfig["days_in_mild_recovering_state"].defaultValue
@@ -306,10 +306,10 @@
 
   $: selectedModel    = customScenarioGUID ? MODEL_CUSTOM : MODEL_GOH
 
-  $: [firstHistoricalDate, goh_states_fin_before_slicing] = loadFinnishHistoricalEstimates(finnishHistoricalEstimates, N)
+  $: [firstHistoricalDate, goh_states_fin_before_slicing, P_all_historical_before_slicing] = createHistoricalEstimates(hs_parsed, N, D_incbation, D_infectious, D_recovery_mild, D_hospital, P_SEVERE, P_ICU, CFR, undetected_infections, unrecorded_deaths)
+  //$: [firstHistoricalDate, goh_states_fin_before_slicing, P_all_historical_before_slicing] = loadHardcodedHistoricalEstimates(hardcodedHistoricalEstimates, N, P_ICU)
   $: firstBarDate     = firstHistoricalDate
 
-  $: P_all_historical_before_slicing = map_goh_states_into_UFStates(goh_states_fin_before_slicing, N, P_ICU)
   $: lastHistoricDay       = P_all_historical_before_slicing.length-1
   $: cutoffHistoricDay     = cutoffHistoricDay ? cutoffHistoricDay : lastHistoricDay+1
   $: P_all_historical      = P_all_historical_before_slicing.slice(0, cutoffHistoricDay)
@@ -914,6 +914,10 @@
 
       <div class="column" style="margin-left: 0;">
         <ParameterKnob p = {paramConfigR0} bind:value = {R0} bind:popupHTML = {popupHTML} />
+      </div>
+      <div class="column">
+        <ParameterKnob p = {paramConfig["undetected_infections"]} bind:value = {undetected_infections} bind:popupHTML = {popupHTML} />
+        <ParameterKnob p = {paramConfig["unrecorded_deaths"]} bind:value = {unrecorded_deaths} bind:popupHTML = {popupHTML} />
       </div>
       <div class="column">
         <ParameterKnob p = {paramConfig["days_from_incubation_to_infectious"]} bind:value = {D_incbation} bind:popupHTML = {popupHTML} />

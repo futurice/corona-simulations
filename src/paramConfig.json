@@ -1,4 +1,32 @@
 {
+    "undetected_infections": {
+        "description": "Undetected infections",
+        "isDefaultValueAutomaticallyGeneratedFromData": false,
+        "defaultValue": 0.8,
+        "minValue": 0,
+        "maxValue": 0.9,
+        "stepValue": 0.001,
+        "unitsDescriptor": "%",
+        "isInteger": false,
+        "isPercentage": true,
+        "longformDescription": "Percentage of infections which are not recorded as 'confirmed case'.",
+        "longformDoNotConfuseWith": "",
+        "longformDefaultValueJustification": "TODO"
+    },
+    "unrecorded_deaths": {
+        "description": "Unrecorded deaths",
+        "isDefaultValueAutomaticallyGeneratedFromData": false,
+        "defaultValue": 0.3,
+        "minValue": 0,
+        "maxValue": 0.9,
+        "stepValue": 0.001,
+        "unitsDescriptor": "%",
+        "isInteger": false,
+        "isPercentage": true,
+        "longformDescription": "Percentage of deaths which were caused by COVID-19, but were not counted in the official statistics.",
+        "longformDoNotConfuseWith": "",
+        "longformDefaultValueJustification": "TODO. Hoivakodit."
+    },
     "days_from_incubation_to_infectious": {
         "description": "Length of incubation period {Tinc}",
         "isDefaultValueAutomaticallyGeneratedFromData": false,
@@ -9,8 +37,8 @@
         "unitsDescriptor": "days",
         "isInteger": false,
         "isPercentage": false,
-        "longformDescription": "In Goh's model, incubation period refers to the time between being infected and becoming infectious.",
-        "longformDoNotConfuseWith": "This does not refer to the time period before symptoms begin.",
+        "longformDescription": "In our model, incubation period refers to the time between being infected and becoming infectious.",
+        "longformDoNotConfuseWith": "Often this term is used to refer to the time between being infected and becoming symptomatic. This is not the case here.",
         "longformDefaultValueJustification": ""
     },
     "days_from_infectious_to_not_infectious": {
@@ -58,7 +86,7 @@
     "days_in_mild_recovering_state": {
         "description": "Recovery time for mild cases",
         "isDefaultValueAutomaticallyGeneratedFromData": false,
-        "defaultValue": 11.1,
+        "defaultValue": 3,
         "minValue": 0.5,
         "maxValue": 100,
         "stepValue": 0.01,
