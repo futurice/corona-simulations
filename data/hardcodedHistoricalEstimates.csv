@@ -1,4 +1,4 @@
-Date,Confirmed new cases,New deaths,New incubations,Exposed,New infectious,Infectious,Mild,SevereHome,At hospital,HospitalWillRecover,HospitalFatal,RecoveredMild,RecoveredSevere,Recovered total,Fatal
+Date,Confirmed new cases,New deaths,New incubations,Exposed,New infectious,Infectious,Mild,WE REMOVED THIS STATE FROM GOH'S MODEL (was: SevereHome),At hospital,HospitalWillRecover,HospitalFatal,RecoveredMild,RecoveredSevere,Recovered total,Fatal
 "Be careful not to change the structure of this spreadsheet, because it needs to be parsed by our app.",,,,"Number of people who currently have the virus incubating, but not yet infectious.",,"Number of people who are currently infectious (not including persons in 'recovering', 'hospitalized', etc.)","Recovering, mild symptoms: Number of people who are not infectious anymore but are still experiencing mild symptoms.",Number of people who are currently not infectious anymore but are still experiencing severe symptoms but are not in hospital.,,Number of people who are currently in hospital and will later move to RecoveredSevere state.,Number of people who are currently in hospital and will later move to Fatal state.,"Number of people who have recovered, cumulative, after being in ""Mild"" state","Number of people who have recovered, cumulative, after being in a Severe state.",,"Number of people who have died, cumulative."
 Also note that everything you write in this spreadsheet will be published openly on the internet!,From HS API,From HS API,"From Mikko, missing values extrapolated",Inferred assuming 5-day incubation period,Inferred assuming 5-day incubation period,Inferred assuming 5-day incubation period and 3-day infectious period,After infectious period: 4-6d from infection (ok?),3% 3 päivää sitten infectiousina olleista.,"From Mikko, missing values extrapolated",total in hospital - hospitalFatal,"inferred from later fatalities, missing values extrapolated","5d from ""mild""",very few in the beginning,,From HS API
 ,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -63,21 +63,26 @@ Also note that everything you write in this spreadsheet will be published openly
 2020-04-19,63,4,418,2795,659,1554,2094,65,192,154,38,17594,150,17744,94
 2020-04-20,146,4,753,2830,718,1889,1690,52,209,167,42,18105,166,18272,98
 2020-04-21,112,43,859,3048,641,2236,1376,43,202,162,40,18799,183,18983,141
-2020-04-22,122,8,612,3089,571,2018,1507,47,199,159,40,19583,201,19783,149
-2020-04-23,109,23,488,3130,447,1930,1832,57,206,165,41,20372,218,20590,172
-2020-04-24,97,5,600.0,3312,418,1659,2169,67,199,159,40,21070,235,21306,177
-2020-04-25,76,9,600,3159,753,1436,1957,61,190,152,38,21633,253,21886,186
-2020-04-26,71,4,600,2900,859,1618,1872,58,189,151,38,22092,270,22362,190
-2020-04-27,128,3,600,2888,612,2030,1609,50,187,150,37,22595,286,22881,193
-2020-04-28,146,6,600,3000,488,2224,1393,43,200,160,40,23206,303,23509,199
-2020-04-29,104,7,600,3000,600.0,1959,1569,49,208,166,42,23929,320,24248,206
-2020-04-30,83,5,600,3000,600,1700,1969,61,187,150,37,24581,335,24916,211
-2020-05-01,47,7,600,3000,600,1688,2157,67,185,148,37,25205,350,25555,218
-2020-05-02,65,2,600,3000,600,1800.0,1900,59,182,146,36,25741,365,26106,220
-2020-05-03,59,10,600,3000,600,1800,1649,51,185,148,37,26206,379,26585,230
-2020-05-04,112,10,600,3000,600,1800,1637,51,197,158,39,26729,394,27123,240
-2020-05-05,58,6,600,3000,600,1800,1746,54,195,156,39,27385,409,27794,246
-2020-05-06,,6,600,3000,600,1800,1746,54,188,150,38,28104,423,28528,252
+2020-04-22,122,8,618,3095,571,2018,1507,47,199,159,40,19583,201,19783,149
+2020-04-23,109,23,488,3136,447,1930,1832,57,206,165,41,20372,218,20590,172
+2020-04-24,97,5,276.0,2994,418,1659,2169,67,199,159,40,21070,235,21306,177
+2020-04-25,76,9,382,2623,753,1436,1957,61,190,152,38,21633,253,21886,186
+2020-04-26,71,4,341,2105,859,1618,1872,58,189,151,38,22092,270,22362,190
+2020-04-27,128,3,753,2240,618,2030,1609,50,187,150,37,22595,286,22881,193
+2020-04-28,146,6,700,2452,488,2230,1393,43,200,160,40,23206,303,23509,199
+2020-04-29,104,7,582,2758,276.0,1965,1569,49,208,166,42,23929,320,24248,206
+2020-04-30,83,5,550,2926,382,1382,1969,61,187,150,37,24581,335,24916,211
+2020-05-01,47,7,550,3135,341,1146,2163,67,185,148,37,25205,350,25555,218
+2020-05-02,65,2,550,2932,753,999.0,1906,59,182,146,36,25741,365,26106,220
+2020-05-03,59,10,550,2782,700,1476,1341,41,185,148,37,26206,379,26585,230
+2020-05-04,112,10,550,2750,582,1794,1112,34,197,158,39,26729,394,27123,240
+2020-05-05,58,6,550,2750,550,2035,969,30,195,156,39,27385,409,27794,246
+2020-05-06,128,6,550,2750,550,1832,1432,44,188,150,38,28106,423,28530,252
+2020-05-07,119,3,550,2750,550,1682,1740,54,174,139,35,28742,438,29180,255
+2020-05-08,99,5,550,2750,550,1650,1974,61,169,135,34,29188,453,29641,260
+2020-05-09,112,5,550,2750,550,1650,1777,55,161,129,32,29559,467,30026,265
+2020-05-10,73,2,550,2750,550,1650,1632,50,162,130,32,29882,480,30362,267
+,,,,,,,,,,,,,,,
 It is safe to add anything after this line. Parsing ends when the first invalid date (this text) is encountered. Do not add date lines unless they have all the yellow values!,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,
 ≤,,,,,,,,,,,,,,,
