@@ -86,6 +86,7 @@
                                they have (presumably) developed an immunity towards it. This makes it increasingly
                                harder for the virus to spread, causing {Rt} to diverge lower from {R0}.
                                `,
+    longformEffects: "",
     longformDefaultValueJustification: `The default value for {R0} is estimated from confirmed case counts.
                                         This default value is not hardcoded, it is updated daily as new data comes in.
                                         We exclude the most recent 5 days from computation, because of delays
@@ -945,10 +946,6 @@
   </div>
 </div>
 
-<p class="center" style="color: red;">
-  <b>WORK IN PROGRESS / PLEASE REPORT ANY BUGS</b>
-</p>
-
 {#if selectedModel === MODEL_GOH}
   <p class="center">
     <b>Introduction</b>
@@ -1006,15 +1003,15 @@
     The dynamics of this model are characterized by a set of four ordinary differential equations that correspond to the stages of the disease's progression:
     <span style="color:#777">{@html ode_eqn}</span>
     The clinical dynamics in this model are an elaboration on SEIR that simulates the disease's progression at a higher resolution,
-    subdividing {@html math_inline("I,R")} into <i>mild</i> (patients who recover without the need for hospitalization), <i>moderate</i>
+    subdividing {@html math_inline("R")} into <i>mild</i> (patients who recover without the need for hospitalization), <i>moderate</i>
     (patients who require hospitalization but survive) and <i>fatal</i> (patients who require hospitalization and do not survive).
-    Each of these variables follows its own trajectory to the final outcome, and the sum of these compartments add up to the values
-    predicted by SEIR.
+    Each of these variables follows its own trajectory to the final outcome, and the sum of these compartments add up to the 'R' in SEIR.
     <br><br>
     Note that the model is a simplification of reality in many ways:
   </p>
   <ul class="center" style="width: 800px;">
-    <li>all fatalities are assumed to come from hospitals</li>
+    <li>all fatalities are assumed to come from hospitals (in reality, many fatalities come from nursing homes,
+        which means that this model overestimates hospitalization and ICU counts)</li>
     <li>all hospitalizations are assumed to occur immediately after the infectious period</li>
     <li>hospitalization duration is assumed to be the same for regular ward, icu, and fatalities</li>
     <li>icu capacity is just a visual indicator, exceeding capacity has no effect on fatalities</li>

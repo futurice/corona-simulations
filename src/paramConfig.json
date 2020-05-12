@@ -11,12 +11,13 @@
         "isPercentage": true,
         "longformDescription": "Percentage of infections which are not recorded as 'confirmed case'.",
         "longformDoNotConfuseWith": "",
+        "longformEffects": "This parameter affects historical estimates. It acts like a multiplier to confirmed case counts, which we get from data. These adjusted case counts are used to estimate the number of infected in historical estimates.<br><br>This parameter does not affect model predictions (other than indirectly; the last known historical state is given to the model as the initial state).",
         "longformDefaultValueJustification": "TODO"
     },
     "unrecorded_deaths": {
         "description": "Unrecorded deaths",
         "isDefaultValueAutomaticallyGeneratedFromData": false,
-        "defaultValue": 0,
+        "defaultValue": 0.3,
         "minValue": 0,
         "maxValue": 0.99,
         "stepValue": 0.001,
@@ -25,7 +26,8 @@
         "isPercentage": true,
         "longformDescription": "Percentage of deaths which were caused by COVID-19, but were not counted in the official statistics.",
         "longformDoNotConfuseWith": "",
-        "longformDefaultValueJustification": "TODO. Hoivakodit."
+        "longformEffects": "",
+        "longformDefaultValueJustification": "A significant number of COVID-19 deaths has been hidden from the official statistics.<sup>[1]</sup> We have no idea what the true percentage of unrecorded deaths is, but we know it is higher than zero. We are setting the default value to 30% as our best guess.<br><br>https://yle.fi/uutiset/3-11310966"
     },
     "days_from_incubation_to_infectious": {
         "description": "Length of incubation period {Tinc}",
@@ -39,6 +41,7 @@
         "isPercentage": false,
         "longformDescription": "In our model, incubation period refers to the time between being infected and becoming infectious.",
         "longformDoNotConfuseWith": "Often this term is used to refer to the time between being infected and becoming symptomatic. This is not the case here.",
+        "longformEffects": "",
         "longformDefaultValueJustification": ""
     },
     "days_from_infectious_to_not_infectious": {
@@ -53,6 +56,7 @@
         "isPercentage": false,
         "longformDescription": "TODO explain why tuning this up causes the epidemic to spread slower.",
         "longformDoNotConfuseWith": "",
+        "longformEffects": "",
         "longformDefaultValueJustification": ""
     },
     "fatality_rate": {
@@ -67,6 +71,7 @@
         "isPercentage": true,
         "longformDescription": "Percentage of fatalities from all infections (including undiagnosed infections).",
         "longformDoNotConfuseWith": "Newspapers often refer to <i>case</i> fatality rate, which sometimes refer to percentage of fatalities from confirmed cases, and sometimes to percentage of fatalities from closed cases. In the original Epidemic Calculator this parameter was titled 'case fatality rate', but it was in fact referring to infected fatality rate (confirmed cases are not plotted in neither Epidemic Calculator nor Corosim). ",
+        "longformEffects": "",
         "longformDefaultValueJustification": "https://www.thelancet.com/journals/laninf/article/PIIS1473-3099%2820%2930243-7/fulltext"
     },
     "days_in_hospital": {
@@ -81,6 +86,7 @@
         "isPercentage": false,
         "longformDescription": "Average number of days in hospital (excluding population who spend 0 days in hospital).",
         "longformDoNotConfuseWith": "In the original Epidemic Calculator, length of hospital stay affected only those patients who eventually survived, not those who eventually died. In Corosim this slider affects all hospitalizations.",
+        "longformEffects": "",
         "longformDefaultValueJustification": "TODO"
     },
     "days_in_mild_recovering_state": {
@@ -95,6 +101,7 @@
         "isPercentage": false,
         "longformDescription": "TODO",
         "longformDoNotConfuseWith": "TODO",
+        "longformEffects": "",
         "longformDefaultValueJustification": "TODO"
     },
     "hospitalization_rate": {
@@ -110,6 +117,7 @@
         "isPercentage": true,
         "longformDescription": "Hospitalization as a percentage of all infections.",
         "longformDoNotConfuseWith": "In the original Epidemic Calculator there is a slider with the same name, but it actually affects only those hospitalizations who eventually survive. The true hospitalization rate in the Epidemic Calculator is actually the displayed hospitalization rate plus infected fatality rate (which is labelled 'case fatality rate'). In Corosim, if you move the 'infected fatality rate' slider, you will notice that it affects hospitalizaton rate as well. This is because we assume all fatalities to occur in hospitals, which means hospitalization rate must always be at least as high as infected fatality rate. We are enforcing this constraint by actually storing this value in a different form than how it is displayed: the stored value is the hospitalization rate for patients who end up surviving, whereas the displayed value is a sum of that and fatality rate.",
+        "longformEffects": "",
         "longformDefaultValueJustification": "TODO"
     },
     "icu_rate_from_hospitalized": {
@@ -124,6 +132,7 @@
         "isPercentage": true,
         "longformDescription": "TODO",
         "longformDoNotConfuseWith": "TODO",
+        "longformEffects": "",
         "longformDefaultValueJustification": "TODO"
     },
     "icu_capacity": {
@@ -138,6 +147,7 @@
         "isPercentage": false,
         "longformDescription": "Maximum number of patients simultaneously in ICU units around the country.",
         "longformDoNotConfuseWith": "",
+        "longformEffects": "",
         "longformDefaultValueJustification": "Based on assumption of expanded capacity. TODO references."
     }
 }
