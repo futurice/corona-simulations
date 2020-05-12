@@ -49,3 +49,16 @@ Corosim is designed as a fully static web app. Data is updated at build-time eve
 - Infinitely scalable. This software will work just fine no matter how many simultaneous users you get.
 - Costs $0 to host.
 - Does not break on its own (Even if the outside APIs break, Corosim will not break, because data is fetched at build-time rather than run-time)
+
+## Want to fork this repo and customize it for your country?
+
+Here are roughly the things you need to change to customize this for your country:
+- Identify a data source for your country
+- Write parsing for the data
+- Deal with any country-specific peculiarities related to data collection / reporting
+- Go through parameters and change default values for any country-specific parameters
+- Change population count N
+- Change the flag and search all the texts for 'Finland'.
+- Change introductory text and attribution
+- Set up hosting
+- Set up a process to rebuild and deploy every x hours (for data updates)

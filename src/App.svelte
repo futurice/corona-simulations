@@ -20,6 +20,7 @@
   import HistoryMarker from './components/HistoryMarker.svelte';
   import ActionMarker from './components/ActionMarker.svelte';
   import ParameterKnob from './components/ParameterKnob.svelte';
+  import Collapsible from './components/Collapsible.svelte';
 
   // Custom utilities
   import { ActionMarkerData, AM_DAY } from './action_marker_data.js';
@@ -53,9 +54,13 @@
     return arr
   }
 
+  let collapsed = {}
+
   let display_scenario_dropdown = false
   let custom_scenario_url_prefix = 'https://coronastoragemyvs.blob.core.windows.net/coviducb/'
   let custom_scenario_url_postfix = '-outcome_1.json'
+
+  let oneLineAttribution = `Corosim was created by <a href="https://futurice.com/" style="color: #009f77;">Futurice</a> on top of <a href="https://gabgoh.github.io/">Gabriel Goh's</a> <a href="https://gabgoh.github.io/COVID/index.html">Epidemic Calculator</a>.`
 
   // R0 paramConfig is stored at a separate object because its default value is updated by a reactive function.
   // Do not refactor into paramConfig.
@@ -141,28 +146,6 @@
 
   function closePopup() {
     popupHTML = ''
-  }
-
-  function popupExplainHistoricalEstimates() {
-    popupHTML = `
-      <p><b>Historical Estimates</b></p>
-      <p>
-      TODO
-      </p>
-    `
-  }
-
-  function popupExplainHowToUse() {
-    popupHTML = `
-      <p><b>How to tune parameters</b></p>
-      <p>
-      TODO
-      </p>
-      <p><b>How to use action markers</b></p>
-      <p>
-      TODO
-      </p>
-    `
   }
 
   function addActionMarker() {
@@ -542,7 +525,7 @@
     padding-bottom: 30px
   }
 
-  .center {
+  :global(.center) {
     margin: auto;
     width: 950px;
     padding-bottom: 20px;
@@ -947,121 +930,119 @@
 </div>
 
 {#if selectedModel === MODEL_GOH}
-  <p class="center">
-    <b>Introduction</b>
-  </p>
-  <div class="center">
-    Corosim combines historical estimates & model predictions to provide a complete overview of the Coronavirus epidemic in Finland.
-    This means you can use Corosim to get some insight towards questions such as "how many Finns have been infected so far" or "when will the epidemic peak".
-    Historical estimates are updated daily based on data provided by <a href="https://github.com/HS-Datadesk/koronavirus-avoindata">Helsingin Sanomat</a>.
-    However, we don't obsess over confirmed cases. We attempt to provide an accurate picture of the epidemic, acknowledging the fact that
-    many infections (and even many deaths) are excluded from the official statistics.
-    <span on:click={popupExplainHistoricalEstimates} title="How historical estimates are created">
-            <Icon data={question}
-            scale=1.0
-            class="clickableIcons"
-            style="cursor: pointer; color: #CCC; "
-            />
-    </span>
-  </div>
-  <div class="center">
-    As you know, a model is only as good as its input parameters. Although we have done a lot of research to provide sensible default values,
-    you probably disagree with some of our choices. That's why we wanted to provide you the possibility of tuning parameters by yourself.
-    You can also set your own action points to model the effects of different policy changes.
-    <span on:click={popupExplainHowToUse} title="How to use Corosim">
-            <Icon data={question}
-            scale=1.0
-            class="clickableIcons"
-            style="cursor: pointer; color: #CCC; "
-            />
-    </span>
-  </div>
-  <p class="center">
-    At this time <i>no other</i> website provides a service like this. For example, other Coronavirus modelling websites
-    typically begin the simulation from a theoretical "day zero" which can not be configured according to estimates of the current situation
-    (typically you can only adjust the number of infected). We we are in the middle of the epidemic &#8212; long past day zero.
-    Doesn't it make sense to start the simulation from the most recent estimate of the current situation? That's what Corosim does.
-  </p>
 
-  <p class="center">
-    <b>Model Details</b>
-  </p>
-  <p class="center">
-    Corosim uses Gabriel Goh's implementation of a
-    <b><a href="https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SEIR_model">SEIR</a></b> model    
-    (<b>S</b>usceptible → <b>E</b>xposed → <b>I</b>nfected → <b>R</b>emoved).
-    This is a classical infectious disease model, commonly used to this day in the front lines of research.
-    For example, the Finnish health authority THL
-    <a href="https://thl.fi/fi/-/koronaepidemian-mallinnus-ihmiskontaktien-rajoittaminen-vaikuttaa-epidemian-kestoon-ja-paivittaisten-tartuntojen-maaraan">
-      uses a similar SEIR model for their official Coronavirus forecasts.</a> One key difference between Corosim and THL's model is that
-      THL's model is initialized to a theoretical "day zero", whereas Corosim is initialized to the latest historical estimate.
-      This is certainly not the only difference between these models &#8212; unfortunately THL has not published their model,
-      so we can only speculate what those differences might be.
-    
-  </p>
-  <p class="center" style="padding-bottom: 16.5px;">
-    The dynamics of this model are characterized by a set of four ordinary differential equations that correspond to the stages of the disease's progression:
-    <span style="color:#777">{@html ode_eqn}</span>
-    The clinical dynamics in this model are an elaboration on SEIR that simulates the disease's progression at a higher resolution,
-    subdividing {@html math_inline("R")} into <i>mild</i> (patients who recover without the need for hospitalization), <i>moderate</i>
-    (patients who require hospitalization but survive) and <i>fatal</i> (patients who require hospitalization and do not survive).
-    Each of these variables follows its own trajectory to the final outcome, and the sum of these compartments add up to the 'R' in SEIR.
-    <br><br>
-    Note that the model is a simplification of reality in many ways:
-  </p>
-  <ul class="center" style="width: 800px;">
-    <li>all fatalities are assumed to come from hospitals (in reality, many fatalities come from nursing homes,
-        which means that this model overestimates hospitalization and ICU counts)</li>
-    <li>all hospitalizations are assumed to occur immediately after the infectious period</li>
-    <li>hospitalization duration is assumed to be the same for regular ward, icu, and fatalities</li>
-    <li>icu capacity is just a visual indicator, exceeding capacity has no effect on fatalities</li>
-  </ul>
+  <Collapsible title="Introduction" bind:collapsed={collapsed} defaultCollapsed={false}>
+    <div class="center">
+      Corosim combines historical estimates & model predictions to provide a complete overview of the Coronavirus epidemic in Finland.
+      This means you can use Corosim to get some insight towards questions such as "how many Finns have been infected so far" or "when will the epidemic peak".
+    </div>
+    <div class="center">
+      Historical estimates are updated daily based on data provided by <a href="https://github.com/HS-Datadesk/koronavirus-avoindata">Helsingin Sanomat</a>.
+      For example, the estimate for the number of infected is based on the number of confirmed cases in data, but is also affected by various parameters,
+      such as the portion of undetected infections, length of the incubation period, duration of the infectious period, and so forth.
+      The model is initialized with the latest historical estimates for the number of individuals incubating, recovering, etc.
+    </div>
+    <div class="center">
+      As you know, a model is only as good as its input parameters. Although we have done a lot of research to provide sensible default values,
+      you probably disagree with some of our choices. That's why we wanted to provide you the possibility of tuning parameters by yourself.
+      You can also set your own action points to model the effects of different policy changes.
+    </div>
+    <p class="center">
+      At this time <i>no other</i> website provides a service like this. For example, other Coronavirus modelling websites
+      typically begin the simulation from a theoretical "day zero" which can not be configured according to estimates of the current situation
+      (typically you can only adjust the number of infected). We we are in the middle of the epidemic &#8212; long past day zero.
+      Doesn't it make sense to start the simulation from the most recent estimate of the current situation? That's what Corosim does.
+    </p>
+  </Collapsible>
 
-  <p class="center">
-    <b>Attribution</b>
-  </p>
-  <p class="center" style="padding-bottom: 16.5px;">
-    Corosim was created by <a href="https://futurice.com/" style="color: #009f77;">Futurice</a> on top of <a href="https://gabgoh.github.io/">Gabriel Goh's</a>
-    <a href="https://gabgoh.github.io/COVID/index.html">Epidemic Calculator</a>.
-  </p>
-  <p class="center">
-    For any enquiries, contact Atte Juvonen at futurice.com.
-  </p>
-  <p class="center">
-    Differences between Corosim and Epidemic Calculator:
-  </p>
-  <ul class="center" style="width: 800px;">
-    <li>Historical estimates. The original Epidemic Calculator initiates the simulation from a theoretical "day zero".
-        Corosim initiates the simulation from the latest historical estimate. Estimates are updated daily.</li>
-    <li>Corosim is tailored to the current situation in Finland. In addition to Finnish historical data, all the parameter default values have been chosen
-        based on latest scientific research, and specific to Finland when applicable. For example, the most crucial parameter in
-        this model is {@html math_inline('\\mathcal{R}_0')}. It's constantly changing and it's specific to the population which
-        you are trying to model (meaning, the {@html math_inline('\\mathcal{R}_0')} for Italy will be different than the
-        {@html math_inline('\\mathcal{R}_0')} for Finland). For these reasons a hardcoded default value for {@html math_inline('\\mathcal{R}_0')}
-        would become stale in a matter of days. Instead of using a hardcoded value, the default value for {@html math_inline('\\mathcal{R}_0')}
-        in Corosim is updated automatically every day based on the most recent Finnish data.</li>
-    <li>User-facing states are different (e.g. infected vs. infectious). The old Epidemic Calculator is a great educational tool about
-        the progression of epidemics in general, but our focus was on practical real-world questions related to this epidemic right now.
-        The states we have chosen to visualize are relevant for practical questions, such as "how many people are infected" or
-        "do we have enough health care capacity".</li>
-    <li>Multiple action markers. The old Epidemic Calculator only has a single action marker, labeled "intervention" and it can
-        only reduce the transmission of the virus, not increase it. What if you wanted to model the effect of <i>stopping</i> an intervention? How about
-        modelling multiple policy changes? You can do those things with Corosim.</li>
-    <li>Scenario outcome summary. The old Epidemic Calculator does not have an easy way summarize an outcome. If you want to compare
-        two different strategies, you need to manually zoom out and eyeball the peak, fatalities, etc. Corosim provides a scenario outcome summary
-        of the most crucial metrics.</li>
-    <li>Small changes to the model itself: hospitalizations go to hospital without delay and fatalities are affected by the
-        same hospitalization time as recovering patients. These simplifications were motivated by a desire to make the parameterization
-        easier to communicate to the end user. For example, in the original Epidemic Calculator there is a parameter labelled
-        "Length of hospital stay", but it actually affects only those patients who eventually survive, not those who eventually die.
-        We noticed similar issues with parameters "Time to hospitalization" and "Case fatality rate". In the original Epidemic Calculator,
-        case fatality rate actually affects the hospitalization rate, but this effect is hidden from the end user.</li>
-    <li>Various design and UX improvements (real dates, more tooltips, reduced clutter, etc.) </li>
-    
-  </ul>
-  <p class="center">
-    <a href="https://github.com/futurice/corona-simulations">Source code available on GitHub.</a>
-  </p>
+  <Collapsible title="Model details" bind:collapsed={collapsed} defaultCollapsed={true}>
+    <p class="center">
+      Corosim uses Gabriel Goh's implementation of a
+      <b><a href="https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SEIR_model">SEIR</a></b> model    
+      (<b>S</b>usceptible → <b>E</b>xposed → <b>I</b>nfected → <b>R</b>emoved).
+      This is a classical infectious disease model, commonly used to this day in the front lines of research.
+      For example, the Finnish health authority THL
+      <a href="https://thl.fi/fi/-/koronaepidemian-mallinnus-ihmiskontaktien-rajoittaminen-vaikuttaa-epidemian-kestoon-ja-paivittaisten-tartuntojen-maaraan">
+        uses a similar SEIR model for their official Coronavirus forecasts.</a> One key difference between Corosim and THL's model is that
+        THL's model is initialized to a theoretical "day zero", whereas Corosim is initialized to the latest historical estimate.
+        Another key difference is that THL's model is divided into age groups, Corosim's model is not.
+        These are certainly not the only difference between these models &#8212; unfortunately THL has not published their entire model,
+        so are unable to provide a thorough comparison. Most of the discussion around models in Finland seems to revolve around parameter
+        choices, rather than models themselves.
+      
+    </p>
+    <p class="center" style="padding-bottom: 16.5px;">
+      The dynamics of this model are characterized by a set of four ordinary differential equations that correspond to the stages of the disease's progression:
+      <span style="color:#777">{@html ode_eqn}</span>
+      The clinical dynamics in this model are an elaboration on SEIR that simulates the disease's progression at a higher resolution,
+      subdividing {@html math_inline("R")} into <i>mild</i> (patients who recover without the need for hospitalization), <i>moderate</i>
+      (patients who require hospitalization but survive) and <i>fatal</i> (patients who require hospitalization and do not survive).
+      Each of these variables follows its own trajectory to the final outcome, and the sum of these compartments add up to the {@html math_inline("R")} in SEIR.
+      <br><br>
+      Note that the model is a simplification of reality in many ways:
+    </p>
+    <ul class="center" style="width: 800px;">
+      <li>all hospitalizations are assumed to occur immediately after the infectious period</li>
+      <li>individuals recovering in isolation (home or hospital) are assumed to be completely isolated</li>
+      <li>hospitalization duration is assumed to be the same for regular ward, icu, and fatalities</li>
+      <li>icu capacity is just a visual indicator, exceeding capacity has no effect on fatalities</li>
+      <li>all fatalities are assumed to come from hospitals. In reality, many fatalities come from nursing homes,
+          which means that this model overestimates hospitalization and ICU counts. Note that the model does <i>not</i>
+          necessarily underestimate fatalities; the fatality rate can be adjusted to take into account all deaths,
+          regardless of where they occur.</li>
+    </ul>
+  </Collapsible>
+
+  <Collapsible title="Differences between Corosim and Epidemic Calculator" bind:collapsed={collapsed} defaultCollapsed={true}>
+    <p class="center" style="padding-bottom: 16.5px;">
+      {@html oneLineAttribution}
+    </p>
+    <p class="center">
+      Key differences between Corosim and Epidemic Calculator:
+    </p>
+    <ul class="center" style="width: 800px;">
+      <li>Historical estimates. The original Epidemic Calculator initiates the simulation from a theoretical "day zero".
+          Corosim initiates the simulation from the latest historical estimate. Estimates are updated daily.</li>
+      <li>Corosim is tailored to the current situation in Finland. In addition to Finnish historical data, all the parameter default values have been chosen
+          based on latest scientific research, and specific to Finland when applicable. For example, the most crucial parameter in
+          this model is {@html math_inline('\\mathcal{R}_0')}. It's constantly changing and it's specific to the population which
+          you are trying to model (meaning, the {@html math_inline('\\mathcal{R}_0')} for Italy will be different than the
+          {@html math_inline('\\mathcal{R}_0')} for Finland). For these reasons a hardcoded default value for {@html math_inline('\\mathcal{R}_0')}
+          would become stale in a matter of days. Instead of using a hardcoded value, the default value for {@html math_inline('\\mathcal{R}_0')}
+          in Corosim is updated automatically every day based on the most recent Finnish data.</li>
+      <li>User-facing states are different (e.g. infected vs. infectious). The old Epidemic Calculator is a great educational tool about
+          the progression of epidemics in general, but our focus was on practical real-world questions related to this epidemic right now.
+          The states we have chosen to visualize are relevant for practical questions, such as "how many people are infected" or
+          "do we have enough health care capacity".</li>
+      <li>Multiple action markers. The old Epidemic Calculator only has a single action marker, labeled "intervention" and it can
+          only reduce the transmission of the virus, not increase it. What if you wanted to model the effect of <i>stopping</i> an intervention? How about
+          modelling multiple policy changes? You can do those things with Corosim.</li>
+      <li>Scenario outcome summary. The old Epidemic Calculator does not have an easy way summarize an outcome. If you want to compare
+          two different strategies, you need to manually zoom out and eyeball the peak, fatalities, etc. Corosim provides a scenario outcome summary
+          of the most crucial metrics.</li>
+      <li>Small changes to the model itself: hospitalizations go to hospital without delay and fatalities are affected by the
+          same hospitalization time as recovering patients. These simplifications were motivated by a desire to make the parameterization
+          easier to communicate to the end user. For example, in the original Epidemic Calculator there is a parameter labelled
+          "Length of hospital stay", but it actually affects only those patients who eventually survive, not those who eventually die.
+          We noticed similar issues with parameters "Time to hospitalization" and "Case fatality rate". In the original Epidemic Calculator,
+          case fatality rate actually affects the hospitalization rate, but this effect is hidden from the end user.</li>
+      <li>Various design and UX improvements (real dates, more tooltips, reduced clutter, etc.) </li>
+    </ul>
+  </Collapsible>
+
+  <Collapsible title="Attribution" bind:collapsed={collapsed} defaultCollapsed={false}>
+    <p class="center" style="padding-bottom: 16.5px;">
+      {@html oneLineAttribution}
+    </p>
+    <p class="center">
+      For any enquiries, contact Atte Juvonen at futurice.com.
+    </p>
+    <p class="center">
+      <a href="https://github.com/futurice/corona-simulations">Source code available on GitHub.</a>
+    </p>
+  </Collapsible>
+  
+
 
   <!-- Input data -->
   <!-- <div style="margin-bottom: 30px">

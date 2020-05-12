@@ -17,7 +17,7 @@
     "unrecorded_deaths": {
         "description": "Unrecorded deaths",
         "isDefaultValueAutomaticallyGeneratedFromData": false,
-        "defaultValue": 0.3,
+        "defaultValue": 0.2,
         "minValue": 0,
         "maxValue": 0.99,
         "stepValue": 0.001,
@@ -27,7 +27,7 @@
         "longformDescription": "Percentage of deaths which were caused by COVID-19, but were not counted in the official statistics.",
         "longformDoNotConfuseWith": "",
         "longformEffects": "",
-        "longformDefaultValueJustification": "A significant number of COVID-19 deaths has been hidden from the official statistics.<sup>[1]</sup> We have no idea what the true percentage of unrecorded deaths is, but we know it is higher than zero. We are setting the default value to 30% as our best guess.<br><br>https://yle.fi/uutiset/3-11310966"
+        "longformDefaultValueJustification": "A significant number of COVID-19 deaths had been hidden from the official statistics.<sup>[1]</sup> We have no idea what the true percentage of unrecorded deaths is.<br><br>https://yle.fi/uutiset/3-11310966"
     },
     "days_from_incubation_to_infectious": {
         "description": "Length of incubation period {Tinc}",
