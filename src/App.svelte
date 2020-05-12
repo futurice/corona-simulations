@@ -26,14 +26,13 @@
   import { UFState, getDefaultStateMeta } from './user_facing_states.js';
   import { get_solution_from_gohs_seir_ode, goh_default_action_markers } from './models/gohs_seir_ode.js';
   import { map_berkeley_states_into_UFStates, parse_berkeley, get_berkeley_action_markers } from './models/berkeley_abm.js';
-  import { loadHardcodedHistoricalEstimates, createHistoricalEstimates } from './models/historical_estimates.js';
+  import { createHistoricalEstimates } from './models/historical_estimates.js';
   import { getDate, addDays, formatCount, formatDelta, MODEL_GOH, MODEL_CUSTOM } from './utils.js';
   import { math_inline, math_display, padding } from './utils.js';
 
   // Static data imports
   import paramConfig from './paramConfig.json';
   import hs_parsed from '../data/hs_parsed.json';
-  import hardcodedHistoricalEstimates from './../data/hardcodedHistoricalEstimates.csv';
   import latestRtEstimate from './../data/latest_Rt.csv';
 
   function range(n){
@@ -307,7 +306,6 @@
   $: selectedModel    = customScenarioGUID ? MODEL_CUSTOM : MODEL_GOH
 
   $: [firstHistoricalDate, goh_states_fin_before_slicing, P_all_historical_before_slicing] = createHistoricalEstimates(hs_parsed, N, D_incbation, D_infectious, D_recovery_mild, D_hospital, P_SEVERE, P_ICU, CFR, undetected_infections, unrecorded_deaths)
-  //$: [firstHistoricalDate, goh_states_fin_before_slicing, P_all_historical_before_slicing] = loadHardcodedHistoricalEstimates(hardcodedHistoricalEstimates, N, P_ICU)
   $: firstBarDate     = firstHistoricalDate
 
   $: lastHistoricDay       = P_all_historical_before_slicing.length-1
