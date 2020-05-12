@@ -82,6 +82,16 @@ export function math_display(str) {
     });
 }
 
+export function stylizeExpressions(raw) {
+    return raw.replace(/{R0}|{Rt}|{Tinc}|{Tinf}/gi, function(matched){
+        if (matched === "{R0}") return math_inline('\\mathcal{R}_0')
+        if (matched === "{Rt}") return math_inline('\\mathcal{R}_t')
+        if (matched === "{Tinc}") return math_inline("T_{\\text{inc}}")
+        if (matched === "{Tinf}") return math_inline("T_{\\text{inf}}")
+        return matched
+    });
+}
+
 export const padding = { top: 20, right: 0, bottom: 20, left: 25 };
 
 export const MODEL_GOH = 'goh'

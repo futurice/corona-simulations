@@ -28,7 +28,7 @@
   import { get_solution_from_gohs_seir_ode, goh_default_action_markers } from './models/gohs_seir_ode.js';
   import { map_berkeley_states_into_UFStates, parse_berkeley, get_berkeley_action_markers } from './models/berkeley_abm.js';
   import { createHistoricalEstimates } from './models/historical_estimates.js';
-  import { getDate, addDays, formatCount, formatDelta, MODEL_GOH, MODEL_CUSTOM } from './utils.js';
+  import { getDate, addDays, formatCount, formatDelta, MODEL_GOH, MODEL_CUSTOM, stylizeExpressions } from './utils.js';
   import { math_inline, math_display, padding } from './utils.js';
 
   // Static data imports
@@ -92,12 +92,12 @@
                                harder for the virus to spread, causing {Rt} to diverge lower from {R0}.
                                `,
     longformEffects: "",
-    longformDefaultValueJustification: `The default value for {R0} is estimated from confirmed case counts.
+    longformDefaultValueJustification: `The default value for {R0} is estimated from 7 days of confirmed case counts.
                                         This default value is not hardcoded, it is updated daily as new data comes in.
-                                        We exclude the most recent 5 days from computation, because of delays
-                                        in recording new cases.<br>
+                                        Because of delays in recording new cases, we do not use the most recent 7 days:
+                                        we exclude the most recent 5 days and then take the next 7 days.<br>
                                         
-                                        <img src="latest_Rt.png" alt="Rt estimates over time" title="Rt estimates over time"/>
+                                        <img src="latest_Rt.png" alt="Rt estimates over time" title="Rt estimates over time"/><br>
 
                                         There are many methods to estimate reproduction numbers from data. We use a Bayesian
                                         approach described by <a href="https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0002185">Bettencourt
@@ -940,8 +940,8 @@
       Historical estimates are updated daily based on data provided by <a href="https://github.com/HS-Datadesk/koronavirus-avoindata">Helsingin Sanomat</a>.
       For example, the estimate for the number of infected is based on the number of confirmed cases in data, but is also affected by various parameters,
       such as the percentage of undetected infections, length of the incubation period, how long individuals remain infectious, and so forth.
-      The model is initialized with the latest historical estimates for the number of individuals incubating, recovering, etc. Naturally, the model
-      is also impacted by parameter choices. Although we have done a lot of research to provide sensible default values,
+      The model is initialized with the latest historical estimates for the number of individuals incubating, recovering, etc. Parameter choices impact
+      both historical estimates and model predictions. Although we have done a lot of research to provide sensible default values,
       you probably disagree with some of our choices. That's why we wanted to provide you the possibility of tuning parameters by yourself.
       You can also set your own action points to model the effects of different policy changes.
     </div>
@@ -954,12 +954,18 @@
   </Collapsible>
 
   <Collapsible title="How to use Corosim" bind:collapsed={collapsed} defaultCollapsed={true}>
-    How to tune parameters
-		How to use action markers
+    <div>
+      How to tune parameters (TODO)
+    </div>
+    <div>
+      How to use action markers (TODO)
+    </div>
   </Collapsible>
 
   <Collapsible title="More on historical estimates" bind:collapsed={collapsed} defaultCollapsed={true}>
-
+    <div>
+      Historical estimates (TODO)
+    </div>
   </Collapsible>
 
   <Collapsible title="More on model predictions" bind:collapsed={collapsed} defaultCollapsed={true}>
@@ -1001,7 +1007,9 @@
   </Collapsible>
 
   <Collapsible title="R0 estimation" bind:collapsed={collapsed} defaultCollapsed={true}>
-  
+    <div>
+      {@html stylizeExpressions(paramConfigR0['longformDefaultValueJustification'])}
+    </div>
   </Collapsible>
 
   <Collapsible title="Differences between Corosim and Epidemic Calculator" bind:collapsed={collapsed} defaultCollapsed={true}>
@@ -1052,19 +1060,5 @@
       <a href="https://github.com/futurice/corona-simulations">Source code available on GitHub.</a>
     </div>
   </Collapsible>
-  
-
-
-  <!-- Input data -->
-  <!-- <div style="margin-bottom: 30px">
-
-    <div class="center" style="padding: 10px; margin-top: 3px; width: 925px">
-      <div class="legendtext">Export parameters:</div>
-      <form>
-        <textarea type="textarea" rows="1" cols="5000" style="white-space: nowrap;  overflow: auto; width:100%; text-align: left" id="fname" name="fname">{state}</textarea>
-      </form>
-    </div>
-  </div>
-  -->
 
 {/if}

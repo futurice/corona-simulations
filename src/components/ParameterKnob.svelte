@@ -3,7 +3,7 @@
     import Icon from 'svelte-awesome';
     import { flask, question } from 'svelte-awesome/icons';
 
-    import { math_inline, math_display, padding } from '../utils.js';
+    import { math_inline, math_display, padding, stylizeExpressions } from '../utils.js';
 
     export let p;
     export let value;
@@ -13,16 +13,6 @@
     
     $: displayValue = value + specialCaseAddToDisplayValue
     $: valueFormatted = p.isInteger ? displayValue : (p.isPercentage ? (100*displayValue).toFixed(2) : displayValue.toFixed(2))
-
-    function stylizeExpressions(raw) {
-        return raw.replace(/{R0}|{Rt}|{Tinc}|{Tinf}/gi, function(matched){
-            if (matched === "{R0}") return math_inline('\\mathcal{R}_0')
-            if (matched === "{Rt}") return math_inline('\\mathcal{R}_t')
-            if (matched === "{Tinc}") return math_inline("T_{\\text{inc}}")
-            if (matched === "{Tinf}") return math_inline("T_{\\text{inf}}")
-            return matched
-        });
-    }
 
     function f(chapterTitle, chapterText) {
         if (chapterTitle === '' || chapterText === '') {
