@@ -525,7 +525,7 @@
     padding-bottom: 30px
   }
 
-  :global(.center) {
+  .center {
     margin: auto;
     width: 950px;
     padding-bottom: 20px;
@@ -932,31 +932,38 @@
 {#if selectedModel === MODEL_GOH}
 
   <Collapsible title="Introduction" bind:collapsed={collapsed} defaultCollapsed={false}>
-    <div class="center">
+    <div>
       Corosim combines historical estimates & model predictions to provide a complete overview of the Coronavirus epidemic in Finland.
       This means you can use Corosim to get some insight towards questions such as "how many Finns have been infected so far" or "when will the epidemic peak".
     </div>
-    <div class="center">
+    <div>
       Historical estimates are updated daily based on data provided by <a href="https://github.com/HS-Datadesk/koronavirus-avoindata">Helsingin Sanomat</a>.
       For example, the estimate for the number of infected is based on the number of confirmed cases in data, but is also affected by various parameters,
-      such as the portion of undetected infections, length of the incubation period, duration of the infectious period, and so forth.
-      The model is initialized with the latest historical estimates for the number of individuals incubating, recovering, etc.
-    </div>
-    <div class="center">
-      As you know, a model is only as good as its input parameters. Although we have done a lot of research to provide sensible default values,
+      such as the percentage of undetected infections, length of the incubation period, how long individuals remain infectious, and so forth.
+      The model is initialized with the latest historical estimates for the number of individuals incubating, recovering, etc. Naturally, the model
+      is also impacted by parameter choices. Although we have done a lot of research to provide sensible default values,
       you probably disagree with some of our choices. That's why we wanted to provide you the possibility of tuning parameters by yourself.
       You can also set your own action points to model the effects of different policy changes.
     </div>
-    <p class="center">
+    <div>
       At this time <i>no other</i> website provides a service like this. For example, other Coronavirus modelling websites
       typically begin the simulation from a theoretical "day zero" which can not be configured according to estimates of the current situation
-      (typically you can only adjust the number of infected). We we are in the middle of the epidemic &#8212; long past day zero.
+      (typically you can only adjust the number of infected). We are in the middle of the epidemic &#8212; long past day zero.
       Doesn't it make sense to start the simulation from the most recent estimate of the current situation? That's what Corosim does.
-    </p>
+    </div>
   </Collapsible>
 
-  <Collapsible title="Model details" bind:collapsed={collapsed} defaultCollapsed={true}>
-    <p class="center">
+  <Collapsible title="How to use Corosim" bind:collapsed={collapsed} defaultCollapsed={true}>
+    How to tune parameters
+		How to use action markers
+  </Collapsible>
+
+  <Collapsible title="More on historical estimates" bind:collapsed={collapsed} defaultCollapsed={true}>
+
+  </Collapsible>
+
+  <Collapsible title="More on model predictions" bind:collapsed={collapsed} defaultCollapsed={true}>
+    <div>
       Corosim uses Gabriel Goh's implementation of a
       <b><a href="https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SEIR_model">SEIR</a></b> model    
       (<b>S</b>usceptible → <b>E</b>xposed → <b>I</b>nfected → <b>R</b>emoved).
@@ -970,8 +977,8 @@
         so are unable to provide a thorough comparison. Most of the discussion around models in Finland seems to revolve around parameter
         choices, rather than models themselves.
       
-    </p>
-    <p class="center" style="padding-bottom: 16.5px;">
+    </div>
+    <div>
       The dynamics of this model are characterized by a set of four ordinary differential equations that correspond to the stages of the disease's progression:
       <span style="color:#777">{@html ode_eqn}</span>
       The clinical dynamics in this model are an elaboration on SEIR that simulates the disease's progression at a higher resolution,
@@ -980,8 +987,8 @@
       Each of these variables follows its own trajectory to the final outcome, and the sum of these compartments add up to the {@html math_inline("R")} in SEIR.
       <br><br>
       Note that the model is a simplification of reality in many ways:
-    </p>
-    <ul class="center" style="width: 800px;">
+    </div>
+    <ul>
       <li>all hospitalizations are assumed to occur immediately after the infectious period</li>
       <li>individuals recovering in isolation (home or hospital) are assumed to be completely isolated</li>
       <li>hospitalization duration is assumed to be the same for regular ward, icu, and fatalities</li>
@@ -993,14 +1000,18 @@
     </ul>
   </Collapsible>
 
+  <Collapsible title="R0 estimation" bind:collapsed={collapsed} defaultCollapsed={true}>
+  
+  </Collapsible>
+
   <Collapsible title="Differences between Corosim and Epidemic Calculator" bind:collapsed={collapsed} defaultCollapsed={true}>
-    <p class="center" style="padding-bottom: 16.5px;">
+    <div style="padding-bottom: 16.5px;">
       {@html oneLineAttribution}
-    </p>
-    <p class="center">
+    </div>
+    <div>
       Key differences between Corosim and Epidemic Calculator:
-    </p>
-    <ul class="center" style="width: 800px;">
+    </div>
+    <ul>
       <li>Historical estimates. The original Epidemic Calculator initiates the simulation from a theoretical "day zero".
           Corosim initiates the simulation from the latest historical estimate. Estimates are updated daily.</li>
       <li>Corosim is tailored to the current situation in Finland. In addition to Finnish historical data, all the parameter default values have been chosen
@@ -1031,15 +1042,15 @@
   </Collapsible>
 
   <Collapsible title="Attribution" bind:collapsed={collapsed} defaultCollapsed={false}>
-    <p class="center" style="padding-bottom: 16.5px;">
+    <div>
       {@html oneLineAttribution}
-    </p>
-    <p class="center">
+    </div>
+    <div>
       For any enquiries, contact Atte Juvonen at futurice.com.
-    </p>
-    <p class="center">
+    </div>
+    <div>
       <a href="https://github.com/futurice/corona-simulations">Source code available on GitHub.</a>
-    </p>
+    </div>
   </Collapsible>
   
 

@@ -16,17 +16,38 @@
 
 </script>
 
-<p class="center" style="cursor: pointer;" on:click={toggleCollapse} title="{hidden ? 'Click to expand' : 'Click to collapse'}">
+<style>
+
+    div, div :global(div, ul) {
+        margin: auto;
+        width: 950px;
+        padding-bottom: 20px;
+        font-weight: 300;
+        font-family: nyt-franklin,helvetica,arial,sans-serif;
+        color:#666;
+        font-size: 16.5px;
+        text-align: justify;
+        line-height: 24px
+    }
+
+    div :global(ul) {
+        width: 930px !important;
+        padding-left: 20px !important;
+    }
+
+</style>
+
+<div style="cursor: pointer;" on:click={toggleCollapse} title="{hidden ? 'Click to expand' : 'Click to collapse'}">
     <Icon data={hidden ? caretRight : caretDown}
         scale=1.5
         class="clickableIcons"
         style="color: #CCC; position: absolute;"
     />
     <b style="margin-left: 20px;">{title}</b>
-</p>
+</div>
 
 {#if !hidden}
-    <div in:fly="{{ y: 200, duration: 500 }}">
+    <div in:fly="{{ y: 200, duration: 500 }}" style="padding-bottom: 0 !important;">
         <slot>
         </slot>
     </div>
