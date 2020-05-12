@@ -989,11 +989,11 @@
       Note that the model is a simplification of reality in many ways:
     </div>
     <ul>
-      <li>all hospitalizations are assumed to occur immediately after the infectious period</li>
-      <li>individuals recovering in isolation (home or hospital) are assumed to be completely isolated</li>
-      <li>hospitalization duration is assumed to be the same for regular ward, icu, and fatalities</li>
-      <li>icu capacity is just a visual indicator, exceeding capacity has no effect on fatalities</li>
-      <li>all fatalities are assumed to come from hospitals. In reality, many fatalities come from nursing homes,
+      <li>All hospitalizations are assumed to occur immediately after the infectious period.</li>
+      <li>Individuals who are recovering in home or hospital are assumed to be completely isolated.</li>
+      <li>Hospitalization duration is assumed to be the same for regular ward, icu, and fatalities.</li>
+      <li>Icu capacity is just a visual indicator, exceeding capacity has no effect on fatalities.</li>
+      <li>All fatalities are assumed to come from hospitals. In reality, many fatalities come from nursing homes,
           which means that this model overestimates hospitalization and ICU counts. Note that the model does <i>not</i>
           necessarily underestimate fatalities; the fatality rate can be adjusted to take into account all deaths,
           regardless of where they occur.</li>

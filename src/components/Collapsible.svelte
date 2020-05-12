@@ -18,7 +18,7 @@
 
 <style>
 
-    div, div :global(div, ul) {
+    div, div :global(div), div :global(ul) {
         margin: auto;
         width: 950px;
         padding-bottom: 20px;
@@ -29,7 +29,7 @@
         text-align: justify;
         line-height: 24px
     }
-
+    
     div :global(ul) {
         width: 930px !important;
         padding-left: 20px !important;
