@@ -268,7 +268,7 @@
     const m = actionMarkers || {}
     if (!m[MODEL_GOH]) {
       // Action markers for Goh have not been set yet; set to default values.
-      m[MODEL_GOH] = goh_default_action_markers()
+      m[MODEL_GOH] = goh_default_action_markers(P_all_historical)
     } else {
       // Action markers for Goh have been set, but we may have to adjust them
       // in case historymarker has been moved to the right.
