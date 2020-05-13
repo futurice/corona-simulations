@@ -62,7 +62,7 @@
     "fatality_rate": {
         "description": "Infection fatality rate",
         "isDefaultValueAutomaticallyGeneratedFromData": false,
-        "defaultValue": 0.006,
+        "defaultValue": 0.007,
         "minValue": 0.001,
         "maxValue": 0.05,
         "stepValue": 0.0001,
