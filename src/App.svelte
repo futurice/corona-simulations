@@ -54,6 +54,10 @@
     return arr
   }
 
+  function replaceFuturiceFromTextWithLogo(text) {
+    return text.replace('Futurice', '<img style="vertical-align:middle; padding: 0px 5px 5px 5px;" width="80" src="futurice.png">')
+  }
+
   let collapsed = {}
 
   let display_scenario_dropdown = false
@@ -962,6 +966,12 @@
     </div>
   </Collapsible>
 
+  <Collapsible title="R0 estimation" bind:collapsed={collapsed} defaultCollapsed={true}>
+    <div>
+      {@html stylizeExpressions(paramConfigR0['longformDefaultValueJustification'])}
+    </div>
+  </Collapsible>
+
   <Collapsible title="More on historical estimates" bind:collapsed={collapsed} defaultCollapsed={true}>
     <div>
       Historical estimates (TODO)
@@ -979,8 +989,8 @@
         uses a similar SEIR model for their official Coronavirus forecasts.</a> One key difference between Corosim and THL's model is that
         THL's model is initialized to a theoretical "day zero", whereas Corosim is initialized to the latest historical estimate.
         Another key difference is that THL's model is divided into age groups, Corosim's model is not.
-        These are certainly not the only difference between these models &#8212; unfortunately THL has not published their entire model,
-        so are unable to provide a thorough comparison. Most of the discussion around models in Finland seems to revolve around parameter
+        These are certainly not the only differences between these models &#8212; unfortunately THL has not published their entire model,
+        so we are unable to provide a thorough comparison. Most of the discussion around models in Finland seems to revolve around parameter
         choices, rather than models themselves.
       
     </div>
@@ -1004,12 +1014,6 @@
           necessarily underestimate fatalities; the fatality rate can be adjusted to take into account all deaths,
           regardless of where they occur.</li>
     </ul>
-  </Collapsible>
-
-  <Collapsible title="R0 estimation" bind:collapsed={collapsed} defaultCollapsed={true}>
-    <div>
-      {@html stylizeExpressions(paramConfigR0['longformDefaultValueJustification'])}
-    </div>
   </Collapsible>
 
   <Collapsible title="Differences between Corosim and Epidemic Calculator" bind:collapsed={collapsed} defaultCollapsed={true}>
@@ -1049,9 +1053,9 @@
     </ul>
   </Collapsible>
 
-  <Collapsible title="Attribution" bind:collapsed={collapsed} defaultCollapsed={false}>
+  <Collapsible title="Attribution" bind:collapsed={collapsed} defaultCollapsed={false}> 
     <div>
-      {@html oneLineAttribution}
+      {@html replaceFuturiceFromTextWithLogo(oneLineAttribution)}
     </div>
     <div>
       For any enquiries, contact Atte Juvonen at futurice.com.
