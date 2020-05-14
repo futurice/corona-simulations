@@ -62,7 +62,7 @@
     "fatality_rate": {
         "description": "Infection fatality rate",
         "isDefaultValueAutomaticallyGeneratedFromData": false,
-        "defaultValue": 0.007,
+        "defaultValue": 0.0075,
         "minValue": 0.001,
         "maxValue": 0.05,
         "stepValue": 0.0001,
@@ -72,7 +72,7 @@
         "longformDescription": "Percentage of fatalities from all infections (including undiagnosed infections).",
         "longformDoNotConfuseWith": "Newspapers often refer to <i>case</i> fatality rate, which sometimes refer to percentage of fatalities from confirmed cases, and sometimes to percentage of fatalities from closed cases. In the original Epidemic Calculator this parameter was titled 'case fatality rate', but it was in fact referring to infection fatality rate (confirmed cases are not plotted in neither Epidemic Calculator nor Corosim). ",
         "longformEffects": "This parameter does not affect historical estimates.<br><br>This parameter affects model predictions.",
-        "longformDefaultValueJustification": "https://www.thelancet.com/journals/laninf/article/PIIS1473-3099%2820%2930243-7/fulltext"
+        "longformDefaultValueJustification": "https://www.medrxiv.org/content/10.1101/2020.05.03.20089854v1"
     },
     "days_in_hospital": {
         "description": "Length of hospital stay",
