@@ -18,6 +18,7 @@ export function createHistoricalEstimates(hs_parsed, N, D_incbation, D_infectiou
         g[day]['recovered_mild'] = 0
         g[day]['recovered_hospital'] = 0
         g[day]['fatalities'] = 0
+        g[day]['not_used_hospitalization_estimate'] = 0
     }
 
     // Estimate values for fatalities (assume unrecorded fatalities)
@@ -86,6 +87,19 @@ export function createHistoricalEstimates(hs_parsed, N, D_incbation, D_infectiou
         for (var recoveredDay=recHospStartDay; recoveredDay<days; recoveredDay++) {
             g[recoveredDay]['recovered_hospital'] += hospSurvivorCount
         }
+
+        // Lastly, we'll count "expected hospitalizations" according to our model.
+        // This value is not actually used for anything (since we get the _actual_
+        // hospitalization numbers from data, we rather use those). However, we
+        // want to calculate this number to validate our default parameter value
+        // choice for hospitalization percentage. We can validate this parameter
+        // value by comparing our model's "expected hospitalizations" against
+        // "actual hospitalizations" (with the assumption that our other parameter
+        // values are correct).
+        const hospCount = Math.round((P_SEVERE + CFR) * adjustedCount)
+        for (var hospDay=hospStartDay; hospDay<=hospEndDay && hospDay<days; hospDay++) {
+            g[hospDay]['not_used_hospitalization_estimate'] += hospCount
+        }
     }
 
     // Shift dates to the right and cutoff last dates
@@ -93,6 +107,13 @@ export function createHistoricalEstimates(hs_parsed, N, D_incbation, D_infectiou
     const shifted = []
     for (var day=0; day<days; day++) {
         shifted[day] = g[day-shiftDays]
+    }
+
+    // Console log expected hospitalizations vs actual hospitalizations (uncomment when needed)
+    for (var day=0; day<days; day++) {
+        const eh = shifted[day]['not_used_hospitalization_estimate']
+        const ah = shifted[day]['hospital_will_die'] + shifted[day]['hospital_will_survive']
+        console.log('Day', day, 'expected hospitalizations', eh, 'versus actual', ah)
     }
 
     // Turn counts into goh states
