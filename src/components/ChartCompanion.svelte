@@ -25,7 +25,7 @@
         return s
     }
   
-    function get_count_delta(k, bar) {
+    function get_count_delta(k, bar, P_all) {
         const currCount = P_all[bar*dt][k]
         const prevCount = (bar > 0 ? P_all[bar*dt-1][k] : currCount)
         // We need to round intermediate values in order for delta to be consistent with rounded sigma values.
@@ -35,8 +35,8 @@
         return delta
     }
 
-    function formatDayChange(k, bar) {
-        const delta = get_count_delta(k, bar)
+    function formatDayChange(k, bar, P_all) {
+        const delta = get_count_delta(k, bar, P_all)
         if (isNaN(delta)) return ""
         return `${formatDelta(delta)} on day ${getDay(active_)}`
     }
@@ -130,7 +130,7 @@
                 </div>
                 <div class="legendtextnum"><span style="font-size:12px; padding-right:2px; color:#CCC">Δ</span>
                     <i>
-                    {formatDayChange(state["key"], active_)}
+                    {formatDayChange(state["key"], active_, P_all)}
                     </i>
                 </div>
             </div>
