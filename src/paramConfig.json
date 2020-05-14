@@ -12,7 +12,7 @@
         "longformDescription": "Percentage of infections which are not recorded as 'confirmed case'.",
         "longformDoNotConfuseWith": "",
         "longformEffects": "This parameter affects historical estimates. It acts like a multiplier to confirmed case counts, which we get from data. These adjusted case counts are used to estimate the number of infected in historical estimates.<br><br>This parameter does not affect model predictions (other than indirectly; the last known historical state is given to the model as the initial state).",
-        "longformDefaultValueJustification": "TODO"
+        "longformDefaultValueJustification": "This number is very contentious. It is difficult to measure, and different experts have given wildly different estimates for this. It also has huge implications for hospitalization and fatality rates, although in our model those have been separated onto their own parameter sliders (as opposed to being derived from this parameter value, other parameter values, assumptions and data)."
     },
     "unrecorded_deaths": {
         "description": "Unrecorded deaths",
@@ -132,7 +132,7 @@
         "isPercentage": true,
         "longformDescription": "Percentage of ICU patients out of all hospitalizations.",
         "longformDoNotConfuseWith": "With regards to model predictions, ICU rate is not part of the core model. We added this as a small visualization to get 'ballpark' numbers. The core model does not segregate hospitalizations into regular ward and ICU patients. For example, if the core model predicts 1000 hospitalizations for a given day and ICU ratio is set to 30%, then we visualize the results by showing 700 in regular ward and 300 in ICU. This is equivalent to assuming that the 'ICU track' is an alternative track to 'regular ward track' and assuming that the length of ICU hospitalization is equivalent to length of regular ward hospitalization. In reality, ICU patients will typically visit the regular ward first, and the duration of their hospitalization will be longer than the duration of regular ward patients' hospitalization.",
-        "longformEffects": "",
+        "longformEffects": "This parameter does not affect historical estimates.<br><br>This parameter affects model predictions (hospitalized, icu).",
         "longformDefaultValueJustification": "Given the assumptions described above, ICU ratio can be set to the observed ratio between active ICU patients and all active hospitalizations. The 30-day average for this ratio was 30% with the data that was available on 14.5.2020."
     },
     "icu_capacity": {
@@ -145,9 +145,9 @@
         "unitsDescriptor": "",
         "isInteger": true,
         "isPercentage": false,
-        "longformDescription": "Maximum number of patients simultaneously in ICU units around the country.",
+        "longformDescription": "This simply draws a horizontal line to help users visualize when ICU rate is exceeded. It only makes sense to draw this line under specific conditions. If you have trouble getting it visible, try to uncheck fatalities and infections.",
         "longformDoNotConfuseWith": "",
         "longformEffects": "",
-        "longformDefaultValueJustification": "Based on assumption of expanded capacity. TODO references."
+        "longformDefaultValueJustification": ""
     }
 }
