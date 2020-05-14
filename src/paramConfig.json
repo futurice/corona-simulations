@@ -86,8 +86,8 @@
         "isPercentage": false,
         "longformDescription": "Average number of days in hospital (excluding population who spend 0 days in hospital).",
         "longformDoNotConfuseWith": "In the original Epidemic Calculator, length of hospital stay affected only those patients who eventually survived, not those who eventually died. In Corosim this slider affects all hospitalizations.",
-        "longformEffects": "",
-        "longformDefaultValueJustification": "TODO"
+        "longformEffects": "This parameter affects the 'recovered' numbers in historical estimates. However, it does not affect the hospitalization and ICU numbers in historical estimates, because we get those numbers from actual data (so we don't need to estimate them).<br><br>This parameter affects model predictions (hospitalized, icu and recoveries).",
+        "longformDefaultValueJustification": ""
     },
     "days_in_mild_recovering_state": {
         "description": "Recovery time for mild cases",
@@ -117,8 +117,8 @@
         "isPercentage": true,
         "longformDescription": "Hospitalization as a percentage of all infections. Includes ICU hospitalizations.",
         "longformDoNotConfuseWith": "In the original Epidemic Calculator there is a slider with the same name, but it actually affects only those hospitalizations who eventually survive. The true hospitalization rate in Epidemic Calculator is actually the displayed hospitalization rate plus infected fatality rate (which is labelled 'case fatality rate'). In other words, the parameter value was mislabeled. We could have resolved this in a few different ways. For example, we could have simply labelled the parameter value correctly ('hospitalization rate, excluding people who eventually die'). That would have been awkward for end users. Instead, we chose to to keep the parameter label simple ('Hospitalization rate') and make the displayed value conform to that description. So the value displayed to end users is hospitalization_rate_excluding_fatalities + fatality_rate. You can verify this by moving the fatality rate slider; you will notice that the hospitalization rate changes as well.",
-        "longformEffects": "This parameter affects the 'recovered' numbers in historical estimates. However, it does not affect the hospitalization and ICU numbers in historical estimates, because we get those numbers from actual data (so we don't need to estimate them). These adjusted case counts are used to estimate the number of infected in historical estimates.<br><br>This parameter affects model predictions (hospitalized, icu and recoveries).",
-        "longformDefaultValueJustification": "We can calculate the expected number of hospitalizations based on confirmed case counts. Using this default value (and the default values of other parameters), the expected number of hospitalizations roughly matches the actual hospitalization numbers released by THL. This analysis for performed with data which was available on 14.5.2020."
+        "longformEffects": "This parameter affects the 'recovered' numbers in historical estimates. However, it does not affect the hospitalization and ICU numbers in historical estimates, because we get those numbers from actual data (so we don't need to estimate them).<br><br>This parameter affects model predictions (hospitalized, icu and recoveries).",
+        "longformDefaultValueJustification": "We can calculate the expected number of hospitalizations based on confirmed case counts. Using this default value (and the default values of other parameters), the expected number of hospitalizations roughly matches the actual hospitalization numbers released by THL. This analysis for performed with data which was available on 14.5.2020. For more information, we refer to source code and to our explanation of historical estimates."
     },
     "icu_rate_from_hospitalized": {
         "description": "ICU rate<br>(visualization only)",
