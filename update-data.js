@@ -8,6 +8,19 @@ const estimatesForMissingHospitalizationData = require('./data/estimates_for_mis
 const paramConfig = require('./src/paramConfig.json');
 
 const lastMidnight = new Date().setUTCHours(0,0,0,0);
+const cutoffDays = 3 // For example, 3 means "cut off today + 3 previous days".
+
+function notTooRecent(dateTime) {
+    const daysFromLastMidnight = Math.round((new Date(dateTime).getTime() - new Date(lastMidnight).getTime()) / 86400000);
+    return daysFromLastMidnight < -cutoffDays
+}
+
+function verifyDataNotStale(lastSeenDay, days) {
+    // Verify that API is not serving stale data which is missing recent days completely.
+    if (lastSeenDay !== days-1) {
+        process.exit(1)
+    }
+}
 
 function write(relativePath, content) {
     fs.writeFile(relativePath, content, function(err) {
@@ -65,8 +78,8 @@ async function callbackHSConfirmedCasesAndDeaths(response) {
         function daysFromZero(dateTime) {
             return Math.round((new Date(dateTime).getTime() - new Date(epidemyStartDate).getTime()) / 86400000);
         }
-        const days = daysFromZero(lastMidnight)
-
+        const days = daysFromZero(lastMidnight) - cutoffDays
+        
         // Initialize parsed
         var parsed = { }
         parsed['epidemyStartDate'] = epidemyStartDate
@@ -81,26 +94,32 @@ async function callbackHSConfirmedCasesAndDeaths(response) {
         }
 
         // Count confirmed cases per day, and index them according to "days from day 0"
+        var lastSeenDay = 0
         for (var i=0; i<confirmedCases.length; i++) {
             const c = confirmedCases[i]
             const dateTime = new Date(Date.parse(c["date"])).setUTCHours(0,0,0,0);
-            if (dateTime < lastMidnight) {
+            if (notTooRecent(dateTime)) {
                 // Exclude today's data by assumption that it is missing entries.
                 const day = daysFromZero(dateTime)
                 parsed["newConfirmedCases"][day]++
+                lastSeenDay = Math.max(day, lastSeenDay)
             }
         }
+        verifyDataNotStale(lastSeenDay, days)
 
         // Count deaths per day, and index them according to "days from day 0"
+        lastSeenDay = 0
         for (var i=0; i<deaths.length; i++) {
             const c = deaths[i]
             const dateTime = new Date(Date.parse(c["date"])).setUTCHours(0,0,0,0);
-            if (dateTime < lastMidnight) {
+            if (notTooRecent(dateTime)) {
                 // Exclude today's data by assumption that it is missing entries.
                 const day = daysFromZero(dateTime)
                 parsed["newConfirmedDeaths"][day]++
+                lastSeenDay = Math.max(day, lastSeenDay)
             }
         }
+        verifyDataNotStale(lastSeenDay, days)
 
         // Count cumulative from new
         for (var day=0; day<days; day++) {
@@ -131,16 +150,19 @@ async function callbackHSHospitalizations(response, parsed) {
             return Math.round((new Date(dateTime).getTime() - new Date(parsed['epidemyStartDate']).getTime()) / 86400000);
         }
 
+        var lastSeenDay = 0
         for (var i=0; i<hosp.length; i++) {
             const c = hosp[i]
             const dateTime = new Date(Date.parse(c["date"])).setUTCHours(0,0,0,0);
-            if (dateTime < lastMidnight) {
+            if (notTooRecent(dateTime)) {
                 // Exclude today's data by assumption that it is missing entries.
                 const day = daysFromZero(dateTime)
                 parsed["activeHospitalizations"][day] = c['inWard']
                 parsed["activeICU"][day] = c['inIcu']
+                lastSeenDay = Math.max(day, lastSeenDay)
             }
         }
+        verifyDataNotStale(lastSeenDay, parsed['days'])
     
         // Finnish hospitalization data is missing entries for early days. Use estimates for those days.
         const est = estimatesForMissingHospitalizationData['hospitalised']

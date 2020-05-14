@@ -1,4 +1,4 @@
-import { addDays, isValidDate } from '../utils.js';
+import { isValidDate } from '../utils.js';
 import { map_goh_states_into_UFStates } from './gohs_seir_ode.js';
 
 export function createHistoricalEstimates(hs_parsed, N, D_incbation, D_infectious, D_recovery_mild, D_hospital, P_SEVERE, P_ICU, CFR, undetected_infections, unrecorded_deaths) {
