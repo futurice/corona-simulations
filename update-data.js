@@ -1,6 +1,8 @@
 const fetch = require('node-fetch');
 const fs = require('fs');
 
+const estimatesForMissingHospitalizationData = require('./data/estimates_for_missing_hospitalization_data.json');
+
 // Do not remove this import! We want to load paramConfig.json at build time so that if somebody
 // has accidentally broken the JSON by manual editing, build process is halted.
 const paramConfig = require('./src/paramConfig.json');
@@ -54,7 +56,7 @@ async function callbackHSConfirmedCasesAndDeaths(response) {
     response.json()
     .then((json) => {
 
-        // Just for debugging purposes.
+        // Keep the original JSON for debugging purposes.
         write("data/hs_raw_cases_and_deaths.json", JSON.stringify(json))
         
         const confirmedCases = json['confirmed'].slice(1) // Epidemic started from the second confirmed case, not the first, which occurred 1 month earlier.
@@ -118,7 +120,7 @@ async function callbackHSHospitalizations(response, parsed) {
     response.json()
     .then((json) => {
 
-        // Just for debugging purposes.
+        // Keep the original JSON for debugging purposes.
         write("data/hs_raw_hospitalizations.json", JSON.stringify(json))
 
         const hosp = json['hospitalised'].filter(entry => {
@@ -135,6 +137,18 @@ async function callbackHSHospitalizations(response, parsed) {
             if (dateTime < lastMidnight) {
                 // Exclude today's data by assumption that it is missing entries.
                 const day = daysFromZero(dateTime)
+                parsed["activeHospitalizations"][day] = c['inWard']
+                parsed["activeICU"][day] = c['inIcu']
+            }
+        }
+    
+        // Finnish hospitalization data is missing entries for early days. Use estimates for those days.
+        const est = estimatesForMissingHospitalizationData['hospitalised']
+        for (var i=0; i<est.length; i++) {
+            const c = est[i]
+            const dateTime = new Date(Date.parse(c["date"])).setUTCHours(0,0,0,0);
+            const day = daysFromZero(dateTime)
+            if (parsed["activeHospitalizations"][day] === 0) {
                 parsed["activeHospitalizations"][day] = c['inWard']
                 parsed["activeICU"][day] = c['inIcu']
             }

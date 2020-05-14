@@ -1,0 +1,20 @@
+{"hospitalised": [
+	{"date":"2020-03-08T13:00:00.000Z","area":"Finland","inWard":1,"inIcu":0},
+	{"date":"2020-03-09T13:00:00.000Z","area":"Finland","inWard":1,"inIcu":1},
+	{"date":"2020-03-10T13:00:00.000Z","area":"Finland","inWard":2,"inIcu":1},
+	{"date":"2020-03-11T13:00:00.000Z","area":"Finland","inWard":4,"inIcu":1},
+	{"date":"2020-03-12T13:00:00.000Z","area":"Finland","inWard":7,"inIcu":3},
+	{"date":"2020-03-13T13:00:00.000Z","area":"Finland","inWard":12,"inIcu":5},
+	{"date":"2020-03-14T13:00:00.000Z","area":"Finland","inWard":17,"inIcu":6},
+	{"date":"2020-03-15T13:00:00.000Z","area":"Finland","inWard":19,"inIcu":7},
+	{"date":"2020-03-16T13:00:00.000Z","area":"Finland","inWard":21,"inIcu":8},
+	{"date":"2020-03-17T13:00:00.000Z","area":"Finland","inWard":24,"inIcu":10},
+	{"date":"2020-03-18T13:00:00.000Z","area":"Finland","inWard":28,"inIcu":11},
+	{"date":"2020-03-19T13:00:00.000Z","area":"Finland","inWard":31,"inIcu":12},
+	{"date":"2020-03-20T13:00:00.000Z","area":"Finland","inWard":37,"inIcu":14},
+	{"date":"2020-03-21T13:00:00.000Z","area":"Finland","inWard":42,"inIcu":17},
+	{"date":"2020-03-22T13:00:00.000Z","area":"Finland","inWard":48,"inIcu":18},
+	{"date":"2020-03-23T13:00:00.000Z","area":"Finland","inWard":53,"inIcu":20},
+	{"date":"2020-03-24T13:00:00.000Z","area":"Finland","inWard":56,"inIcu":22},
+	{"date":"2020-03-25T13:00:00.000Z","area":"Finland","inWard":58,"inIcu":23}
+]}
