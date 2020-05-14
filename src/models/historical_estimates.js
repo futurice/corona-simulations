@@ -109,11 +109,12 @@ export function createHistoricalEstimates(hs_parsed, N, D_incbation, D_infectiou
         shifted[day] = g[day-shiftDays]
     }
 
-    // Console log expected hospitalizations vs actual hospitalizations (uncomment when needed)
+    // Console log expected hospitalizations vs actual hospitalizations 
     for (var day=0; day<days; day++) {
         const eh = shifted[day]['not_used_hospitalization_estimate']
         const ah = shifted[day]['hospital_will_die'] + shifted[day]['hospital_will_survive']
-        console.log('Day', day, 'expected hospitalizations', eh, 'versus actual', ah)
+        // Uncomment the following line when needed:
+        //console.log('Day', day, 'expected hospitalizations', eh, 'versus actual', ah)
     }
 
     // Turn counts into goh states
