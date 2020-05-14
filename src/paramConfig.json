@@ -25,7 +25,7 @@
         "isInteger": false,
         "isPercentage": true,
         "longformDescription": "Percentage of deaths which were caused by COVID-19, but were not counted in the official statistics.",
-        "longformDoNotConfuseWith": "",
+        "longformDoNotConfuseWith": "This parameter affects historical estimates. It acts like a multiplier to confirmed death counts, which we get from data.<br><br>This parameter does not affect model predictions (although deaths are shown as cumulative, so any deaths accrued during historical estimates do carry over into cumulative death counts at model predictions side).",
         "longformEffects": "",
         "longformDefaultValueJustification": "A significant number of COVID-19 deaths had been hidden from the official statistics.<sup>[1]</sup> We have no idea what the true percentage of unrecorded deaths is.<br><br>https://yle.fi/uutiset/3-11310966"
     },
@@ -41,7 +41,7 @@
         "isPercentage": false,
         "longformDescription": "In our model, incubation period refers to the time between being infected and becoming infectious.",
         "longformDoNotConfuseWith": "Often this term is used to refer to the time between being infected and becoming symptomatic. This is not the case here.",
-        "longformEffects": "",
+        "longformEffects": "This parameter affects historical estimates.<br><br>This parameter affects model predictions.",
         "longformDefaultValueJustification": ""
     },
     "days_from_infectious_to_not_infectious": {
@@ -56,7 +56,7 @@
         "isPercentage": false,
         "longformDescription": "TODO explain why tuning this up causes the epidemic to spread slower.",
         "longformDoNotConfuseWith": "",
-        "longformEffects": "",
+        "longformEffects": "This parameter affects historical estimates.<br><br>This parameter affects model predictions.",
         "longformDefaultValueJustification": ""
     },
     "fatality_rate": {
@@ -71,7 +71,7 @@
         "isPercentage": true,
         "longformDescription": "Percentage of fatalities from all infections (including undiagnosed infections).",
         "longformDoNotConfuseWith": "Newspapers often refer to <i>case</i> fatality rate, which sometimes refer to percentage of fatalities from confirmed cases, and sometimes to percentage of fatalities from closed cases. In the original Epidemic Calculator this parameter was titled 'case fatality rate', but it was in fact referring to infection fatality rate (confirmed cases are not plotted in neither Epidemic Calculator nor Corosim). ",
-        "longformEffects": "",
+        "longformEffects": "This parameter does not affect historical estimates.<br><br>This parameter affects model predictions.",
         "longformDefaultValueJustification": "https://www.thelancet.com/journals/laninf/article/PIIS1473-3099%2820%2930243-7/fulltext"
     },
     "days_in_hospital": {
@@ -101,7 +101,7 @@
         "isPercentage": false,
         "longformDescription": "TODO",
         "longformDoNotConfuseWith": "TODO",
-        "longformEffects": "",
+        "longformEffects": "This parameter affects historical estimates.<br><br>This parameter affects model predictions.",
         "longformDefaultValueJustification": "TODO"
     },
     "hospitalization_rate": {
@@ -145,7 +145,7 @@
         "unitsDescriptor": "",
         "isInteger": true,
         "isPercentage": false,
-        "longformDescription": "This simply draws a horizontal line to help users visualize when ICU rate is exceeded. It only makes sense to draw this line under specific conditions. If you have trouble getting it visible, try to uncheck fatalities and infections.",
+        "longformDescription": "This simply draws a horizontal line to help users visualize when ICU rate is exceeded. It only makes sense to draw this line under specific conditions. If you have trouble getting it visible, try to uncheck fatalities and infections, and then drag y axis zoom to a position where the line should be visible.",
         "longformDoNotConfuseWith": "",
         "longformEffects": "",
         "longformDefaultValueJustification": ""
