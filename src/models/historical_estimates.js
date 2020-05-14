@@ -5,8 +5,8 @@ export function createHistoricalEstimates(hs_parsed, N, D_incbation, D_infectiou
     const g = []
     
     const days = hs_parsed['days']
-    const shiftDays = Math.round(D_incbation + D_infectious) // we will shift both beginning and end by this amount of days
-    const first_date = addDays(new Date(hs_parsed['epidemyStartDate']), -shiftDays)
+    const first_date = new Date(hs_parsed['epidemyStartDate'])
+    const shiftDays = Math.round(D_incbation + D_infectious)
     for (var day=0-shiftDays; day<days; day++) {
         g[day] = {}
         g[day]['susceptible'] = 0
@@ -102,19 +102,19 @@ export function createHistoricalEstimates(hs_parsed, N, D_incbation, D_infectiou
         }
     }
 
-    // Shift dates to the right and cutoff last dates
-    // (start charting from assumed incubations and cutoff the last dates where we dont have reliable data on incubations and infections)
-    const shifted = []
-    for (var day=0; day<days; day++) {
-        shifted[day] = g[day-shiftDays]
-    }
-
     // Console log expected hospitalizations vs actual hospitalizations 
     for (var day=0; day<days; day++) {
-        const eh = shifted[day]['not_used_hospitalization_estimate']
-        const ah = shifted[day]['hospital_will_die'] + shifted[day]['hospital_will_survive']
+        const eh = g[day]['not_used_hospitalization_estimate']
+        const ah = g[day]['hospital_will_die'] + g[day]['hospital_will_survive']
         // Uncomment the following line when needed:
         //console.log('Day', day, 'expected hospitalizations', eh, 'versus actual', ah)
+    }
+
+    // Cutoff days before day 0 (because we want to lock the first day to 25.3. instead of allowing it to move when the user tunes incubation parameter etc.)
+    // Also cutoff days after lastDay-shiftDays (because we can't infer incubations until later, when confirmed cases come in.)
+    const shifted = []
+    for (var day=0; day<days-shiftDays; day++) {
+        shifted[day] = g[day]
     }
 
     // Turn counts into goh states
@@ -136,11 +136,10 @@ export function createHistoricalEstimates(hs_parsed, N, D_incbation, D_infectiou
 
     // Map goh states into user facing states.
     var uf_states = map_goh_states_into_UFStates(goh_states, N, 0)
-    for (var day=0; day<days; day++) {
-        // Because goh states do not have ICU as a state, we have to put the real ward and ICU values back in there.
-        const shiftedDay = day - shiftDays
-        uf_states[day]['hospitalized'] = (shiftedDay >= 0 ? hs_parsed['activeHospitalizations'][shiftedDay] : 0)
-        uf_states[day]['icu']          = (shiftedDay >= 0 ? hs_parsed['activeICU'][shiftedDay]              : 0)
+    for (var day=0; day<days-shiftDays; day++) {
+        // Because goh states do not have ICU as a state, we'll put real ward and ICU values in there at this point.
+        uf_states[day]['hospitalized'] = hs_parsed['activeHospitalizations'][day]
+        uf_states[day]['icu']          = hs_parsed['activeICU'][day]
     }
     
     return [first_date, goh_states, uf_states]
