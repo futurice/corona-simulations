@@ -123,17 +123,17 @@
     "icu_rate_from_hospitalized": {
         "description": "ICU rate<br>(visualization only)",
         "isDefaultValueAutomaticallyGeneratedFromData": false,
-        "defaultValue": 0.23,
+        "defaultValue": 0.3,
         "minValue": 0,
         "maxValue": 1,
         "stepValue": 0.01,
         "unitsDescriptor": "%",
         "isInteger": false,
         "isPercentage": true,
-        "longformDescription": "TODO",
-        "longformDoNotConfuseWith": "TODO",
+        "longformDescription": "Percentage of ICU patients out of all hospitalizations.",
+        "longformDoNotConfuseWith": "With regards to model predictions, ICU rate is not part of the core model. We added this as a small visualization to get 'ballpark' numbers. The core model does not segregate hospitalizations into regular ward and ICU patients. For example, if the core model predicts 1000 hospitalizations for a given day and ICU ratio is set to 30%, then we visualize the results by showing 700 in regular ward and 300 in ICU. This is equivalent to assuming that the 'ICU track' is an alternative track to 'regular ward track' and assuming that the length of ICU hospitalization is equivalent to length of regular ward hospitalization. In reality, ICU patients will typically visit the regular ward first, and the duration of their hospitalization will be longer than the duration of regular ward patients' hospitalization.",
         "longformEffects": "",
-        "longformDefaultValueJustification": "TODO"
+        "longformDefaultValueJustification": "Given the assumptions described above, ICU ratio can be set to the observed ratio between active ICU patients and all active hospitalizations. The 30-day average for this ratio was 30% with the data that was available on 14.5.2020."
     },
     "icu_capacity": {
         "description": "ICU capacity<br>(visualization only)",
