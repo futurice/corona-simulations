@@ -671,6 +671,20 @@
     color: #777 !important;
   }
 
+  @media screen and (max-width: 1199px) {
+      .mobileWarning {
+        margin-top: 0px;
+        margin-bottom: 40px;
+      }
+  }
+
+  @media screen and (min-width: 1200px) {
+      .mobileWarning {
+        visibility: hidden;
+        position: absolute;
+      }
+  }
+
   th { font-weight: 500; text-align: left; padding-bottom: 5px; vertical-align: text-top;     border-bottom: 1px solid #DDD; }
 
   a:link { color: grey; }
@@ -684,6 +698,10 @@
   <img style="vertical-align:middle" src="flag.png" title="Finland" alt="finnish flag" width="100">
 </div></h2>
 <h5>Historical Estimates & Model Predictions for COVID-19 in Finland</h5>
+
+<div class="mobileWarning">
+  <h3>Sorry! This web app is not optimized for a mobile experience or small screens. If you can, please come back on a desktop device.</h3>
+</div>
 
 <div class="chart" style="display: flex; max-width: 1120px">
   <div style="flex: 0 0 270px; width:270px;">
