@@ -801,19 +801,21 @@
     </div>
 
     <!-- History Marker. -->
-    <HistoryMarker
-      width = {width}
-      height = {height}
-      R0 = {R0}
-      tmax = {tmax}
-      Pmax = {Pmax}
-      lastHistoricDay = {lastHistoricDay}
-      bind:cutoffHistoricDay = {cutoffHistoricDay}
-      bind:Plock = {Plock}
-      bind:lock = {lock}
-      bind:lock_yaxis = {lock_yaxis}
-      bind:flashMessage = {flashMessage}
-    />
+    {#if cutoffHistoricDay < tmax}
+      <HistoryMarker
+        width = {width}
+        height = {height}
+        R0 = {R0}
+        tmax = {tmax}
+        Pmax = {Pmax}
+        lastHistoricDay = {lastHistoricDay}
+        bind:cutoffHistoricDay = {cutoffHistoricDay}
+        bind:Plock = {Plock}
+        bind:lock = {lock}
+        bind:lock_yaxis = {lock_yaxis}
+        bind:flashMessage = {flashMessage}
+      />
+    {/if}
 
     <!-- Action Markers. -->
     {#each actionMarkers[selectedModel] as actionMarkerData}

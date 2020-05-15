@@ -145,6 +145,7 @@
 
 </style>
 
+<!-- Draggable elements of the History Marker should be placed here -->
 <div style="position: absolute; width:{width+15}px; height: {height}px; top:-5px; left:10px; pointer-events: none;">
 
     <!-- Drag (clicking anywhere on this div will trigger drag, no other events) -->
