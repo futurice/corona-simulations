@@ -955,13 +955,18 @@
       (typically you can only adjust the number of infected). We are in the middle of the epidemic &#8212; long past day zero.
       Doesn't it make sense to start the simulation from the most recent estimate of the current situation? That's what Corosim does.
     </div>
+    <div>
+      We have open sourced Corosim on <a href="https://github.com/futurice/corona-simulations">GitHub</a> under the MIT license.
+      The <a href="https://github.com/futurice/corona-simulations#want-to-fork-this-repo-and-customize-it-for-your-country">README</a>
+      has instructions on how to customize Corosim for different countries or local areas.
+    </div>
   </Collapsible>
 
   <Collapsible title="How to use Corosim" bind:collapsed={collapsed} defaultCollapsed={true}>
     <div>
+      TODO
+      What kind of research questions can be explored with Corosim
       How to tune parameters (TODO)
-    </div>
-    <div>
       How to use action markers (TODO)
     </div>
   </Collapsible>
@@ -975,6 +980,7 @@
   <Collapsible title="More on historical estimates" bind:collapsed={collapsed} defaultCollapsed={true}>
     <div>
       Historical estimates (TODO)
+      simple "back of the napkin" type calculations
     </div>
   </Collapsible>
 

@@ -1,6 +1,5 @@
 <script>
 
-    import { fade, fly } from 'svelte/transition';
     import Icon from 'svelte-awesome';
     import { caretDown, caretRight } from 'svelte-awesome/icons';
 
@@ -47,7 +46,7 @@
 </div>
 
 {#if !hidden}
-    <div in:fly="{{ y: 200, duration: 500 }}" style="padding-bottom: 0 !important;">
+    <div style="padding-bottom: 0 !important;">
         <slot>
         </slot>
     </div>
