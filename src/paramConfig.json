@@ -42,22 +42,22 @@
         "longformDescription": "In our model, incubation period refers to the time between being infected and becoming infectious.",
         "longformDoNotConfuseWith": "Often this term is used to refer to the time between being infected and becoming symptomatic. This is not the case here.",
         "longformEffects": "This parameter affects historical estimates.<br><br>This parameter affects model predictions.",
-        "longformDefaultValueJustification": ""
+        "longformDefaultValueJustification": "We assume that patients become infectious on average one day before they start showing symptoms. Therefore, length of the incubation period here should be slightly less than what is believed to be the time period from infection to showing symptoms."
     },
     "days_from_infectious_to_not_infectious": {
         "description": "Duration patient is infectious {Tinf}",
         "isDefaultValueAutomaticallyGeneratedFromData": false,
-        "defaultValue": 1.5,
+        "defaultValue": 2,
         "minValue": 0.1,
         "maxValue": 24,
         "stepValue": 0.01,
         "unitsDescriptor": "days",
         "isInteger": false,
         "isPercentage": false,
-        "longformDescription": "TODO explain why tuning this up causes the epidemic to spread slower.",
-        "longformDoNotConfuseWith": "",
+        "longformDescription": "Average number of days a patient is infectious.",
+        "longformDoNotConfuseWith": "Note that in our model a patient is considered to be non-infectious after they isolate to either home or hospital. Therefore, this parameter should be set to a value which is less than the number of days that a patient is physically able to spread the virus (a patient may be physically able to spread the virus by coughing, but if they are coughing at home, they are considered to be non-infectious in our model).",
         "longformEffects": "This parameter affects historical estimates.<br><br>This parameter affects model predictions.",
-        "longformDefaultValueJustification": ""
+        "longformDefaultValueJustification": "Some people will never develop symptoms and they will infect other people for a long time. Some people will develop symptoms fast and isolate fast. Some people become infectious before developing symptoms, and after developing syptoms they may still be interacting in the community for a short while, until they isolate themselves. On average we believe patients will be infectious about 1 day without symptoms and about 1 day after symptoms, yielding the default value 2. This parameters is very contentious and we do not have good references for our choice of a default value."
     },
     "fatality_rate": {
         "description": "Infection fatality rate",
@@ -77,32 +77,32 @@
     "days_in_hospital": {
         "description": "Length of hospital stay",
         "isDefaultValueAutomaticallyGeneratedFromData": false,
-        "defaultValue": 13,
+        "defaultValue": 11.6,
         "minValue": 0.1,
         "maxValue": 100,
         "stepValue": 0.01,
         "unitsDescriptor": "days",
         "isInteger": false,
         "isPercentage": false,
-        "longformDescription": "Average number of days in hospital (excluding population who spend 0 days in hospital).",
-        "longformDoNotConfuseWith": "In the original Epidemic Calculator, length of hospital stay affected only those patients who eventually survived, not those who eventually died. In Corosim this slider affects all hospitalizations.",
+        "longformDescription": "Average number of days in hospital or ICU (excluding population who spend 0 days in hospital).",
+        "longformDoNotConfuseWith": "In the original Epidemic Calculator, length of hospital stay affected only those patients who eventually survived, not those who eventually died. In Corosim this slider affects all hospitalizations. Also note that our model has some simplifying assumptions related to ICU; this parameter affects both regular ward and ICU stay, and ICU is modeled as an alternative track to regular ward, in comparison to reality, where patients typically go to ICU after first spending time in regular ward.",
         "longformEffects": "This parameter affects the 'recovered' numbers in historical estimates. However, it does not affect the hospitalization and ICU numbers in historical estimates, because we get those numbers from actual data (so we don't need to estimate them).<br><br>This parameter affects model predictions (hospitalized, icu and recoveries).",
-        "longformDefaultValueJustification": ""
+        "longformDefaultValueJustification": "The Finnish Health Authority THL, in their first Coronavirus modelling related webinar, said that average hospitalization in regular ward in Finland was 8 days, 30% of those patients ended up in the ICU, and the ICU duration was 12 days. According to these numbers, the average length of hospital stay would be 8+0.3*12 = 11.6."
     },
     "days_in_mild_recovering_state": {
         "description": "Recovery time for mild cases",
         "isDefaultValueAutomaticallyGeneratedFromData": false,
-        "defaultValue": 3,
+        "defaultValue": 4,
         "minValue": 0.5,
         "maxValue": 100,
         "stepValue": 0.01,
         "unitsDescriptor": "days",
         "isInteger": false,
         "isPercentage": false,
-        "longformDescription": "TODO",
-        "longformDoNotConfuseWith": "TODO",
+        "longformDescription": "The average number of days a non-severe cases spends isolated in home.",
+        "longformDoNotConfuseWith": "",
         "longformEffects": "This parameter affects historical estimates.<br><br>This parameter affects model predictions.",
-        "longformDefaultValueJustification": "TODO"
+        "longformDefaultValueJustification": "This value is very contentious, because we do not have good data on the proportion of asymptomatic cases, who spend 0 days isolated in home, thus dragging down the average."
     },
     "hospitalization_rate": {
         "description": "Hospitalization rate",
