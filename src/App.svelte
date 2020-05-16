@@ -509,6 +509,7 @@
     font-family: 'Liberation Sans';
     font-style: normal;
     font-weight: normal;
+    font-display: swap;
     src: url(fonts/LiberationSans-Regular.ttf) format('truetype')
   }
 
@@ -516,6 +517,7 @@
     font-family: 'Liberation Sans';
     font-style: normal;
     font-weight: bold;
+    font-display: swap;
     src: url(fonts/LiberationSans-Bold.ttf) format('truetype')
   }
 
@@ -523,6 +525,7 @@
     font-family: 'Liberation Sans';
     font-style: italic;
     font-weight: normal;
+    font-display: swap;
     src: url(fonts/LiberationSans-Italic.ttf) format('truetype')
   }
 
@@ -530,12 +533,13 @@
     font-family: 'Liberation Sans';
     font-style: italic;
     font-weight: bold;
+    font-display: swap;
     src: url(fonts/LiberationSans-BoldItalic.ttf) format('truetype')
   }
 
   :global(html) {
       overflow-y: scroll;
-      font-family: 'Liberation Sans', 'Source Code Pro';
+      font-family: 'Liberation Sans';
   }
 
   h2 {
@@ -982,10 +986,16 @@
       Historical estimates are updated daily based on data provided by <a href="https://github.com/HS-Datadesk/koronavirus-avoindata">Helsingin Sanomat</a>.
       For example, the estimate for the number of infected is based on the number of confirmed cases in data, but is also affected by various parameters,
       such as the percentage of undetected infections, length of the incubation period, how long individuals remain infectious, and so forth.
+      We would like to emphasize that while the model is a legitimate infectious disease model, our historical estimates are simple
+      "back of the napkin" type calculations. We refer
+      to <a href="https://github.com/futurice/corona-simulations/blob/master/src/models/historical_estimates.js#L4">the source code</a> for
+      details on historical estimates.
+    </div>
+    <div>
       The model is initialized with the latest historical estimates for the number of individuals incubating, recovering, etc. Parameter choices impact
       both historical estimates and model predictions. Although we have done a lot of research to provide sensible default values,
       you probably disagree with some of our choices. That's why we wanted to provide you the possibility of tuning parameters by yourself.
-      You can also set your own action points to model the effects of different policy changes.
+      You can also set your own action markers to model the effects of different policy changes (those vertical things on top of the chart).
     </div>
     <div>
       At this time <i>no other</i> website provides a service like this. For example, other Coronavirus modelling websites
@@ -994,9 +1004,10 @@
       Doesn't it make sense to start the simulation from the most recent estimate of the current situation? That's what Corosim does.
     </div>
     <div>
-      We have open sourced Corosim on <a href="https://github.com/futurice/corona-simulations">GitHub</a> under the MIT license.
-      The <a href="https://github.com/futurice/corona-simulations#want-to-fork-this-repo-and-customize-it-for-your-country">README</a>
-      has instructions on how to customize Corosim for different countries or local areas.
+      We have <a href="https://github.com/futurice/corona-simulations">open sourced Corosim on GitHub</a> under the MIT license.
+      The README has instructions on
+      <a href="https://github.com/futurice/corona-simulations#want-to-fork-this-repo-and-customize-it-for-your-country">how to</a>
+      to customize Corosim for different countries or local areas.
     </div>
   </Collapsible>
 
@@ -1006,15 +1017,9 @@
     </div>
   </Collapsible>
 
-  <Collapsible title="More on historical estimates" bind:collapsed={collapsed} defaultCollapsed={true}>
-    <div>
-      Historical estimates (TODO)
-      simple "back of the napkin" type calculations
-    </div>
-  </Collapsible>
-
   <Collapsible title="More on model predictions" bind:collapsed={collapsed} defaultCollapsed={true}>
     <div>
+    
       Corosim uses Gabriel Goh's implementation of a
       <b><a href="https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SEIR_model">SEIR</a></b> model    
       (<b>S</b>usceptible → <b>E</b>xposed → <b>I</b>nfected → <b>R</b>emoved).
