@@ -124,7 +124,6 @@
 <style>
 
     .caption {
-        font-family: nyt-franklin,helvetica,arial,sans-serif;
         font-size: 13px;    
     }
 
@@ -135,7 +134,6 @@
         font-size:13px;
         padding-bottom: 5px;
         font-weight: 300;
-        font-family: nyt-franklin,helvetica,arial,sans-serif;
         line-height: 14px;
     }
 
@@ -157,7 +155,6 @@
         line-height: 17px; 
         padding-bottom: 4px;
         font-weight: 700;
-        font-family: nyt-franklin,helvetica,arial,sans-serif;
     }
 
     .paneldesc{
@@ -172,7 +169,6 @@
         line-height: 7px; 
         padding-bottom: 0px; 
         padding-top: 7px;
-        font-family: nyt-franklin,helvetica,arial,sans-serif;
         font-family: 'Source Code Pro', monospace;
         font-size: 10px;
         text-align: right;

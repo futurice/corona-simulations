@@ -22,7 +22,6 @@
         width: 950px;
         padding-bottom: 20px;
         font-weight: 300;
-        font-family: nyt-franklin,helvetica,arial,sans-serif;
         color:#666;
         font-size: 16.5px;
         text-align: justify;

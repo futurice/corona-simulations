@@ -495,15 +495,47 @@
 
 <style>
   .small { font: italic 6px Source Code Pro; }
-  @import url('sourcecodepro.css');
+  @font-face {
+    font-family: 'Source Code Pro';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: local('Source Code Pro Regular'), local('SourceCodePro-Regular'), url(fonts/HI_SiYsKILxRpg3hIP6sJ7fM7PqlPevW.woff2) format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+
+  
+  @font-face {
+    font-family: 'Liberation Sans';
+    font-style: normal;
+    font-weight: normal;
+    src: url(fonts/LiberationSans-Regular.ttf) format('truetype')
+  }
+
+  @font-face {
+    font-family: 'Liberation Sans';
+    font-style: normal;
+    font-weight: bold;
+    src: url(fonts/LiberationSans-Bold.ttf) format('truetype')
+  }
+
+  @font-face {
+    font-family: 'Liberation Sans';
+    font-style: italic;
+    font-weight: normal;
+    src: url(fonts/LiberationSans-Italic.ttf) format('truetype')
+  }
+
+  @font-face {
+    font-family: 'Liberation Sans';
+    font-style: italic;
+    font-weight: bold;
+    src: url(fonts/LiberationSans-BoldItalic.ttf) format('truetype')
+  }
 
   :global(html) {
       overflow-y: scroll;
-
-      /* Any browser which supports CSS3
-      filter: blur(10px);
-      filter: url("blur.svg#gaussian_blur");
-      -webkit-filter: blur(10px); */
+      font-family: 'Liberation Sans', 'Source Code Pro';
   }
 
   h2 {
@@ -513,7 +545,6 @@
     padding-top: 20px;
     padding-bottom: 0px;
     font-weight: 300;
-    font-family: nyt-franklin,helvetica,arial,sans-serif;
   }
 
   h5 {
@@ -524,7 +555,6 @@
     padding-left: 40px;
     padding-bottom: 20px;
     font-weight: 300;
-    font-family: nyt-franklin,helvetica,arial,sans-serif;
     font-style: italic;
     padding-bottom: 30px
   }
@@ -534,7 +564,6 @@
     width: 950px;
     padding-bottom: 20px;
     font-weight: 300;
-    font-family: nyt-franklin,helvetica,arial,sans-serif;
     color:#666;
     font-size: 16.5px;
     text-align: justify;
@@ -546,13 +575,11 @@
     width: 950px;
     padding-bottom: 20px;
     font-weight: 300;
-    font-family: nyt-franklin,helvetica,arial,sans-serif;
     color:#333;
     font-size: 13px;
   }
 
   .row {
-    font-family: nyt-franklin,helvetica,arial,sans-serif;
     margin: auto;
     display: flex;
     width: 948px;
@@ -567,7 +594,6 @@
   }
 
   .minorTitle {
-    font-family: nyt-franklin,helvetica,arial,sans-serif;
     margin: auto;
     display: flex;
     width: 950px;
@@ -591,7 +617,6 @@
     line-height: 17px; 
     padding-bottom: 4px;
     font-weight: 700;
-    font-family: nyt-franklin,helvetica,arial,sans-serif;
   }
 
   .paneldesc{
@@ -605,7 +630,6 @@
     line-height: 7px; 
     padding-bottom: 0px; 
     padding-top: 7px;
-    font-family: nyt-franklin,helvetica,arial,sans-serif;
     font-family: 'Source Code Pro', monospace;
     font-size: 10px;
     text-align: right;
@@ -629,12 +653,10 @@
     font-size:13px;
     padding-bottom: 5px;
     font-weight: 300;
-    font-family: nyt-franklin,helvetica,arial,sans-serif;
     line-height: 14px;
   }
 
   .tick {
-    font-family: nyt-franklin,helvetica,arial,sans-serif;
     font-size: .725em;
     font-weight: 200;
     font-size: 13px
@@ -642,7 +664,6 @@
 
   td { 
     text-align: left;
-    font-family: nyt-franklin,helvetica,arial,sans-serif;
     border-bottom: 1px solid #DDD;
     border-collapse: collapse;
     padding: 3px;
@@ -655,7 +676,6 @@
   }
 
   .eqn {
-    font-family: nyt-franklin,helvetica,arial,sans-serif;
     margin: auto;
     display: flex;
     flex-flow: row wrap;
@@ -747,7 +767,6 @@
                 cursor: pointer;
                 color: #f0027f;
                 opacity: 0.5;
-                font-family: nyt-franklin,helvetica,arial,sans-serif;
                 visibility: {flashMessage !== '' ? 'visible' : 'hidden'};
                 font-size: 16px;
                 ">
@@ -898,7 +917,6 @@
                   left: 50px;
                   width: 85%;
                   font-weight: 300;
-                  font-family: nyt-franklin,helvetica,arial,sans-serif;
                   color:#666;
                   font-size: 16.5px;
                   text-align: justify;
@@ -979,15 +997,6 @@
       We have open sourced Corosim on <a href="https://github.com/futurice/corona-simulations">GitHub</a> under the MIT license.
       The <a href="https://github.com/futurice/corona-simulations#want-to-fork-this-repo-and-customize-it-for-your-country">README</a>
       has instructions on how to customize Corosim for different countries or local areas.
-    </div>
-  </Collapsible>
-
-  <Collapsible title="How to use Corosim" bind:collapsed={collapsed} defaultCollapsed={true}>
-    <div>
-      TODO
-      What kind of research questions can be explored with Corosim
-      How to tune parameters (TODO)
-      How to use action markers (TODO)
     </div>
   </Collapsible>
 

@@ -50,7 +50,6 @@
 <style>
     .legend {
         color: #888;
-        font-family: Helvetica, Arial;
         font-size: .725em;
         font-weight: 200;
         height: 100px;
@@ -64,7 +63,6 @@
         font-size:13px;
         padding-bottom: 6px;
         font-weight: 600;
-        font-family: nyt-franklin,helvetica,arial,sans-serif;
     }
 
 
@@ -73,7 +71,6 @@
         font-size:13px;
         padding-bottom: 5px;
         font-weight: 300;
-        font-family: nyt-franklin,helvetica,arial,sans-serif;
         line-height: 14px;
     }
 
@@ -83,7 +80,6 @@
         padding-bottom: 5px;
         font-weight: 300;
         line-height: 12px;
-        font-family: nyt-franklin,helvetica,arial,sans-serif;
         left: -3px;
         position: relative;
     }

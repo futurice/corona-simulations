@@ -141,7 +141,6 @@
     text-align: center;
     font-size: 30px;
     font-weight: 300;
-    font-family: nyt-franklin,arial,helvetica,sans-serif;
     font-style: normal; 
   }
 
@@ -160,7 +159,6 @@
   }
 
   .tick {
-    font-family: Helvetica, Arial;
     font-size: .725em;
     font-weight: 200;
   }
@@ -190,7 +188,6 @@
 
   .total {
     color: #888;
-    font-family: Helvetica, Arial;
     font-size: .725em;
     font-weight: 200;
   }
@@ -247,7 +244,7 @@
             <text x="0" y="-4">--{getDate(firstBarDate, i)}</text>
           </g>
         -->
-        
+
         {#if i%30 == 0}
           {#if getDate(firstBarDate, i).endsWith("01.2021")}
             <g class="tick" transform="translate({xScaleTime(i - xLabelOffset)},{height})">
