@@ -55,7 +55,7 @@
   }
 
   function replaceFuturiceFromTextWithLogo(text) {
-    return text.replace('Futurice', '<img style="vertical-align:middle; padding: 0px 5px 5px 5px;" width="80" src="futurice.png">')
+    return text.replace('Futurice', '<img alt="Futurice" style="vertical-align:middle; padding: 0px 5px 5px 5px;" width="80" src="futurice.png">')
   }
 
   let collapsed = {}
