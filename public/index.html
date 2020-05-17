@@ -1,34 +1,48 @@
-<!doctype html>
-<html>
-<head>
-	<meta charset='utf-8'>
-	<meta name="viewport" content="width=1160">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1160" />
+    <title>Corosim</title>
+    <meta
+      name="description"
+      content="Historical Estimates & Model Predictions for COVID-19 in Finland"
+    />
+    <meta property="og:site_name" content="Corosim" />
+    <meta property="og:title" content="Corosim" />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:description"
+      content="Historical Estimates & Model Predictions for COVID-19 in Finland"
+    />
+    <meta property="og:url" content="https://corosim.fi/" />
+    <meta content="https://corosim.fi/latest_Rt.png" property="og:image" />
+    <meta content="833" property="og:image:width" />
+    <meta content="555" property="og:image:height" />
+    <link rel="stylesheet" href="./bundle.css" />
+    <script defer src="./bundle.js"></script>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=UA-166349088-1"
+    ></script>
+  </head>
 
-	<title>Corosim</title>
+  <body>
+    <link rel="prefetch" href="latest_Rt.png" />
+    <script>
+      // Global site tag (gtag.js) - Google Analytics
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag('js', new Date());
+      gtag('config', 'UA-166349088-1');
+    </script>
 
-<!-- 	<link rel='stylesheet' href='./global.css'>
- -->	<link rel='stylesheet' href='./bundle.css'>
-
-	<script defer src='./bundle.js'></script>
-
-	<!-- Global site tag (gtag.js) - Google Analytics -->
-	<script async src="https://www.googletagmanager.com/gtag/js?id=UA-166349088-1"></script>
-
-</head>
-
-<body>
-<link rel="prefetch" href="latest_Rt.png" />
-<script>
-  // Global site tag (gtag.js) - Google Analytics
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'UA-166349088-1');
-</script>
-
-<noscript>
-This web app does not render without JavaScript. Please turn JavaScript on and refresh.
-</noscript>
-
-</body>
+    <noscript>
+      This web app does not render without JavaScript. Please turn JavaScript on
+      and refresh.
+    </noscript>
+  </body>
 </html>
