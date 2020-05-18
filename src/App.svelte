@@ -1007,7 +1007,7 @@
       We have <a href="https://github.com/futurice/corona-simulations">open sourced Corosim on GitHub</a> under the MIT license.
       The README has instructions on
       <a href="https://github.com/futurice/corona-simulations#want-to-fork-this-repo-and-customize-it-for-your-country">how to</a>
-      to customize Corosim for different countries or local areas.
+      customize Corosim for different countries or local areas.
     </div>
   </Collapsible>
 
