@@ -1056,6 +1056,26 @@
     </ul>
   </Collapsible>
 
+  <Collapsible title="Why the latest historical estimate is several days old" bind:collapsed={collapsed} defaultCollapsed={true}>
+    <div>
+      You may have noticed that the latest historical estimate is several days old, and you may be wondering if historical estimates are updated.
+      Yes, historical estimates are updated every 3 hours. You can expect to see changes at least once per day, depending
+      on how often THL updates their data. Unfortunately we do not have reliable numbers for the <i>most recent</i> days, so we have chosen
+      to display model predictions for those days instead of displaying historical estimates.
+    </div>
+    <div>
+      Why don't we have reliable numbers for the most recent days? This is caused by two separate issues.
+      As an example, let's consider the number of active infections.
+      The estimate for active infections is based on confirmed cases (and assumptions and parameters). If we have 10 confirmed cases today,
+      we can assume that those cases were infected several days ago. So if we wanted to estimate the number of active infections today,
+      we would need data from <i>several days in the future</i>. We don't have data from the future, so we can't use this method to estimate
+      the number active infections today (though of course we can use other methods, such as model predictions, to estimate the number
+      of active infections today). In addition to this, another contributing factor is reporting delay to the confirmed case numbers themselves:
+      If you look at the number of confirmed cases reported for yesterday, write it down, and come back one week later to check that the number
+      hasn't changed, it probably has. For some reason, confirmed cases and deaths are often reported with a few days of delay.
+    </div>
+  </Collapsible>
+
   <Collapsible title="Differences between Corosim and Epidemic Calculator" bind:collapsed={collapsed} defaultCollapsed={true}>
     <div style="padding-bottom: 16.5px;">
       {@html oneLineAttribution}
