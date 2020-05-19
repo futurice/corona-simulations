@@ -996,6 +996,8 @@
       both historical estimates and model predictions. Although we have done a lot of research to provide sensible default values,
       you probably disagree with some of our choices. That's why we wanted to provide you the possibility of tuning parameters by yourself.
       You can also set your own action markers to model the effects of different policy changes (those vertical things on top of the chart).
+      You can drag action markers, you can add new action markers, you can delete old action markers, and you can configure the name
+      and effect of an action (effect on disease transmissions, in percentage).
     </div>
     <div>
       At this time <i>no other</i> website provides a service like this. For example, other Coronavirus modelling websites
@@ -1099,7 +1101,8 @@
           "do we have enough health care capacity".</li>
       <li>Multiple action markers. The old Epidemic Calculator only has a single action marker, labeled "intervention" and it can
           only reduce the transmission of the virus, not increase it. What if you wanted to model the effect of <i>stopping</i> an intervention? How about
-          modelling multiple policy changes? You can do those things with Corosim.</li>
+          modelling multiple policy changes? You can do those things with Corosim. Action markers can be added, deleted, dragged,
+          renamed, and their effect on disease transmission can be tuned.</li>
       <li>Scenario outcome summary. The old Epidemic Calculator does not have an easy way summarize an outcome. If you want to compare
           two different strategies, you need to manually zoom out and eyeball the peak, fatalities, etc. Corosim provides a scenario outcome summary
           of the most crucial metrics.</li>
