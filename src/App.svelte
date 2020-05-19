@@ -983,21 +983,23 @@
       This means you can use Corosim to get some insight towards questions such as "how many Finns have been infected so far" or "when will the epidemic peak".
     </div>
     <div>
-      Historical estimates are updated daily based on data provided by <a href="https://github.com/HS-Datadesk/koronavirus-avoindata">Helsingin Sanomat</a>.
-      For example, the estimate for the number of infected is based on the number of confirmed cases in data, but is also affected by various parameters,
-      such as the percentage of undetected infections, length of the incubation period, how long individuals remain infectious, and so forth.
-      We would like to emphasize that while the model is a legitimate infectious disease model, our historical estimates are simple
-      "back of the napkin" type calculations. We refer
-      to <a href="https://github.com/futurice/corona-simulations/blob/master/src/models/historical_estimates.js#L4">the source code</a> for
-      details on historical estimates.
-    </div>
-    <div>
-      The model is initialized with the latest historical estimates for the number of individuals incubating, recovering, etc. Parameter choices impact
+      Our model is a classical epidemiological model (deterministic SEIR).
+      The model is initialized with the latest historical estimate. Parameter choices impact
       both historical estimates and model predictions. Although we have done a lot of research to provide sensible default values,
       you probably disagree with some of our choices. That's why we wanted to provide you the possibility of tuning parameters by yourself.
       You can also set your own action markers to model the effects of different policy changes (those vertical things on top of the chart).
       You can drag action markers, you can add new action markers, you can delete old action markers, and you can configure the name
       and effect of an action (effect on disease transmissions, in percentage).
+    </div>
+    <div>
+      Historical estimates are updated daily based on data provided by <a href="https://github.com/HS-Datadesk/koronavirus-avoindata">Helsingin Sanomat</a>.
+      For example, the estimate for the number of infected is based on the number of confirmed cases in data, but is also affected by various parameters,
+      such as the percentage of undetected infections, length of the incubation period, how long individuals remain infectious, and so forth.
+      We would like to emphasize that historical estimates have not been created with the model. Although the model is a legitimate epidemiological
+      model, our historical estimates are merely simple "back of the napkin" type calculations based on confirmed cases, confirmed deaths,
+      and hospitalization data. We refer
+      to <a href="https://github.com/futurice/corona-simulations/blob/master/src/models/historical_estimates.js#L4">the source code</a> for
+      details on historical estimates.
     </div>
     <div>
       At this time <i>no other</i> website provides a service like this. For example, other Coronavirus modelling websites
@@ -1071,7 +1073,7 @@
       The estimate for active infections is based on confirmed cases (and assumptions and parameters). If we have 10 confirmed cases today,
       we can assume that those cases were infected several days ago. So if we wanted to estimate the number of active infections today,
       we would need data from <i>several days in the future</i>. We don't have data from the future, so we can't use this method to estimate
-      the number active infections today (though of course we can use other methods, such as model predictions, to estimate the number
+      the number of active infections today (though of course we can use other methods, such as model predictions, to estimate the number
       of active infections today). In addition to this, another contributing factor is reporting delay to the confirmed case numbers themselves:
       If you look at the number of confirmed cases reported for yesterday, write it down, and come back one week later to check that the number
       hasn't changed, it probably has. For some reason, confirmed cases and deaths are often reported with a few days of delay.
