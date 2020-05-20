@@ -53,12 +53,24 @@ Corosim is designed as a fully static web app. Data is updated at build-time eve
 ## Want to fork this repo and customize it for your country?
 
 Here are roughly the things you need to change to customize this for your country:
-- Identify a data source for your country
+- Identify a data source for your country. You're looking for these numbers:
+    - confirmed cases by day
+    - confirmed deaths by day
+    - active hospitalizations in regular ward, by day
+    - active hospitalizations in icu, by day
 - Write parsing for the data
+    - take inspiration from here: [update-data.js](update-data.js)
 - Deal with any country-specific peculiarities related to data collection / reporting
+    - peculiarities specific to Finnish data is dealt with in [update-data.js](update-data.js)
 - Go through parameters and change default values for any country-specific parameters
+    - parameters are in [src/paramConfig.json](src/paramConfig.json)
 - Change population count N
+    - you'll find that in [src/App.svelte](src/App.svelte)
 - Change the flag and search all the texts for 'Finland'.
+    - also in [src/App.svelte](src/App.svelte)
 - Change introductory text and attribution
+    - also in [src/App.svelte](src/App.svelte)
 - Set up hosting
+    - I recommend Netlify.
 - Set up a process to rebuild and deploy every x hours (for data updates)
+    - I recommend [GitHub workflows and Netlify build hooks](https://ericjinks.com/blog/2019/).
