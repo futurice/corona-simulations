@@ -63,7 +63,8 @@ Here are roughly the things you need to change to customize this for your countr
 - Deal with any country-specific peculiarities related to data collection / reporting
     - peculiarities specific to Finnish data is dealt with in [update-data.js](update-data.js)
 - Go through parameters and change default values for any country-specific parameters
-    - parameters are in [src/paramConfig.json](src/paramConfig.json)
+    - most parameters are in [src/paramConfig.json](src/paramConfig.json)
+    - R0 is a special case, because it is estimated from data, rather than fixed default value
 - Change population count N
     - you'll find that in [src/App.svelte](src/App.svelte)
 - Change the flag and search all the texts for 'Finland'.
