@@ -56,8 +56,8 @@ Here are roughly the things you need to change to customize this for your countr
 - Identify a data source for your country. You're looking for these numbers:
     - confirmed cases by day
     - confirmed deaths by day
-    - active hospitalizations in regular ward, by day
-    - active hospitalizations in icu, by day
+    - OPTIONAL: active hospitalizations in regular ward, by day
+    - OPTIONAL: active hospitalizations in icu, by day
 - Write parsing for the data
     - take inspiration from here: [update-data.js](update-data.js)
 - Deal with any country-specific peculiarities related to data collection / reporting
