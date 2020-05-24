@@ -69,7 +69,7 @@
   // R0 paramConfig is stored at a separate object because its default value is updated by a reactive function.
   // Do not refactor into paramConfig.
   let paramConfigR0 = {
-    description: `Basic Reproduction Number {R0}`,
+    description: `Basic Reproduction Number {R0} (initially)`,
     isDefaultValueAutomaticallyGeneratedFromData: true,
     defaultValue: 2, // Will be overwritten by a reactive function.
     minValue: 0.01,
@@ -942,6 +942,7 @@
 
       <div class="column" style="margin-left: 0;">
         <ParameterKnob p = {paramConfigR0} bind:value = {R0} bind:popupHTML = {popupHTML} />
+        <div class="paneltext paneldesc"><i>Please note that R0 is affected by action markers (those vertical things on the chart).</i></div>
       </div>
       <div class="column">
         <ParameterKnob p = {paramConfig["undetected_infections"]} bind:value = {undetected_infections} bind:popupHTML = {popupHTML} />
