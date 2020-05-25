@@ -28,7 +28,7 @@
 
     function getLeftPx(cutoffHistoricDay, lastHistoricDay, tmax) {
         // Note: tmax must be in parameters to trigger re-render correctly.
-        return xScaleTime(cutoffHistoricDay) - 1
+        return xScaleTime(cutoffHistoricDay)
     }
 
     $: xScaleTime = scaleLinear()

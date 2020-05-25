@@ -337,8 +337,6 @@
   $: flashMessage     = ''
   $: popupHTML        = ''
 
-
-
   var Plock = 1
 
   var drag_y = function (){
@@ -994,11 +992,11 @@
     </div>
     <div>
       Historical estimates are updated daily based on data provided by <a href="https://github.com/HS-Datadesk/koronavirus-avoindata">Helsingin Sanomat</a>.
-      For example, the estimate for the number of infected is based on the number of confirmed cases in data, but is also affected by various parameters,
-      such as the percentage of undetected infections, length of the incubation period, how long individuals remain infectious, and so forth.
       We would like to emphasize that historical estimates have not been created with the model. Although the model is a legitimate epidemiological
       model, our historical estimates are merely simple "back of the napkin" type calculations based on confirmed cases, confirmed deaths,
-      and hospitalization data. We refer
+      and hospitalization data. For example, the estimate for the number of infected is based on the number of confirmed cases,
+      but is also affected by various parameters, such as the percentage of undetected infections, length of the incubation period,
+      how long individuals remain infectious, and so forth. We refer
       to <a href="https://github.com/futurice/corona-simulations/blob/master/src/models/historical_estimates.js#L4">the source code</a> for
       details on historical estimates.
     </div>

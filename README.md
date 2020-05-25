@@ -58,10 +58,13 @@ Here are roughly the things you need to change to customize this for your countr
     - OPTIONAL: confirmed deaths by day
     - OPTIONAL: active hospitalizations in regular ward, by day
     - OPTIONAL: active hospitalizations in icu, by day
+    - OPTIONAL: new hospitalizations (as opposed to active)
+    - OPTIONAL: recoveries by day
 - Write parsing for the data
     - take inspiration from [update-data.js](update-data.js)
 - Deal with any country-specific peculiarities related to data collection / reporting
-    - peculiarities specific to Finnish data is dealt with in [update-data.js](update-data.js)
+    - some of these peculiarities are dealt with when parsing data, in [update-data.js](update-data.js)
+    - and some are dealt with when creating historical estimates, in [src/models/historical_estimates.js](src/models/historical_estimates.js)
 - Go through parameters and change default values for any country-specific parameters
     - most parameters are in [src/paramConfig.json](src/paramConfig.json)
     - R0 is a special case, because it is estimated from data, rather than fixed default value
