@@ -1062,7 +1062,7 @@
   <Collapsible title="Why the latest historical estimate is several days old" bind:collapsed={collapsed} defaultCollapsed={true}>
     <div>
       You may have noticed that the latest historical estimate is several days old, and you may be wondering if historical estimates are updated.
-      Yes, historical estimates are updated every 3 hours. You can expect to see changes at least once per day, depending
+      Yes, historical estimates are updated every 6 hours. You can expect to see changes at least once per day, depending
       on how often THL updates their data. Unfortunately we do not have reliable numbers for the <i>most recent</i> days, so we have chosen
       to display model predictions for those days instead of displaying historical estimates.
     </div>

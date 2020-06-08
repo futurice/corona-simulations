@@ -33,7 +33,7 @@ Production build begins by fetching the latest data. If successful, it proceeds 
 
 ## Production deployment
 
-- The `master` branch is automatically built and deployed every 3 hours, using [GitHub workflows and Netlify build hooks](https://ericjinks.com/blog/2019/netlify-scheduled-build/).
+- The `master` branch is automatically built and deployed every 6 hours, using [GitHub workflows and Netlify build hooks](https://ericjinks.com/blog/2019/netlify-scheduled-build/).
 - In addition, commits trigger a production deployment.
 
 ## A word about architecture
@@ -44,7 +44,7 @@ Epidemic models can be divided into compartmentalized models and agent-based mod
 
 #### About that architecture
 
-Corosim is designed as a fully static web app. Data is updated at build-time every 3 hours. Computation for the model occurs live in the browser. Benefits of these design choices include:
+Corosim is designed as a fully static web app. Data is updated at build-time every 6 hours. Computation for the model occurs live in the browser. Benefits of these design choices include:
 - Immediate results. End users can tune parameters and action markers and see the results immediately. Users don't have to send a formal request to a silo "can you please run this simulation for us" and wait 1 week for the silo to produce a PDF describing results.
 - Infinitely scalable. This software will work just fine no matter how many simultaneous users you get.
 - Costs $0 to host.
