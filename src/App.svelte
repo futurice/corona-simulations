@@ -145,7 +145,7 @@
 
   function toggleZoomStates() {
     dt *= 2
-    if (dt > 4) dt = 1
+    if (dt > 4) dt = 2
   }
 
   function closePopup() {
