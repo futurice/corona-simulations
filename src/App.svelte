@@ -418,7 +418,7 @@
       // Case: User hovers over a bar or has locked a bar.
       return active
     }
-    return lastHistoricBar
+    return Math.min(lastHistoricBar, 100)
   }
 
   $: active  = 0
