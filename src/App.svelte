@@ -138,14 +138,14 @@
   $: CFR               = paramConfig["fatality_rate"].defaultValue
   $: Time              = 220
   $: Xmax              = 110000
-  $: dt                = 2
+  $: dt                = 4
   $: P_SEVERE          = paramConfig["hospitalization_rate"].defaultValue
   $: P_ICU             = paramConfig["icu_rate_from_hospitalized"].defaultValue
   $: icuCapacity       = paramConfig["icu_capacity"].defaultValue
 
   function toggleZoomStates() {
     dt *= 2
-    if (dt > 4) dt = 2
+    if (dt > 4) dt = 1
   }
 
   function closePopup() {
