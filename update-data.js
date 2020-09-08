@@ -18,6 +18,7 @@ function notTooRecent(dateTime) {
 function verifyDataNotStale(lastSeenDay, days) {
     // Verify that API is not serving stale data which is missing recent days completely.
     if (lastSeenDay !== days-1) {
+        console.log('Last seen day', lastSeenDay, 'instead of', (days-1))
         process.exit(1)
     }
 }
@@ -119,7 +120,6 @@ async function callbackHSConfirmedCasesAndDeaths(response) {
                 lastSeenDay = Math.max(day, lastSeenDay)
             }
         }
-        verifyDataNotStale(lastSeenDay, days)
 
         // Count cumulative from new
         for (var day=0; day<days; day++) {
