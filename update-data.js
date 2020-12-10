@@ -3,8 +3,8 @@ const fs = require('fs');
 
 const estimatesForMissingHospitalizationData = require('./data/estimates_for_missing_hospitalization_data.json');
 
-// Do not remove this import! We want to load paramConfig.json at build time so that if somebody
-// has accidentally broken the JSON by manual editing, build process is halted.
+// This unused import exists because we want to load paramConfig.json at build time so that if somebody
+// has accidentally broken the JSON by manual editing, build process is halted instead of building a broken site.
 const paramConfig = require('./src/paramConfig.json');
 
 const lastMidnight = new Date().setUTCHours(0,0,0,0);
@@ -15,10 +15,10 @@ function notTooRecent(dateTime) {
     return daysFromLastMidnight < -cutoffDays
 }
 
-function verifyDataNotStale(lastSeenDay, days) {
+function verifyDataNotStale(lastSeenDay, days, threshold) {
     // Verify that API is not serving stale data which is missing recent days completely.
-    if (lastSeenDay !== days-1) {
-        console.log('Last seen day', lastSeenDay, 'instead of', (days-1))
+    if (lastSeenDay < days - threshold) {
+        console.log('Error: Last seen day', lastSeenDay, 'is less than acceptable', (days - threshold))
         process.exit(1)
     }
 }
@@ -85,7 +85,7 @@ async function callbackHSConfirmedCasesAndDeaths(response) {
         var parsed = { }
         parsed['epidemyStartDate'] = epidemyStartDate
         parsed['days'] = days
-        const thingsToCount = ["newConfirmedCases", "cumulativeConfirmedCases", "newConfirmedDeaths", "cumulativeConfirmedDeaths", "activeHospitalizations", "activeICU"]
+        const thingsToCount = ["newConfirmedCases", "cumulativeConfirmedCases", "newConfirmedDeaths", "cumulativeConfirmedDeaths"]
         for (var i=0; i<thingsToCount.length; i++) {
             const thing = thingsToCount[i]
             parsed[thing] = {}
@@ -106,7 +106,7 @@ async function callbackHSConfirmedCasesAndDeaths(response) {
                 lastSeenDay = Math.max(day, lastSeenDay)
             }
         }
-        verifyDataNotStale(lastSeenDay, days)
+        verifyDataNotStale(lastSeenDay, days, 1)
 
         // Count deaths per day, and index them according to "days from day 0"
         lastSeenDay = 0
@@ -150,6 +150,9 @@ async function callbackHSHospitalizations(response, parsed) {
             return Math.round((new Date(dateTime).getTime() - new Date(parsed['epidemyStartDate']).getTime()) / 86400000);
         }
 
+        parsed["activeHospitalizations"] = {}
+        parsed["activeICU"] = {}
+
         var lastSeenDay = 0
         for (var i=0; i<hosp.length; i++) {
             const c = hosp[i]
@@ -162,7 +165,7 @@ async function callbackHSHospitalizations(response, parsed) {
                 lastSeenDay = Math.max(day, lastSeenDay)
             }
         }
-        verifyDataNotStale(lastSeenDay, parsed['days'])
+        verifyDataNotStale(lastSeenDay, parsed['days'], 5)
     
         // Finnish hospitalization data is missing entries for early days. Use estimates for those days.
         const est = estimatesForMissingHospitalizationData['hospitalised']
@@ -173,6 +176,15 @@ async function callbackHSHospitalizations(response, parsed) {
             if (parsed["activeHospitalizations"][day] === 0) {
                 parsed["activeHospitalizations"][day] = c['inWard']
                 parsed["activeICU"][day] = c['inIcu']
+            }
+        }
+
+        // Finnish hospitalization data is randomly missing individual days here and there.
+        // Use the most recent known value for those missing days, or 0 if not known (e.g. first day in series).
+        for (var day=0; day<parsed["days"]; day++) {
+            if (!(day in parsed["activeHospitalizations"])) {
+                parsed["activeHospitalizations"][day] = parsed["activeHospitalizations"][day-1] || 0
+                parsed["activeICU"][day] = parsed["activeHospitalizations"][day-1] || 0
             }
         }
         
