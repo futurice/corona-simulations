@@ -32,7 +32,7 @@ export function get_solution_from_gohs_seir_ode(actionMarkersForGoh, historical_
     const D_death = D_hospital
 
     var interpolation_steps = 40
-    var days_to_simulate = 400
+    var days_to_simulate = 800
     var steps = 101*interpolation_steps*days_to_simulate/100
     var dt = 1/interpolation_steps
     var sample_step = interpolation_steps
@@ -168,8 +168,8 @@ export function map_goh_states_into_UFStates(goh_states, N, P_ICU) {
 
 export function goh_default_action_markers(P_all_historical) {
     return [
-        new ActionMarkerData(250, "New restrictions", -0.25),
-        new ActionMarkerData(350, "Lift restrictions", 0.67),
+        new ActionMarkerData(380, "Cold weather", 0.1),
+        new ActionMarkerData(450, "Vaccinations", -0.3),
     ].filter(am => {
         // Prevent action markers from falling behind the historical marker
         return am.day > P_all_historical.length
