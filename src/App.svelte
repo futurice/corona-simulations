@@ -1083,9 +1083,15 @@
     </div>
   </Collapsible>
 
-  <Collapsible title="Differences between Corosim and Epidemic Calculator" bind:collapsed={collapsed} defaultCollapsed={true}>
+  <Collapsible title="Attribution" bind:collapsed={collapsed} defaultCollapsed={true}>
     <div style="padding-bottom: 16.5px;">
       {@html replaceFuturiceFromTextWithLogo(oneLineAttribution)}
+    </div>
+    <div>
+      For any enquiries, contact <a href="https://www.attejuvonen.fi/contact/" target="_blank">Atte Juvonen</a>.
+    </div>
+    <div>
+      <a href="https://github.com/futurice/corona-simulations">Source code available on GitHub.</a>
     </div>
     <div>
       Key differences between Corosim and Epidemic Calculator:
@@ -1119,18 +1125,7 @@
           case fatality rate actually affects the hospitalization rate, but this effect is hidden from the end user.</li>
       <li>Various design and UX improvements (real dates, more tooltips, reduced clutter, etc.) </li>
     </ul>
-  </Collapsible>
 
-  <Collapsible title="Attribution" bind:collapsed={collapsed} defaultCollapsed={false}> 
-    <div>
-      {@html replaceFuturiceFromTextWithLogo(oneLineAttribution)}
-    </div>
-    <div>
-      For any enquiries, contact <a href="https://www.attejuvonen.fi/contact/" target="_blank">Atte Juvonen</a>.
-    </div>
-    <div>
-      <a href="https://github.com/futurice/corona-simulations">Source code available on GitHub.</a>
-    </div>
   </Collapsible>
 
 {/if}
