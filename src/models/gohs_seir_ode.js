@@ -134,6 +134,7 @@ function map_goh_states_into_ORIGINAL_user_facing_states(goh_states, N) {
 /** Map Goh model's internal states into states represented by our chart. */
 export function map_goh_states_into_UFStates(goh_states, N, P_ICU) {
     return goh_states.map(v => {
+
         // First, just for readability, we name the states in the array
         const susceptible = v[0]
         const exposed = v[1]

@@ -42,7 +42,8 @@
 
   function get_R0_from_Rt(Rt, goh_states_fin) {
     const prop_susceptible = goh_states_fin[goh_states_fin.length-1][0]
-    return parseFloat((Rt / prop_susceptible).toFixed(2))
+    const R0 = parseFloat((Rt / prop_susceptible).toFixed(2))
+    return R0
   }
 
   // Motivation: when we zoom out, Chart needs every nth datapoint from P.
@@ -94,6 +95,8 @@
                                very close to each other. However, as more and more people have had the disease,
                                they have (presumably) developed an immunity towards it. This makes it increasingly
                                harder for the virus to spread, causing {Rt} to diverge lower from {R0}.
+                               Note that the parameter selection concerns the <i>initial</i> value for {R0}.
+                               Action markers may be used to alter {R0} (and thus also {Rt}) at any point in time.
                                `,
     longformEffects: "",
     longformDefaultValueJustification: `The default value for {R0} is estimated from 7 days of confirmed case counts.
@@ -1081,7 +1084,7 @@
 
   <Collapsible title="Differences between Corosim and Epidemic Calculator" bind:collapsed={collapsed} defaultCollapsed={true}>
     <div style="padding-bottom: 16.5px;">
-      {@html oneLineAttribution}
+      {@html replaceFuturiceFromTextWithLogo(oneLineAttribution)}
     </div>
     <div>
       Key differences between Corosim and Epidemic Calculator:
@@ -1090,7 +1093,7 @@
       <li>Historical estimates. The original Epidemic Calculator initiates the simulation from a theoretical "day zero".
           Corosim initiates the simulation from the latest historical estimate. Estimates are updated daily.</li>
       <li>Corosim is tailored to the current situation in Finland. In addition to Finnish historical data, all the parameter default values have been chosen
-          based on latest scientific research, and specific to Finland when applicable. For example, the most crucial parameter in
+          based on latest scientific research (as of 2020/05), and specific to Finland when applicable. For example, the most crucial parameter in
           this model is {@html math_inline('\\mathcal{R}_0')}. It's constantly changing and it's specific to the population which
           you are trying to model (meaning, the {@html math_inline('\\mathcal{R}_0')} for Italy will be different than the
           {@html math_inline('\\mathcal{R}_0')} for Finland). For these reasons a hardcoded default value for {@html math_inline('\\mathcal{R}_0')}
@@ -1122,7 +1125,7 @@
       {@html replaceFuturiceFromTextWithLogo(oneLineAttribution)}
     </div>
     <div>
-      For any enquiries, contact Atte Juvonen at futurice.com.
+      For any enquiries, contact <a href="https://www.attejuvonen.fi/contact/" target="_blank">Atte Juvonen</a>.
     </div>
     <div>
       <a href="https://github.com/futurice/corona-simulations">Source code available on GitHub.</a>

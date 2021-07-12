@@ -75,4 +75,4 @@ Here are roughly the things you need to change to customize this for your countr
 - Set up hosting
     - I recommend Netlify.
 - Set up a process to rebuild and deploy every x hours (for data updates)
-    - I recommend [GitHub workflows and Netlify build hooks](https://ericjinks.com/blog/2019/netlify-scheduled-build/).
+    - I used [GitHub actions and Netlify build hooks](https://ericjinks.com/blog/2019/netlify-scheduled-build/). Note that GitHub actions has a serious footgun: the action will stop running after 3 months of no commits to your repository. So your build process will just silently break at some point, if you choose to use GitHub actions. If you already have an unrelated server running somewhere, you might want to set up a cron job to pull the Netlify build hook every x hours instead of using GitHub actions.
