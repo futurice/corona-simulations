@@ -1004,9 +1004,10 @@
       details on historical estimates.
     </div>
     <div>
-      At this time <i>no other</i> website provides a service like this. For example, other Coronavirus modelling websites
-      typically begin the simulation from a theoretical "day zero" which can not be configured according to estimates of the current situation
-      (typically you can only adjust the number of infected). We are in the middle of the epidemic &#8212; long past day zero.
+      Corosim is unique in the way it combines model predictions with historical estimates.
+      Other Coronavirus modelling websites begin the simulation from a theoretical "day zero", which is useful to simulate how a theoretical
+      epidemic might spread in a theoretical environment. However, these "day zero" simulations are not that useful in simulating how the
+      current, real-life Coronavirus epidemic might spread. We are in the middle of the epidemic &#8212; long past day zero.
       Doesn't it make sense to start the simulation from the most recent estimate of the current situation? That's what Corosim does.
     </div>
     <div>
