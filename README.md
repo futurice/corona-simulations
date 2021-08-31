@@ -13,7 +13,6 @@ npm install
 ## Development
 
 ```bash
-npm run update-data
 npm run dev
 ```
 
@@ -23,6 +22,14 @@ There are some issues with hot reloading in the development environment; if you
 find yourself needing to hard refresh to see changes, try developing on Chrome
 with devtools open and "disable cache" checked.
 
+If you want to fetch the latest data, you can try to do it with:
+
+```bash
+npm run update-data
+```
+
+This project is no longer maintained so there may be issues in fetching the latest data.
+
 ## Production build
 
 ```bash
@@ -30,11 +37,8 @@ npm run build
 ```
 
 Production build begins by fetching the latest data. If successful, it proceeds to run a regular Svelte production build.
-
-## Production deployment
-
-- The `master` branch is automatically built and deployed every 6 hours, using [GitHub workflows and Netlify build hooks](https://ericjinks.com/blog/2019/netlify-scheduled-build/).
-- In addition, commits trigger a production deployment.
+Previously this repo was periodically built and deployed every 6 hours using [GitHub workflows and Netlify build hooks](https://ericjinks.com/blog/2019/netlify-scheduled-build/), so it was always based on latest data, but now the auto-update is stopped and the build is frozen in place.
+Commits to master branch still trigger automatic deployments.
 
 ## A word about architecture
 
@@ -44,7 +48,7 @@ Epidemic models can be divided into compartmentalized models and agent-based mod
 
 #### About that architecture
 
-Corosim is designed as a fully static web app. Data is updated at build-time every 6 hours. Computation for the model occurs live in the browser. Benefits of these design choices include:
+Corosim is designed as a fully static web app. Data was updated at build-time every 6 hours. Computation for the model occurs live in the browser. Benefits of these design choices include:
 - Immediate results. End users can tune parameters and action markers and see the results immediately. Users don't have to send a formal request to a silo "can you please run this simulation for us" and wait 1 week for the silo to produce a PDF describing results.
 - Infinitely scalable. This software will work just fine no matter how many simultaneous users you get.
 - Costs $0 to host.
@@ -65,14 +69,12 @@ Here are roughly the things you need to change to customize this for your countr
 - Deal with any country-specific peculiarities related to data collection / reporting
     - some of these peculiarities are dealt with when parsing data, in [update-data.js](update-data.js)
     - and some are dealt with when creating historical estimates, in [src/models/historical_estimates.js](src/models/historical_estimates.js)
-- Go through parameters and change default values for any country-specific parameters
-    - most parameters are in [src/paramConfig.json](src/paramConfig.json)
-    - R0 is a special case, because it is estimated from data, rather than fixed default value
+- Go through parameters and change default values for any country-specific parameters (most parameters are in [src/paramConfig.json](src/paramConfig.json))
 - Change population count N
     - you'll find that in [src/App.svelte](src/App.svelte)
 - Change the flag and texts.
     - also in [src/App.svelte](src/App.svelte)
 - Set up hosting
     - I recommend Netlify.
-- Set up a process to rebuild and deploy every x hours (for data updates)
+- Set up a process to rebuild and deploy every x hours for data updates
     - I used [GitHub actions and Netlify build hooks](https://ericjinks.com/blog/2019/netlify-scheduled-build/). Note that GitHub actions has a serious footgun: the action will stop running after 3 months of no commits to your repository. So your build process will just silently break at some point, if you choose to use GitHub actions. If you already have an unrelated server running somewhere, you might want to set up a cron job to pull the Netlify build hook every x hours instead of using GitHub actions.

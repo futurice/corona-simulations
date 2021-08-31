@@ -71,7 +71,7 @@
   // Do not refactor into paramConfig.
   let paramConfigR0 = {
     description: `Basic Reproduction Number {R0} (initially)`,
-    isDefaultValueAutomaticallyGeneratedFromData: true,
+    isDefaultValueAutomaticallyGeneratedFromData: false,
     defaultValue: 2, // Will be overwritten by a reactive function.
     minValue: 0.01,
     maxValue: 5,
@@ -99,28 +99,7 @@
                                Action markers may be used to alter {R0} (and thus also {Rt}) at any point in time.
                                `,
     longformEffects: "",
-    longformDefaultValueJustification: `The default value for {R0} is estimated from 7 days of confirmed case counts.
-                                        This default value is not hardcoded, it is updated daily as new data comes in.
-                                        Because of delays in recording new cases, we do not use the most recent 7 days:
-                                        we exclude the most recent 5 days and then take the next 7 days.<br>
-                                        
-                                        <img src="latest_Rt.png" alt="Rt estimates over time" title="Rt estimates over time"/><br>
-
-                                        There are many methods to estimate reproduction numbers from data. We use a Bayesian
-                                        approach described by <a href="https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0002185">Bettencourt
-                                        & Ribeiro</a> in their 2008 paper "Real Time Bayesian Estimation of the Epidemic Potential
-                                        of Emerging Infectious Diseases"</a>, which was
-                                        <a href="http://systrom.com/blog/the-metric-we-need-to-manage-covid-19/">adapted and modified</a>
-                                        for the COVID-19 epidemic by Kevin Systrom. This method gives us an estimate of {Rt},
-                                        which we convert to {R0} by considering our estimate of the proportion of susceptible population p:
-                                        <br><br>
-                                        ${math_inline('\\mathcal{R}_t = \\mathcal{R}_0 * p')}
-                                        
-                                        <br><br>
-                                        If you would like to double-check our computations on Finnish data, see
-                                        <a href="https://github.com/futurice/covid-19-R_t-estimating/blob/master/finland.ipynb">this notebook</a>.
-                                        
-                                        `
+    longformDefaultValueJustification: ``
 
   }
 
@@ -300,12 +279,12 @@
   $: firstBarDate     = firstHistoricalDate
 
   $: lastHistoricDay       = P_all_historical_before_slicing.length-1
-  $: cutoffHistoricDay     = cutoffHistoricDay ? cutoffHistoricDay : lastHistoricDay+1
+  $: cutoffHistoricDay     = cutoffHistoricDay ? cutoffHistoricDay : 170
   $: P_all_historical      = P_all_historical_before_slicing.slice(0, cutoffHistoricDay)
   $: goh_states_fin        = goh_states_fin_before_slicing.slice(0, cutoffHistoricDay)
   $: latestRtEstimateValue = Number.parseFloat(latestRtEstimate[0]["Rt"])
   $: latestRtEstimateDate  = latestRtEstimate[0]["date"]
-  $: latestR0EstimateValue = get_R0_from_Rt(latestRtEstimateValue, goh_states_fin)
+  $: latestR0EstimateValue = 1.15 // frozen to hardcoded value, you can also use: get_R0_from_Rt(latestRtEstimateValue, goh_states_fin)
   $: R0                    = R0 ? R0 : latestR0EstimateValue
   $: setDefaultParamsR0(latestR0EstimateValue, latestRtEstimateDate)
   $: lastHistoricBar       = getlastHistoricBar(P_all_historical, dt)
@@ -986,15 +965,20 @@
     </div>
     <div>
       Our model is a classical epidemiological model (deterministic SEIR).
-      The model is initialized with the latest historical estimate. Parameter choices impact
-      both historical estimates and model predictions. Although we have done a lot of research to provide sensible default values,
-      you probably disagree with some of our choices. That's why we wanted to provide you the possibility of tuning parameters by yourself.
-      You can also set your own action markers to model the effects of different policy changes (those vertical things on top of the chart).
+      The model is initialized with the latest historical estimate (you can drag the historical estimate "curtain" on the graph if you want the model to start from a different timepoint).
+      Parameter choices impact both historical estimates and model predictions. You have the possibility of tuning parameters by yourself (under the graph).
+      You can also set your own action markers to model the effects of different policy changes (those vertical lines on top of the graph).
       You can drag action markers, you can add new action markers, you can delete old action markers, and you can configure the name
       and effect of an action (effect on disease transmissions, in percentage).
     </div>
+  </Collapsible>
+  <Collapsible title="Historical estimates" bind:collapsed={collapsed} defaultCollapsed={false}>
     <div>
-      Historical estimates are updated daily based on data provided by <a href="https://github.com/HS-Datadesk/koronavirus-avoindata">Helsingin Sanomat</a>.
+      Historical estimates <s>are</s> were updated daily based on data provided by <a href="https://github.com/HS-Datadesk/koronavirus-avoindata">Helsingin Sanomat</a>.
+      <b>Automatic updates have been turned off and Corosim is now frozen in time.</b>
+      Latest available historical estimate is frozen to {getDate(firstBarDate, lastHistoricDay)}
+      (although the historical estimates "curtain" is currently dragged to {getDate(firstBarDate, cutoffHistoricDay-1)}, you can drag to change this timepoint).
+    </div><div>
       We would like to emphasize that historical estimates have not been created with the model. Although the model is a legitimate epidemiological
       model, our historical estimates are merely simple "back of the napkin" type calculations based on confirmed cases, confirmed deaths,
       and hospitalization data. For example, the estimate for the number of infected is based on the number of confirmed cases,
@@ -1018,13 +1002,7 @@
     </div>
   </Collapsible>
 
-  <Collapsible title="R0 estimation" bind:collapsed={collapsed} defaultCollapsed={true}>
-    <div>
-      {@html stylizeExpressions(paramConfigR0['longformDefaultValueJustification'])}
-    </div>
-  </Collapsible>
-
-  <Collapsible title="More on model predictions" bind:collapsed={collapsed} defaultCollapsed={true}>
+  <Collapsible title="Model predictions" bind:collapsed={collapsed} defaultCollapsed={true}>
     <div>
     
       Corosim uses Gabriel Goh's implementation of a
@@ -1039,7 +1017,6 @@
         These are certainly not the only differences between these models &#8212; unfortunately THL has not published their entire model,
         so we are unable to provide a thorough comparison. Most of the discussion around models in Finland seems to revolve around parameter
         choices, rather than models themselves.
-      
     </div>
     <div>
       The dynamics of this model are characterized by a set of four ordinary differential equations that correspond to the stages of the disease's progression:
@@ -1063,26 +1040,6 @@
     </ul>
   </Collapsible>
 
-  <Collapsible title="Why the latest historical estimate is several days old" bind:collapsed={collapsed} defaultCollapsed={true}>
-    <div>
-      You may have noticed that the latest historical estimate is several days old, and you may be wondering if historical estimates are updated.
-      Yes, historical estimates are updated every 6 hours. You can expect to see changes at least once per day, depending
-      on how often THL updates their data. Unfortunately we do not have reliable numbers for the <i>most recent</i> days, so we have chosen
-      to display model predictions for those days instead of displaying historical estimates.
-    </div>
-    <div>
-      Why don't we have reliable numbers for the most recent days? This is caused by two separate issues.
-      As an example, let's consider the number of active infections.
-      The estimate for active infections is based on confirmed cases (and assumptions and parameters). If we have 10 confirmed cases today,
-      we can assume that those cases were infected several days ago. So if we wanted to estimate the number of active infections today,
-      we would need data from <i>several days in the future</i>. We don't have data from the future, so we can't use this method to estimate
-      the number of active infections today (though of course we can use other methods, such as model predictions, to estimate the number
-      of active infections today). In addition to this, another contributing factor is reporting delay to the confirmed case numbers themselves:
-      If you look at the number of confirmed cases reported for yesterday, write it down, and come back one week later to check that the number
-      hasn't changed, it probably has. For some reason, confirmed cases and deaths are often reported with a few days of delay.
-    </div>
-  </Collapsible>
-
   <Collapsible title="Attribution" bind:collapsed={collapsed} defaultCollapsed={true}>
     <div style="padding-bottom: 16.5px;">
       {@html replaceFuturiceFromTextWithLogo(oneLineAttribution)}
@@ -1098,7 +1055,7 @@
     </div>
     <ul>
       <li>Historical estimates. The original Epidemic Calculator initiates the simulation from a theoretical "day zero".
-          Corosim initiates the simulation from the latest historical estimate. Estimates are updated daily.</li>
+          Corosim initiates the simulation from the latest historical estimate. Estimates <s>are</s> were updated daily.</li>
       <li>Corosim is tailored to the current situation in Finland. In addition to Finnish historical data, all the parameter default values have been chosen
           based on latest scientific research (as of 2020/05), and specific to Finland when applicable. For example, the most crucial parameter in
           this model is {@html math_inline('\\mathcal{R}_0')}. It's constantly changing and it's specific to the population which
