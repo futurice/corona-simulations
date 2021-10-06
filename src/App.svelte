@@ -696,7 +696,6 @@
 
 </style>
 
-
 <h2><div>
   <span style="">Corosim</span>
   <img style="vertical-align:middle" src="flag.png" title="Finland" alt="finnish flag" width="100">
@@ -972,7 +971,7 @@
       and effect of an action (effect on disease transmissions, in percentage).
     </div>
   </Collapsible>
-  <Collapsible title="Historical estimates" bind:collapsed={collapsed} defaultCollapsed={false}>
+  <Collapsible title="Historical estimates" bind:collapsed={collapsed} defaultCollapsed={true}>
     <div>
       Historical estimates <s>are</s> were updated daily based on data provided by <a href="https://github.com/HS-Datadesk/koronavirus-avoindata">Helsingin Sanomat</a>.
       <b>Automatic updates have been turned off and Corosim is now frozen in time.</b>
