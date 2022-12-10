@@ -2,7 +2,7 @@
 
 Deployed & explained here:
 
-https://corosim.fi/
+https://corosim.attejuvonen.fi/
 
 ## Initial setup
 
